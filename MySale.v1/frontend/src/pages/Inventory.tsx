@@ -258,39 +258,39 @@ const Inventory: React.FC = () => {
                     className="pl-10"
                   />
                 </div>
-                <Select value={selectedGroup} onValueChange={(v) => { setSelectedGroup(v); setSelectedFamily(''); setSelectedSubFamily(''); }}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Grupo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
-                    {groups.map(g => (
-                      <SelectItem key={g.id} value={g.id.toString()}>{g.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={selectedFamily} onValueChange={(v) => { setSelectedFamily(v); setSelectedSubFamily(''); }}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Familia" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
-                    {filteredFamilies.map(f => (
-                      <SelectItem key={f.id} value={f.id.toString()}>{f.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={selectedSubFamily} onValueChange={setSelectedSubFamily}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="SubFamilia" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
-                    {filteredSubFamilies.map(sf => (
-                      <SelectItem key={sf.id} value={sf.id.toString()}>{sf.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                                <Select value={selectedGroup || "all"} onValueChange={(v) => { setSelectedGroup(v === "all" ? "" : v); setSelectedFamily(''); setSelectedSubFamily(''); }}>
+                                  <SelectTrigger className="w-40">
+                                    <SelectValue placeholder="Grupo" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todos</SelectItem>
+                                    {groups.map(g => (
+                                      <SelectItem key={g.id} value={g.id.toString()}>{g.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Select value={selectedFamily || "all"} onValueChange={(v) => { setSelectedFamily(v === "all" ? "" : v); setSelectedSubFamily(''); }}>
+                                  <SelectTrigger className="w-40">
+                                    <SelectValue placeholder="Familia" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todas</SelectItem>
+                                    {filteredFamilies.map(f => (
+                                      <SelectItem key={f.id} value={f.id.toString()}>{f.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Select value={selectedSubFamily || "all"} onValueChange={(v) => setSelectedSubFamily(v === "all" ? "" : v)}>
+                                  <SelectTrigger className="w-40">
+                                    <SelectValue placeholder="SubFamilia" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todas</SelectItem>
+                                    {filteredSubFamilies.map(sf => (
+                                      <SelectItem key={sf.id} value={sf.id.toString()}>{sf.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
               </div>
 
               <div className="overflow-x-auto">

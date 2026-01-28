@@ -38,12 +38,30 @@ async def login(
         expires_delta=access_token_expires
     )
     
+    role_response = None
+    if user.role:
+        from app.schemas.user import RoleResponse
+        role_response = RoleResponse(
+            id=user.role.id,
+            name=user.role.name,
+            role_type=user.role.role_type,
+            can_void_sales=user.role.can_void_sales,
+            can_manage_inventory=user.role.can_manage_inventory,
+            can_manage_users=user.role.can_manage_users,
+            can_view_reports=user.role.can_view_reports,
+            can_manage_locations=user.role.can_manage_locations,
+            can_set_stock_thresholds=user.role.can_set_stock_thresholds,
+            can_close_shifts=user.role.can_close_shifts,
+            created_at=user.role.created_at
+        )
+    
     user_response = UserResponse(
         id=user.id,
         username=user.username,
         email=user.email,
         full_name=user.full_name,
         role_id=user.role_id,
+        role=role_response,
         location_id=user.location_id,
         is_active=user.is_active,
         points=user.points,
@@ -81,12 +99,30 @@ async def login_biometric(
         expires_delta=access_token_expires
     )
     
+    role_response = None
+    if user.role:
+        from app.schemas.user import RoleResponse
+        role_response = RoleResponse(
+            id=user.role.id,
+            name=user.role.name,
+            role_type=user.role.role_type,
+            can_void_sales=user.role.can_void_sales,
+            can_manage_inventory=user.role.can_manage_inventory,
+            can_manage_users=user.role.can_manage_users,
+            can_view_reports=user.role.can_view_reports,
+            can_manage_locations=user.role.can_manage_locations,
+            can_set_stock_thresholds=user.role.can_set_stock_thresholds,
+            can_close_shifts=user.role.can_close_shifts,
+            created_at=user.role.created_at
+        )
+    
     user_response = UserResponse(
         id=user.id,
         username=user.username,
         email=user.email,
         full_name=user.full_name,
         role_id=user.role_id,
+        role=role_response,
         location_id=user.location_id,
         is_active=user.is_active,
         points=user.points,
