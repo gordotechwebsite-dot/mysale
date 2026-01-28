@@ -17,6 +17,7 @@ import Locations from './pages/Locations';
 import Losses from './pages/Losses';
 import Transfers from './pages/Transfers';
 import Expenses from './pages/Expenses';
+import LocationsDashboard from './pages/LocationsDashboard';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -70,10 +71,11 @@ function AppRoutes() {
         <Route path="reports" element={<Reports />} />
         <Route path="users" element={<Users />} />
         <Route path="locations" element={<Locations />} />
-        <Route path="losses" element={<Losses />} />
-        <Route path="transfers" element={<Transfers />} />
-        <Route path="expenses" element={<Expenses />} />
-      </Route>
+              <Route path="losses" element={<Losses />} />
+              <Route path="transfers" element={<Transfers />} />
+              <Route path="expenses" element={<Expenses />} />
+              <Route path="locations-dashboard" element={<LocationsDashboard />} />
+            </Route>
     </Routes>
   );
 }

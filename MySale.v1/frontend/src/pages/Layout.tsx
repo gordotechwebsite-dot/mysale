@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   DollarSign,
   Menu,
-  X
+  X,
+  Store
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
@@ -34,18 +35,19 @@ const Layout: React.FC = () => {
 
   const isAdmin = user?.role?.role_type === 'superuser' || user?.role?.role_type === 'admin';
 
-  const menuItems = [
-    { path: '/', icon: LayoutDashboard, label: 'Dashboard', show: true },
-    { path: '/pos', icon: ShoppingCart, label: 'Punto de Venta', show: true },
-    { path: '/inventory', icon: Package, label: 'Inventario', show: isAdmin },
-    { path: '/transfers', icon: Truck, label: 'Transferencias', show: true },
-    { path: '/losses', icon: AlertTriangle, label: 'Mermas', show: true },
-    { path: '/expenses', icon: DollarSign, label: 'Gastos', show: isAdmin },
-    { path: '/shifts', icon: Clock, label: 'Turnos', show: true },
-    { path: '/reports', icon: FileText, label: 'Reportes', show: isAdmin },
-    { path: '/users', icon: Users, label: 'Usuarios', show: isAdmin },
-    { path: '/locations', icon: MapPin, label: 'Ubicaciones', show: user?.role?.role_type === 'superuser' },
-  ];
+    const menuItems = [
+      { path: '/', icon: LayoutDashboard, label: 'Dashboard', show: true },
+      { path: '/locations-dashboard', icon: Store, label: 'Puntos de Venta', show: isAdmin },
+      { path: '/pos', icon: ShoppingCart, label: 'Punto de Venta', show: true },
+      { path: '/inventory', icon: Package, label: 'Inventario', show: isAdmin },
+      { path: '/transfers', icon: Truck, label: 'Transferencias', show: true },
+      { path: '/losses', icon: AlertTriangle, label: 'Mermas', show: true },
+      { path: '/expenses', icon: DollarSign, label: 'Gastos', show: isAdmin },
+      { path: '/shifts', icon: Clock, label: 'Turnos', show: true },
+      { path: '/reports', icon: FileText, label: 'Reportes', show: isAdmin },
+      { path: '/users', icon: Users, label: 'Usuarios', show: isAdmin },
+      { path: '/locations', icon: MapPin, label: 'Ubicaciones', show: user?.role?.role_type === 'superuser' },
+    ];
 
   return (
     <div className="min-h-screen bg-gray-100 flex">

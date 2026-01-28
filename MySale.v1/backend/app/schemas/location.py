@@ -9,6 +9,7 @@ class LocationCreate(BaseModel):
     code: str
     location_type: LocationType
     address: Optional[str] = None
+    image_url: Optional[str] = None
     daily_base_cash: int = 100000
     folio_prefix: Optional[str] = None
 
@@ -16,6 +17,7 @@ class LocationCreate(BaseModel):
 class LocationUpdate(BaseModel):
     name: Optional[str] = None
     address: Optional[str] = None
+    image_url: Optional[str] = None
     is_active: Optional[bool] = None
     daily_base_cash: Optional[int] = None
     folio_prefix: Optional[str] = None
@@ -27,6 +29,7 @@ class LocationResponse(BaseModel):
     code: str
     location_type: LocationType
     address: Optional[str]
+    image_url: Optional[str]
     is_active: bool
     daily_base_cash: int
     folio_prefix: Optional[str]
@@ -35,3 +38,18 @@ class LocationResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class LocationDashboardResponse(BaseModel):
+    id: int
+    name: str
+    code: str
+    location_type: LocationType
+    address: Optional[str]
+    image_url: Optional[str]
+    is_active: bool
+    today_sales: float
+    today_transactions: int
+    active_workers: list
+    stock_alerts: list
+    recent_sales: list

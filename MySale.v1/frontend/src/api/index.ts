@@ -307,3 +307,51 @@ export const exportInventoryExcel = async (locationId?: number): Promise<Blob> =
   });
   return response.data;
 };
+
+export interface LocationDashboard {
+  id: number;
+  name: string;
+  code: string;
+  location_type: string;
+  address: string | null;
+  image_url: string | null;
+  is_active: boolean;
+  today_sales: number;
+  today_transactions: number;
+  active_workers: {
+    id: number;
+    name: string;
+    shift_start: string | null;
+    total_sales: number;
+  }[];
+  stock_alerts: {
+    product_id: number;
+    product_name: string;
+    current_stock: number;
+    min_stock: number;
+  }[];
+  recent_sales: {
+    id: number;
+    folio: string;
+    total: number;
+    payment_method: string | null;
+    created_at: string | null;
+  }[];
+}
+
+export const getLocationsDashboard = async (): Promise<LocationDashboard[]> => {
+  const response = await api.get('/api/locations/dashboard/all');
+  return response.data;
+};
+
+export const updateLocation = async (id: number, data: {
+  name?: string;
+  address?: string;
+  image_url?: string;
+  is_active?: boolean;
+  daily_base_cash?: number;
+  folio_prefix?: string;
+}): Promise<Location> => {
+  const response = await api.put(`/api/locations/${id}`, data);
+  return response.data;
+};
