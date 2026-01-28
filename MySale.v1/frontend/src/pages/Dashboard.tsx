@@ -60,6 +60,8 @@ const Dashboard: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [cashCount, setCashCount] = useState<Record<number, number>>({});
 
+  const isAdmin = user?.role?.role_type === 'superuser' || user?.role?.role_type === 'admin';
+
   useEffect(() => {
     loadData();
   }, []);
@@ -211,63 +213,65 @@ const Dashboard: React.FC = () => {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Ventas Hoy</p>
-                <p className="text-2xl font-bold">{formatCurrency(data?.today_sales || 0)}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            {isAdmin && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">Ventas Hoy</p>
+                        <p className="text-2xl font-bold">{formatCurrency(data?.today_sales || 0)}</p>
+                      </div>
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <DollarSign className="w-6 h-6 text-green-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Transacciones</p>
-                <p className="text-2xl font-bold">{data?.today_transactions || 0}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <ShoppingCart className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">Transacciones</p>
+                        <p className="text-2xl font-bold">{data?.today_transactions || 0}</p>
+                      </div>
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <ShoppingCart className="w-6 h-6 text-blue-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Ventas del Mes</p>
-                <p className="text-2xl font-bold">{formatCurrency(data?.month_sales || 0)}</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">Ventas del Mes</p>
+                        <p className="text-2xl font-bold">{formatCurrency(data?.month_sales || 0)}</p>
+                      </div>
+                      <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                        <TrendingUp className="w-6 h-6 text-purple-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Alertas Stock</p>
-                <p className="text-2xl font-bold text-orange-600">{data?.low_stock_alerts || 0}</p>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">Alertas Stock</p>
+                        <p className="text-2xl font-bold text-orange-600">{data?.low_stock_alerts || 0}</p>
+                      </div>
+                      <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                        <AlertTriangle className="w-6 h-6 text-orange-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            )}
 
       {stockAlerts.length > 0 && (
         <Card>
