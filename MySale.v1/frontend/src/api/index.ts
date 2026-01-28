@@ -345,7 +345,7 @@ export interface LocationDashboard {
 }
 
 export const getLocationsDashboard = async (): Promise<LocationDashboard[]> => {
-  const response = await api.get('/api/locations/dashboard/all');
+  const response = await api.get('/api/locations/dashboard');
   return response.data;
 };
 
