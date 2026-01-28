@@ -227,17 +227,17 @@ const Expenses: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={newExpense.location_id} onValueChange={(v) => setNewExpense({ ...newExpense, location_id: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Ubicacion (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">General</SelectItem>
-                  {locations.map(l => (
-                    <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                            <Select value={newExpense.location_id || "general"} onValueChange={(v) => setNewExpense({ ...newExpense, location_id: v === "general" ? "" : v })}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Ubicacion (opcional)" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="general">General</SelectItem>
+                                {locations.map(l => (
+                                  <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
             </div>
             <Textarea
               placeholder="Descripcion *"

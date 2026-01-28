@@ -117,43 +117,43 @@ const Shifts: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4 mb-6">
-            <Select value={filterLocation} onValueChange={setFilterLocation}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Todas las ubicaciones" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Todas</SelectItem>
-                {locations.map(l => (
-                  <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                        <Select value={filterLocation || "all"} onValueChange={(v) => setFilterLocation(v === "all" ? "" : v)}>
+                          <SelectTrigger className="w-48">
+                            <SelectValue placeholder="Todas las ubicaciones" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todas</SelectItem>
+                            {locations.map(l => (
+                              <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
 
-            {isAdmin && (
-              <Select value={filterUser} onValueChange={setFilterUser}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Todos los usuarios" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
-                  {users.map(u => (
-                    <SelectItem key={u.id} value={u.id.toString()}>{u.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+                        {isAdmin && (
+                          <Select value={filterUser || "all"} onValueChange={(v) => setFilterUser(v === "all" ? "" : v)}>
+                            <SelectTrigger className="w-48">
+                              <SelectValue placeholder="Todos los usuarios" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">Todos</SelectItem>
+                              {users.map(u => (
+                                <SelectItem key={u.id} value={u.id.toString()}>{u.full_name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
 
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
-                <SelectItem value="open">Abierto</SelectItem>
-                <SelectItem value="closed">Cerrado</SelectItem>
-                <SelectItem value="closed_by_admin">Cerrado por Admin</SelectItem>
-              </SelectContent>
-            </Select>
+                        <Select value={filterStatus || "all"} onValueChange={(v) => setFilterStatus(v === "all" ? "" : v)}>
+                          <SelectTrigger className="w-40">
+                            <SelectValue placeholder="Estado" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos</SelectItem>
+                            <SelectItem value="open">Abierto</SelectItem>
+                            <SelectItem value="closed">Cerrado</SelectItem>
+                            <SelectItem value="closed_by_admin">Cerrado por Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
           </div>
 
           <div className="overflow-x-auto">

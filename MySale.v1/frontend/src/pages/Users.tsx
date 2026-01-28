@@ -202,17 +202,17 @@ const Users: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={newUser.location_id} onValueChange={(v) => setNewUser({ ...newUser, location_id: v })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Ubicacion (opcional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Sin asignar</SelectItem>
-                {locations.map(l => (
-                  <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                        <Select value={newUser.location_id || "none"} onValueChange={(v) => setNewUser({ ...newUser, location_id: v === "none" ? "" : v })}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Ubicacion (opcional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Sin asignar</SelectItem>
+                            {locations.map(l => (
+                              <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddUser(false)}>Cancelar</Button>

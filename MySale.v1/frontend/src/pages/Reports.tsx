@@ -162,17 +162,17 @@ const Reports: React.FC = () => {
                 </div>
                 <div>
                   <label className="text-sm text-gray-500">Ubicacion</label>
-                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Todas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Todas</SelectItem>
-                      {locations.map(l => (
-                        <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                                    <Select value={selectedLocation || "all"} onValueChange={(v) => setSelectedLocation(v === "all" ? "" : v)}>
+                                      <SelectTrigger className="w-48">
+                                        <SelectValue placeholder="Todas" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="all">Todas</SelectItem>
+                                        {locations.map(l => (
+                                          <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                 </div>
                 <div className="flex items-end gap-2">
                   <Button onClick={loadSalesReport} disabled={isLoading}>
@@ -257,17 +257,17 @@ const Reports: React.FC = () => {
               <div className="flex flex-wrap gap-4 mb-6">
                 <div>
                   <label className="text-sm text-gray-500">Ubicacion</label>
-                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Todas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Todas</SelectItem>
-                      {locations.map(l => (
-                        <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                                    <Select value={selectedLocation || "all"} onValueChange={(v) => setSelectedLocation(v === "all" ? "" : v)}>
+                                      <SelectTrigger className="w-48">
+                                        <SelectValue placeholder="Todas" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="all">Todas</SelectItem>
+                                        {locations.map(l => (
+                                          <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                 </div>
                 <div className="flex items-end gap-2">
                   <Button onClick={loadInventoryReport} disabled={isLoading}>
