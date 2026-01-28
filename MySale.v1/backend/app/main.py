@@ -6,9 +6,32 @@ from app.models import *
 from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports
 
 
+def run_migrations():
+    """Run database migrations to add missing columns"""
+    from sqlalchemy import text
+    from app.database import SessionLocal
+    
+    db = SessionLocal()
+    try:
+        # Check if image_url column exists in locations table
+        result = db.execute(text("PRAGMA table_info(locations)"))
+        columns = [row[1] for row in result.fetchall()]
+        
+        if 'image_url' not in columns:
+            db.execute(text("ALTER TABLE locations ADD COLUMN image_url VARCHAR(500)"))
+            db.commit()
+            print("Migration: Added image_url column to locations table")
+    except Exception as e:
+        print(f"Migration error: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    run_migrations()
     init_default_data()
     yield
 
