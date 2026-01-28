@@ -9,6 +9,7 @@ from app.models.location import Location, LocationType
 from app.models.shift import Shift, ShiftStatus
 from app.models.sale import Sale
 from app.models import ProductStock
+from app.models.inventory import Product
 from app.schemas.location import LocationCreate, LocationUpdate, LocationResponse, LocationDashboardResponse
 from app.utils.auth import get_current_user, require_role
 
@@ -63,10 +64,12 @@ async def get_locations_dashboard(
                     "total_sales": shift.total_sales
                 })
         
-        stock_alerts = db.query(ProductStock).filter(
+        stock_alerts = db.query(ProductStock).join(
+            ProductStock.product
+        ).filter(
             ProductStock.location_id == location.id,
-            ProductStock.quantity <= ProductStock.min_stock,
-            ProductStock.min_stock > 0
+            ProductStock.quantity <= Product.min_stock,
+            Product.min_stock > 0
         ).limit(5).all()
         
         alerts_list = []
@@ -75,7 +78,7 @@ async def get_locations_dashboard(
                 "product_id": stock.product_id,
                 "product_name": stock.product.name if stock.product else "Unknown",
                 "current_stock": stock.quantity,
-                "min_stock": stock.min_stock
+                "min_stock": stock.product.min_stock if stock.product else 0
             })
         
         recent_sales = db.query(Sale).filter(
