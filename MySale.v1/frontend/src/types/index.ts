@@ -1,0 +1,247 @@
+export interface User {
+  id: number;
+  username: string;
+  email: string | null;
+  full_name: string;
+  role_id: number;
+  role?: Role;
+  location_id: number | null;
+  is_active: boolean;
+  points: number;
+  created_at: string;
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  role_type: 'superuser' | 'admin' | 'cashier';
+  can_void_sales: boolean;
+  can_manage_inventory: boolean;
+  can_manage_users: boolean;
+  can_view_reports: boolean;
+  can_manage_locations: boolean;
+  can_set_stock_thresholds: boolean;
+  can_close_shifts: boolean;
+}
+
+export interface Location {
+  id: number;
+  name: string;
+  code: string;
+  location_type: 'pos' | 'warehouse';
+  address: string | null;
+  is_active: boolean;
+  daily_base_cash: number;
+  folio_prefix: string | null;
+  folio_counter: number;
+}
+
+export interface Group {
+  id: number;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+}
+
+export interface Family {
+  id: number;
+  name: string;
+  group_id: number;
+  description: string | null;
+  is_active: boolean;
+}
+
+export interface SubFamily {
+  id: number;
+  name: string;
+  family_id: number;
+  description: string | null;
+  is_active: boolean;
+}
+
+export interface ProductStock {
+  location_id: number;
+  location_name: string;
+  quantity: number;
+  last_inventory_date: string | null;
+}
+
+export interface Product {
+  id: number;
+  code: string;
+  barcode: string | null;
+  name: string;
+  description: string | null;
+  subfamily_id: number;
+  unit: string;
+  sale_price: number;
+  weighted_cost: number;
+  min_stock: number;
+  max_stock: number;
+  is_active: boolean;
+  created_at: string;
+  stocks?: ProductStock[];
+}
+
+export interface Shift {
+  id: number;
+  user_id: number;
+  user_name?: string;
+  location_id: number;
+  location_name?: string;
+  start_time: string;
+  end_time: string | null;
+  status: 'open' | 'closed' | 'closed_by_admin';
+  initial_cash: number;
+  final_cash: number | null;
+  total_sales: number;
+  total_cash_sales: number;
+  total_card_sales: number;
+  total_transfer_sales: number;
+  biometric_verified: boolean;
+}
+
+export interface SaleItem {
+  id?: number;
+  product_id: number;
+  product_name?: string;
+  product_code?: string;
+  quantity: number;
+  unit_price: number;
+  discount: number;
+  subtotal: number;
+}
+
+export interface Sale {
+  id: number;
+  folio: string;
+  location_id: number;
+  location_name?: string;
+  shift_id: number;
+  cashier_id: number;
+  cashier_name?: string;
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  payment_method: 'cash' | 'card' | 'transfer';
+  amount_received: number | null;
+  change_given: number | null;
+  notes: string | null;
+  created_at: string;
+  items: SaleItem[];
+}
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
+  discount: number;
+}
+
+export interface CashDenomination {
+  denomination: number;
+  quantity: number;
+}
+
+export interface CashCut {
+  id: number;
+  shift_id: number;
+  user_id: number;
+  expected_cash: number;
+  declared_cash: number;
+  difference: number;
+  is_blind: boolean;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface Loss {
+  id: number;
+  location_id: number;
+  location_name?: string;
+  reported_by: number;
+  reported_by_name?: string;
+  loss_type: 'breakage' | 'expiration' | 'theft' | 'damage' | 'other';
+  total_value: number;
+  description: string | null;
+  created_at: string;
+  items: LossItem[];
+}
+
+export interface LossItem {
+  id: number;
+  product_id: number;
+  product_name?: string;
+  quantity: number;
+  unit_cost: number;
+  total_cost: number;
+  reason: string | null;
+}
+
+export interface Transfer {
+  id: number;
+  from_location_id: number;
+  from_location_name?: string;
+  to_location_id: number;
+  to_location_name?: string;
+  created_by_id: number;
+  created_by_name?: string;
+  received_by_id: number | null;
+  received_by_name?: string;
+  status: 'pending' | 'in_transit' | 'completed' | 'cancelled';
+  total_value_at_sale_price: number;
+  notes: string | null;
+  created_at: string;
+  completed_at: string | null;
+  items: TransferItem[];
+}
+
+export interface TransferItem {
+  id: number;
+  product_id: number;
+  product_name?: string;
+  quantity: number;
+  sale_price: number;
+  total_value: number;
+}
+
+export interface Expense {
+  id: number;
+  location_id: number | null;
+  location_name?: string;
+  category: 'purchase' | 'utilities' | 'rent' | 'salary' | 'maintenance' | 'supplies' | 'other';
+  description: string;
+  amount: number;
+  invoice_number: string | null;
+  supplier: string | null;
+  created_by_id: number;
+  created_by_name?: string;
+  expense_date: string;
+  created_at: string;
+}
+
+export interface ShiftAlert {
+  id: number;
+  user_id: number;
+  alert_type: 'shift_close' | 'low_stock' | 'high_stock' | 'performance';
+  message: string;
+  points_affected: number;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface DashboardData {
+  today_sales: number;
+  today_transactions: number;
+  month_sales: number;
+  low_stock_alerts: number;
+  open_shifts: number;
+  today_losses: number;
+  today_expenses: number;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
