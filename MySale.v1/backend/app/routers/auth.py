@@ -138,12 +138,30 @@ async def login_biometric(
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
+    role_response = None
+    if current_user.role:
+        from app.schemas.user import RoleResponse
+        role_response = RoleResponse(
+            id=current_user.role.id,
+            name=current_user.role.name,
+            role_type=current_user.role.role_type,
+            can_void_sales=current_user.role.can_void_sales,
+            can_manage_inventory=current_user.role.can_manage_inventory,
+            can_manage_users=current_user.role.can_manage_users,
+            can_view_reports=current_user.role.can_view_reports,
+            can_manage_locations=current_user.role.can_manage_locations,
+            can_set_stock_thresholds=current_user.role.can_set_stock_thresholds,
+            can_close_shifts=current_user.role.can_close_shifts,
+            created_at=current_user.role.created_at
+        )
+    
     return UserResponse(
         id=current_user.id,
         username=current_user.username,
         email=current_user.email,
         full_name=current_user.full_name,
         role_id=current_user.role_id,
+        role=role_response,
         location_id=current_user.location_id,
         is_active=current_user.is_active,
         points=current_user.points,
