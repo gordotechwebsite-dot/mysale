@@ -24,6 +24,11 @@ export const createUser = async (data: {
   return response.data;
 };
 
+export const deleteUser = async (userId: number): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/users/${userId}`);
+  return response.data;
+};
+
 export const getRoles = async (): Promise<Role[]> => {
   const response = await api.get('/api/users/roles');
   return response.data;

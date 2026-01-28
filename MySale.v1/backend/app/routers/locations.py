@@ -8,7 +8,7 @@ from app.models.user import User, RoleType
 from app.models.location import Location, LocationType
 from app.models.shift import Shift, ShiftStatus
 from app.models.sale import Sale
-from app.models.product import ProductStock
+from app.models import ProductStock
 from app.schemas.location import LocationCreate, LocationUpdate, LocationResponse, LocationDashboardResponse
 from app.utils.auth import get_current_user, require_role
 
@@ -186,3 +186,4 @@ async def get_locations_dashboard(
         ))
     
     return result
+# Force rebuild Wed Jan 28 16:22:00 UTC 2026 - Fixed ProductStock import

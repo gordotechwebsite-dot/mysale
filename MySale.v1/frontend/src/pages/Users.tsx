@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getUsers, createUser, getRoles, getLocations } from '../api';
+import { getUsers, createUser, deleteUser, getRoles, getLocations } from '../api';
 import type { User, Role, Location } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users as UsersIcon, Plus, Loader2 } from 'lucide-react';
+import { Users as UsersIcon, Plus, Loader2, Trash2 } from 'lucide-react';
 
 const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -36,6 +36,8 @@ const Users: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showAddUser, setShowAddUser] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [newUser, setNewUser] = useState({
     username: '',
@@ -67,26 +69,46 @@ const Users: React.FC = () => {
     }
   };
 
-  const handleAddUser = async () => {
-    setIsProcessing(true);
-    try {
-      await createUser({
-        username: newUser.username,
-        password: newUser.password,
-        full_name: newUser.full_name,
-        email: newUser.email || undefined,
-        role_id: parseInt(newUser.role_id),
-        location_id: newUser.location_id ? parseInt(newUser.location_id) : undefined
-      });
-      await loadData();
-      setShowAddUser(false);
-      setNewUser({ username: '', password: '', full_name: '', email: '', role_id: '', location_id: '' });
-    } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al crear usuario');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+    const handleAddUser = async () => {
+      setIsProcessing(true);
+      try {
+        await createUser({
+          username: newUser.username,
+          password: newUser.password,
+          full_name: newUser.full_name,
+          email: newUser.email || undefined,
+          role_id: parseInt(newUser.role_id),
+          location_id: newUser.location_id ? parseInt(newUser.location_id) : undefined
+        });
+        await loadData();
+        setShowAddUser(false);
+        setNewUser({ username: '', password: '', full_name: '', email: '', role_id: '', location_id: '' });
+      } catch (error: any) {
+        alert(error.response?.data?.detail || 'Error al crear usuario');
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+
+    const handleDeleteUser = async () => {
+      if (!userToDelete) return;
+      setIsProcessing(true);
+      try {
+        await deleteUser(userToDelete.id);
+        await loadData();
+        setShowDeleteConfirm(false);
+        setUserToDelete(null);
+      } catch (error: any) {
+        alert(error.response?.data?.detail || 'Error al eliminar usuario');
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+
+    const confirmDelete = (user: User) => {
+      setUserToDelete(user);
+      setShowDeleteConfirm(true);
+    };
 
   const getRoleBadge = (roleType: string) => {
     switch (roleType) {
@@ -127,17 +149,18 @@ const Users: React.FC = () => {
         <CardContent>
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Usuario</TableHead>
-                  <TableHead>Nombre Completo</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Ubicacion</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Puntos</TableHead>
-                </TableRow>
-              </TableHeader>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Usuario</TableHead>
+                                <TableHead>Nombre Completo</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Rol</TableHead>
+                                <TableHead>Ubicacion</TableHead>
+                                <TableHead>Estado</TableHead>
+                                <TableHead>Puntos</TableHead>
+                                <TableHead>Acciones</TableHead>
+                              </TableRow>
+                            </TableHeader>
               <TableBody>
                 {users.map((user) => (
                   <TableRow key={user.id}>
@@ -155,10 +178,20 @@ const Users: React.FC = () => {
                         <Badge className="bg-red-500">Inactivo</Badge>
                       )}
                     </TableCell>
-                    <TableCell>{user.points}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
+                                  <TableCell>{user.points}</TableCell>
+                                  <TableCell>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => confirmDelete(user)}
+                                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
             </Table>
           </div>
         </CardContent>
@@ -221,6 +254,28 @@ const Users: React.FC = () => {
               disabled={isProcessing || !newUser.username || !newUser.password || !newUser.full_name || !newUser.role_id}
             >
               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crear'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar Eliminacion</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>Esta seguro que desea eliminar al usuario <strong>{userToDelete?.full_name}</strong>?</p>
+            <p className="text-sm text-gray-500 mt-2">Esta accion desactivara al usuario y no podra iniciar sesion.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteUser}
+              disabled={isProcessing}
+            >
+              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Eliminar'}
             </Button>
           </DialogFooter>
         </DialogContent>
