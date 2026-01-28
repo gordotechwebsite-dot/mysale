@@ -50,20 +50,20 @@ const Layout: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex">
       <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-blue-600 text-white rounded-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-emerald-600 text-white rounded-lg"
         onClick={() => setSidebarOpen(!sidebarOpen)}
       >
         {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-gray-900 text-white transform transition-transform duration-200 ease-in-out ${
+        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white transform transition-transform duration-200 ease-in-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="p-4 border-b border-gray-800">
+        <div className="p-4 border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
               <span className="text-lg font-bold">MS</span>
             </div>
             <div>
@@ -73,10 +73,10 @@ const Layout: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-4 border-b border-gray-800">
-          <p className="text-sm text-gray-400">Bienvenido,</p>
+        <div className="p-4 border-b border-slate-800">
+          <p className="text-sm text-slate-400">Bienvenido,</p>
           <p className="font-semibold truncate">{user?.full_name}</p>
-          <p className="text-xs text-blue-400">{user?.role?.name}</p>
+          <p className="text-xs text-emerald-400">{user?.role?.name}</p>
           {currentShift && (
             <div className="mt-2 px-2 py-1 bg-green-900/50 rounded text-xs text-green-400">
               Turno activo en {currentShift.location_name}
@@ -92,8 +92,8 @@ const Layout: React.FC = () => {
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
                 location.pathname === item.path
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:bg-gray-800'
+                  ? 'bg-emerald-600 text-white'
+                  : 'text-slate-300 hover:bg-slate-800'
               }`}
             >
               <item.icon size={20} />
@@ -102,7 +102,7 @@ const Layout: React.FC = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-gray-800">
+        <div className="p-4 border-t border-slate-800">
           <Button
             variant="ghost"
             className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-900/20"

@@ -110,7 +110,7 @@ const Dashboard: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
       </div>
     );
   }
@@ -148,7 +148,7 @@ const Dashboard: React.FC = () => {
           ) : (
             <Button
               size="lg"
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-emerald-600 hover:bg-emerald-700"
               onClick={() => setShowOpenShift(true)}
             >
               <Play className="w-5 h-5 mr-2" />
@@ -159,7 +159,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {currentShift && (
-        <Card className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+        <Card className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
           <CardContent className="py-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -303,7 +303,7 @@ const Dashboard: React.FC = () => {
             <Button
               onClick={handleOpenShift}
               disabled={!selectedLocation || isProcessing}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-emerald-600 hover:bg-emerald-700"
             >
               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Abrir Turno'}
             </Button>

@@ -32,10 +32,10 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-800 via-emerald-700 to-teal-800 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center pb-2">
-          <div className="mx-auto w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mb-4">
+          <div className="mx-auto w-20 h-20 bg-emerald-600 rounded-full flex items-center justify-center mb-4">
             <span className="text-3xl font-bold text-white">MS</span>
           </div>
           <CardTitle className="text-3xl font-bold text-gray-800">MySale.v1</CardTitle>
@@ -75,7 +75,7 @@ const Login: React.FC = () => {
 
             <Button
               type="submit"
-              className="w-full h-14 text-lg font-semibold bg-blue-600 hover:bg-blue-700"
+              className="w-full h-14 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700"
               disabled={isLoading}
             >
               {isLoading ? (
