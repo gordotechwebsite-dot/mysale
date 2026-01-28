@@ -32,6 +32,20 @@ import {
   Loader2
 } from 'lucide-react';
 
+const denominations = [
+  { value: 100000, label: '$100,000' },
+  { value: 50000, label: '$50,000' },
+  { value: 20000, label: '$20,000' },
+  { value: 10000, label: '$10,000' },
+  { value: 5000, label: '$5,000' },
+  { value: 2000, label: '$2,000' },
+  { value: 1000, label: '$1,000' },
+  { value: 500, label: '$500' },
+  { value: 200, label: '$200' },
+  { value: 100, label: '$100' },
+  { value: 50, label: '$50' },
+];
+
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { currentShift, setCurrentShift, refreshShift } = useShift();
@@ -44,6 +58,7 @@ const Dashboard: React.FC = () => {
   const [showCloseShift, setShowCloseShift] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [cashCount, setCashCount] = useState<Record<number, number>>({});
 
   useEffect(() => {
     loadData();
@@ -84,20 +99,28 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleCloseShift = async () => {
-    setIsProcessing(true);
-    try {
-      await closeShift({});
-      setCurrentShift(null);
-      setShowCloseShift(false);
-      await refreshShift();
-      loadData();
-    } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al cerrar turno');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+    const calculateTotalCash = () => {
+      return Object.entries(cashCount).reduce((total, [denom, count]) => {
+        return total + (parseInt(denom) * (count || 0));
+      }, 0);
+    };
+
+    const handleCloseShift = async () => {
+      setIsProcessing(true);
+      try {
+        const totalCash = calculateTotalCash();
+        await closeShift({ final_cash: totalCash });
+        setCurrentShift(null);
+        setShowCloseShift(false);
+        setCashCount({});
+        await refreshShift();
+        loadData();
+      } catch (error: any) {
+        alert(error.response?.data?.detail || 'Error al cerrar turno');
+      } finally {
+        setIsProcessing(false);
+      }
+    };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -311,36 +334,89 @@ const Dashboard: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showCloseShift} onOpenChange={setShowCloseShift}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Cerrar Turno</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-gray-600">
-              Esta seguro que desea cerrar el turno en <strong>{currentShift?.location_name}</strong>?
-            </p>
-            {currentShift && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-500">Resumen del turno:</p>
-                <p className="font-bold text-lg">{formatCurrency(currentShift.total_sales)}</p>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCloseShift(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleCloseShift}
-              disabled={isProcessing}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Cerrar Turno'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Dialog open={showCloseShift} onOpenChange={(open) => { setShowCloseShift(open); if (!open) setCashCount({}); }}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Cerrar Caja - Corte por Denominacion</DialogTitle>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                  <p className="text-gray-600">
+                    Turno en <strong>{currentShift?.location_name}</strong>
+                  </p>
+            
+                  {currentShift && (
+                    <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="text-gray-500">Ventas Totales</p>
+                          <p className="font-bold text-lg">{formatCurrency(currentShift.total_sales)}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500">Efectivo en Ventas</p>
+                          <p className="font-bold text-lg text-emerald-600">{formatCurrency(currentShift.total_cash_sales)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="border rounded-lg p-4">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-emerald-600" />
+                      Declare el efectivo por denominacion
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      {denominations.map((denom) => (
+                        <div key={denom.value} className="flex items-center gap-2">
+                          <span className="w-24 text-sm font-medium">{denom.label}</span>
+                          <span className="text-gray-400">x</span>
+                          <input
+                            type="number"
+                            min="0"
+                            className="w-20 px-2 py-1 border rounded text-center"
+                            value={cashCount[denom.value] || ''}
+                            onChange={(e) => setCashCount({
+                              ...cashCount,
+                              [denom.value]: parseInt(e.target.value) || 0
+                            })}
+                            placeholder="0"
+                          />
+                          <span className="text-sm text-gray-500 w-24 text-right">
+                            = {formatCurrency((cashCount[denom.value] || 0) * denom.value)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-slate-900 text-white rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg">Total Declarado:</span>
+                      <span className="text-2xl font-bold">{formatCurrency(calculateTotalCash())}</span>
+                    </div>
+                    {currentShift && (
+                      <div className="mt-2 pt-2 border-t border-slate-700 flex justify-between text-sm">
+                        <span className="text-slate-400">Diferencia con efectivo esperado:</span>
+                        <span className={`font-semibold ${calculateTotalCash() - (currentShift.initial_cash + currentShift.total_cash_sales) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {formatCurrency(calculateTotalCash() - (currentShift.initial_cash + currentShift.total_cash_sales))}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => { setShowCloseShift(false); setCashCount({}); }}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleCloseShift}
+                    disabled={isProcessing || calculateTotalCash() === 0}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Cerrar Caja'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
     </div>
   );
 };

@@ -38,7 +38,7 @@ const Layout: React.FC = () => {
     { path: '/', icon: LayoutDashboard, label: 'Dashboard', show: true },
     { path: '/pos', icon: ShoppingCart, label: 'Punto de Venta', show: true },
     { path: '/inventory', icon: Package, label: 'Inventario', show: isAdmin },
-    { path: '/transfers', icon: Truck, label: 'Transferencias', show: isAdmin },
+    { path: '/transfers', icon: Truck, label: 'Transferencias', show: true },
     { path: '/losses', icon: AlertTriangle, label: 'Mermas', show: true },
     { path: '/expenses', icon: DollarSign, label: 'Gastos', show: isAdmin },
     { path: '/shifts', icon: Clock, label: 'Turnos', show: true },
