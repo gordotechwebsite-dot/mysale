@@ -245,3 +245,48 @@ export interface LoginResponse {
   token_type: string;
   user: User;
 }
+
+export interface CostEntry {
+  id: number;
+  name: string;
+  category: 'rent' | 'utilities' | 'salary' | 'transport' | 'maintenance' | 'insurance' | 'taxes' | 'other';
+  amount: number;
+  description: string | null;
+  is_recurring: boolean;
+  recurrence_period: string | null;
+  start_date: string;
+  end_date: string | null;
+  is_active: boolean;
+  created_by_id: number;
+  created_by_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CostConfig {
+  id: number;
+  distribution_method: 'per_product' | 'per_unit_value' | 'percentage';
+  percentage_value: number;
+  is_auto_apply: boolean;
+  last_applied_at: string | null;
+  updated_by_id: number | null;
+  updated_at: string;
+}
+
+export interface CostCalculation {
+  total_active_costs: number;
+  product_count: number;
+  cost_per_product: number;
+  distribution_method: string;
+}
+
+export interface CostApplication {
+  id: number;
+  total_cost: number;
+  product_count: number;
+  cost_per_product: number;
+  distribution_method: string;
+  applied_by_id: number;
+  applied_at: string;
+  notes: string | null;
+}

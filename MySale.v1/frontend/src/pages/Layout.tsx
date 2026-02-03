@@ -18,7 +18,8 @@ import {
   DollarSign,
   Menu,
   X,
-  Store
+  Store,
+  Calculator
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
@@ -40,6 +41,7 @@ const Layout: React.FC = () => {
       { path: '/locations-dashboard', icon: Store, label: 'Puntos de Venta', show: isAdmin },
       { path: '/pos', icon: ShoppingCart, label: 'Punto de Venta', show: true },
       { path: '/inventory', icon: Package, label: 'Inventario', show: isAdmin },
+      { path: '/cost-control', icon: Calculator, label: 'Control de Costos', show: isAdmin },
       { path: '/transfers', icon: Truck, label: 'Transferencias', show: true },
       { path: '/losses', icon: AlertTriangle, label: 'Mermas', show: true },
       { path: '/expenses', icon: DollarSign, label: 'Gastos', show: isAdmin },

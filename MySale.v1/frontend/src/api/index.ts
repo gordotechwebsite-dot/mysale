@@ -2,7 +2,7 @@ import api from './client';
 import type {
   User, Role, Location, Group, Family, SubFamily, Product,
   Shift, Sale, CashCut, CashDenomination, Loss, Transfer, Expense,
-  ShiftAlert, DashboardData
+  ShiftAlert, DashboardData, CostEntry, CostConfig, CostCalculation, CostApplication
 } from '../types';
 
 export * from './auth';
@@ -358,5 +358,73 @@ export const updateLocation = async (id: number, data: {
   folio_prefix?: string;
 }): Promise<Location> => {
   const response = await api.put(`/api/locations/${id}`, data);
+  return response.data;
+};
+
+export const getCostEntries = async (activeOnly: boolean = true): Promise<CostEntry[]> => {
+  const response = await api.get('/api/cost-control/entries', { params: { active_only: activeOnly } });
+  return response.data;
+};
+
+export const createCostEntry = async (data: {
+  name: string;
+  category: string;
+  amount: number;
+  description?: string;
+  is_recurring?: boolean;
+  recurrence_period?: string;
+  start_date?: string;
+  end_date?: string;
+}): Promise<CostEntry> => {
+  const response = await api.post('/api/cost-control/entries', data);
+  return response.data;
+};
+
+export const updateCostEntry = async (id: number, data: {
+  name?: string;
+  category?: string;
+  amount?: number;
+  description?: string;
+  is_recurring?: boolean;
+  recurrence_period?: string;
+  start_date?: string;
+  end_date?: string;
+  is_active?: boolean;
+}): Promise<CostEntry> => {
+  const response = await api.put(`/api/cost-control/entries/${id}`, data);
+  return response.data;
+};
+
+export const deleteCostEntry = async (id: number): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/cost-control/entries/${id}`);
+  return response.data;
+};
+
+export const getCostConfig = async (): Promise<CostConfig> => {
+  const response = await api.get('/api/cost-control/config');
+  return response.data;
+};
+
+export const updateCostConfig = async (data: {
+  distribution_method?: string;
+  percentage_value?: number;
+  is_auto_apply?: boolean;
+}): Promise<CostConfig> => {
+  const response = await api.put('/api/cost-control/config', data);
+  return response.data;
+};
+
+export const calculateCosts = async (): Promise<CostCalculation> => {
+  const response = await api.get('/api/cost-control/calculate');
+  return response.data;
+};
+
+export const applyCostsToProducts = async (notes?: string): Promise<CostApplication> => {
+  const response = await api.post('/api/cost-control/apply', { notes });
+  return response.data;
+};
+
+export const getCostApplications = async (): Promise<CostApplication[]> => {
+  const response = await api.get('/api/cost-control/applications');
   return response.data;
 };
