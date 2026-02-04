@@ -2,7 +2,8 @@ import api from './client';
 import type {
   User, Role, Location, Group, Family, SubFamily, Product,
   Shift, Sale, CashCut, CashDenomination, Loss, Transfer, Expense,
-  ShiftAlert, DashboardData, CostEntry, CostConfig, CostCalculation, CostApplication
+  ShiftAlert, DashboardData, CostEntry, CostConfig, CostCalculation, CostApplication,
+  Zone, Table, ZoneWithTables, Ticket, Comanda, TicketPayment
 } from '../types';
 
 export * from './auth';
@@ -426,5 +427,195 @@ export const applyCostsToProducts = async (notes?: string): Promise<CostApplicat
 
 export const getCostApplications = async (): Promise<CostApplication[]> => {
   const response = await api.get('/api/cost-control/applications');
+  return response.data;
+};
+
+export const getZones = async (locationId?: number): Promise<Zone[]> => {
+  const params = locationId ? { location_id: locationId } : {};
+  const response = await api.get('/api/tables/zones', { params });
+  return response.data;
+};
+
+export const getZonesWithTables = async (locationId?: number): Promise<ZoneWithTables[]> => {
+  const params = locationId ? { location_id: locationId } : {};
+  const response = await api.get('/api/tables/zones-with-tables', { params });
+  return response.data;
+};
+
+export const createZone = async (data: {
+  name: string;
+  location_id: number;
+  description?: string;
+  color?: string;
+  display_order?: number;
+}): Promise<Zone> => {
+  const response = await api.post('/api/tables/zones', data);
+  return response.data;
+};
+
+export const updateZone = async (id: number, data: {
+  name?: string;
+  description?: string;
+  color?: string;
+  display_order?: number;
+  is_active?: boolean;
+}): Promise<Zone> => {
+  const response = await api.put(`/api/tables/zones/${id}`, data);
+  return response.data;
+};
+
+export const deleteZone = async (id: number): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/tables/zones/${id}`);
+  return response.data;
+};
+
+export const getTables = async (params?: {
+  zone_id?: number;
+  location_id?: number;
+}): Promise<Table[]> => {
+  const response = await api.get('/api/tables/', { params });
+  return response.data;
+};
+
+export const createTable = async (data: {
+  name: string;
+  zone_id: number;
+  capacity?: number;
+  shape?: string;
+  position_x?: number;
+  position_y?: number;
+  width?: number;
+  height?: number;
+}): Promise<Table> => {
+  const response = await api.post('/api/tables/', data);
+  return response.data;
+};
+
+export const updateTable = async (id: number, data: {
+  name?: string;
+  zone_id?: number;
+  capacity?: number;
+  shape?: string;
+  status?: string;
+  position_x?: number;
+  position_y?: number;
+  width?: number;
+  height?: number;
+  is_active?: boolean;
+}): Promise<Table> => {
+  const response = await api.put(`/api/tables/${id}`, data);
+  return response.data;
+};
+
+export const deleteTable = async (id: number): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/tables/${id}`);
+  return response.data;
+};
+
+export const createTicket = async (data: {
+  table_id: number;
+  location_id: number;
+  customer_name?: string;
+  num_people?: number;
+  notes?: string;
+}): Promise<Ticket> => {
+  const response = await api.post('/api/tables/tickets', data);
+  return response.data;
+};
+
+export const getTicket = async (ticketId: number): Promise<Ticket> => {
+  const response = await api.get(`/api/tables/tickets/${ticketId}`);
+  return response.data;
+};
+
+export const getTableTicket = async (tableId: number): Promise<Ticket> => {
+  const response = await api.get(`/api/tables/${tableId}/ticket`);
+  return response.data;
+};
+
+export const updateTicket = async (id: number, data: {
+  customer_name?: string;
+  num_people?: number;
+  notes?: string;
+  tip?: number;
+  service_charge?: number;
+  discount?: number;
+}): Promise<Ticket> => {
+  const response = await api.put(`/api/tables/tickets/${id}`, data);
+  return response.data;
+};
+
+export const addItemsToTicket = async (ticketId: number, items: {
+  product_id: number;
+  quantity: number;
+  unit_price: number;
+  discount?: number;
+  notes?: string;
+}[]): Promise<Ticket> => {
+  const response = await api.post(`/api/tables/tickets/${ticketId}/items`, { items });
+  return response.data;
+};
+
+export const removeItemFromTicket = async (ticketId: number, itemId: number): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/tables/tickets/${ticketId}/items/${itemId}`);
+  return response.data;
+};
+
+export const createComanda = async (ticketId: number, data: {
+  area: string;
+  item_ids: number[];
+  notes?: string;
+}): Promise<Comanda> => {
+  const response = await api.post(`/api/tables/tickets/${ticketId}/comandas`, { ...data, ticket_id: ticketId });
+  return response.data;
+};
+
+export const getTicketComandas = async (ticketId: number): Promise<Comanda[]> => {
+  const response = await api.get(`/api/tables/tickets/${ticketId}/comandas`);
+  return response.data;
+};
+
+export const updateComandaStatus = async (comandaId: number, status: string): Promise<{ message: string }> => {
+  const response = await api.put(`/api/tables/comandas/${comandaId}/status`, null, { params: { status } });
+  return response.data;
+};
+
+export const moveTicket = async (ticketId: number, newTableId: number): Promise<Ticket> => {
+  const response = await api.post(`/api/tables/tickets/${ticketId}/move`, { new_table_id: newTableId });
+  return response.data;
+};
+
+export const mergeTickets = async (sourceTicketIds: number[], targetTableId: number): Promise<Ticket> => {
+  const response = await api.post('/api/tables/tickets/merge', {
+    source_ticket_ids: sourceTicketIds,
+    target_table_id: targetTableId
+  });
+  return response.data;
+};
+
+export const splitTicket = async (ticketId: number, itemIds: number[], newTableId: number): Promise<Ticket> => {
+  const response = await api.post(`/api/tables/tickets/${ticketId}/split`, {
+    item_ids: itemIds,
+    new_table_id: newTableId
+  });
+  return response.data;
+};
+
+export const payTicket = async (ticketId: number, data: {
+  payments: { payment_method: string; amount: number; reference?: string }[];
+  tip?: number;
+  notes?: string;
+}): Promise<Ticket> => {
+  const response = await api.post(`/api/tables/tickets/${ticketId}/pay`, data);
+  return response.data;
+};
+
+export const getTicketPayments = async (ticketId: number): Promise<TicketPayment[]> => {
+  const response = await api.get(`/api/tables/tickets/${ticketId}/payments`);
+  return response.data;
+};
+
+export const generatePrecheck = async (ticketId: number): Promise<Ticket> => {
+  const response = await api.post(`/api/tables/tickets/${ticketId}/precheck`);
   return response.data;
 };

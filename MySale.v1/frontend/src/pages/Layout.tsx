@@ -19,7 +19,8 @@ import {
   Menu,
   X,
   Store,
-  Calculator
+  Calculator,
+  UtensilsCrossed
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
@@ -39,6 +40,7 @@ const Layout: React.FC = () => {
     const menuItems = [
       { path: '/', icon: LayoutDashboard, label: 'Dashboard', show: true },
       { path: '/locations-dashboard', icon: Store, label: 'Puntos de Venta', show: isAdmin },
+      { path: '/tables', icon: UtensilsCrossed, label: 'Gestión de Mesas', show: true },
       { path: '/pos', icon: ShoppingCart, label: 'Punto de Venta', show: true },
       { path: '/inventory', icon: Package, label: 'Inventario', show: isAdmin },
       { path: '/cost-control', icon: Calculator, label: 'Control de Costos', show: isAdmin },
