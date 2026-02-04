@@ -25,6 +25,16 @@ from app.schemas.reports import (
     SalesReportRequest, SalesReportResponse,
     InventoryReportResponse, EmployeeReportResponse
 )
+from app.schemas.table import (
+    ZoneCreate, ZoneUpdate, ZoneResponse, ZoneWithTablesResponse,
+    TableCreate, TableUpdate, TableResponse,
+    TicketCreate, TicketUpdate, TicketResponse,
+    TicketItemCreate, TicketItemResponse,
+    ComandaCreate, ComandaResponse,
+    TicketPaymentCreate, TicketPaymentResponse,
+    PayTicketRequest, MoveTicketRequest, MergeTicketsRequest,
+    SplitTicketRequest, AddItemsRequest
+)
 
 __all__ = [
     "UserCreate", "UserUpdate", "UserResponse", "UserLogin",
@@ -45,5 +55,13 @@ __all__ = [
     "InventoryReportResponse", "EmployeeReportResponse",
     "CostEntryCreate", "CostEntryUpdate", "CostEntryResponse",
     "CostConfigUpdate", "CostConfigResponse",
-    "CostCalculation", "ApplyCostsRequest", "CostApplicationResponse"
+    "CostCalculation", "ApplyCostsRequest", "CostApplicationResponse",
+    "ZoneCreate", "ZoneUpdate", "ZoneResponse", "ZoneWithTablesResponse",
+    "TableCreate", "TableUpdate", "TableResponse",
+    "TicketCreate", "TicketUpdate", "TicketResponse",
+    "TicketItemCreate", "TicketItemResponse",
+    "ComandaCreate", "ComandaResponse",
+    "TicketPaymentCreate", "TicketPaymentResponse",
+    "PayTicketRequest", "MoveTicketRequest", "MergeTicketsRequest",
+    "SplitTicketRequest", "AddItemsRequest"
 ]

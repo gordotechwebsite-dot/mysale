@@ -290,3 +290,101 @@ export interface CostApplication {
   applied_at: string;
   notes: string | null;
 }
+
+export interface Zone {
+  id: number;
+  name: string;
+  location_id: number;
+  description: string | null;
+  color: string;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Table {
+  id: number;
+  name: string;
+  zone_id: number;
+  zone_name?: string;
+  capacity: number;
+  shape: 'square' | 'round' | 'rectangle';
+  status: 'free' | 'occupied' | 'bill_open' | 'to_pay' | 'paid';
+  position_x: number;
+  position_y: number;
+  width: number;
+  height: number;
+  is_active: boolean;
+  created_at: string;
+  current_ticket_id?: number | null;
+  pending_comandas?: number;
+  ticket_total?: number;
+  ticket_time?: string | null;
+  waiter_name?: string | null;
+}
+
+export interface ZoneWithTables extends Zone {
+  tables: Table[];
+}
+
+export interface TicketItem {
+  id: number;
+  ticket_id: number;
+  product_id: number;
+  product_name?: string;
+  product_code?: string;
+  comanda_id: number | null;
+  quantity: number;
+  unit_price: number;
+  discount: number;
+  subtotal: number;
+  notes: string | null;
+  status: 'ordered' | 'in_preparation' | 'ready' | 'served' | 'cancelled';
+  created_at: string;
+}
+
+export interface Ticket {
+  id: number;
+  table_id: number;
+  table_name?: string;
+  location_id: number;
+  waiter_id: number;
+  waiter_name?: string;
+  customer_name: string | null;
+  num_people: number;
+  notes: string | null;
+  status: 'open' | 'to_pay' | 'paid' | 'closed' | 'cancelled';
+  subtotal: number;
+  tax: number;
+  tip: number;
+  service_charge: number;
+  discount: number;
+  total: number;
+  opened_at: string;
+  closed_at: string | null;
+  items: TicketItem[];
+  pending_comandas: number;
+}
+
+export interface Comanda {
+  id: number;
+  ticket_id: number;
+  area: 'kitchen' | 'bar' | 'both';
+  status: 'pending' | 'in_preparation' | 'ready' | 'delivered';
+  notes: string | null;
+  created_by_id: number;
+  created_by_name?: string;
+  created_at: string;
+  completed_at: string | null;
+  items: TicketItem[];
+}
+
+export interface TicketPayment {
+  id: number;
+  ticket_id: number;
+  payment_method: string;
+  amount: number;
+  reference: string | null;
+  created_by_id: number;
+  created_at: string;
+}
