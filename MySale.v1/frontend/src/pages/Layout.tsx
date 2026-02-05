@@ -5,7 +5,6 @@ import { useShift } from '../context/ShiftContext';
 import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
-  ShoppingCart,
   Package,
   Users,
   MapPin,
@@ -20,7 +19,8 @@ import {
   X,
   Store,
   Calculator,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Shield
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
@@ -41,7 +41,6 @@ const Layout: React.FC = () => {
       { path: '/', icon: LayoutDashboard, label: 'Dashboard', show: true },
       { path: '/locations-dashboard', icon: Store, label: 'Puntos de Venta', show: isAdmin },
       { path: '/tables', icon: UtensilsCrossed, label: 'Gestión de Mesas', show: true },
-      { path: '/pos', icon: ShoppingCart, label: 'Punto de Venta', show: true },
       { path: '/inventory', icon: Package, label: 'Inventario', show: isAdmin },
       { path: '/cost-control', icon: Calculator, label: 'Control de Costos', show: isAdmin },
       { path: '/transfers', icon: Truck, label: 'Transferencias', show: true },
@@ -51,6 +50,7 @@ const Layout: React.FC = () => {
       { path: '/reports', icon: FileText, label: 'Reportes', show: isAdmin },
       { path: '/users', icon: Users, label: 'Usuarios', show: isAdmin },
       { path: '/locations', icon: MapPin, label: 'Ubicaciones', show: user?.role?.role_type === 'superuser' },
+      { path: '/super-admin', icon: Shield, label: 'Super Admin', show: user?.role?.role_type === 'superuser' },
     ];
 
   return (

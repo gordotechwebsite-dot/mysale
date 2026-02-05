@@ -388,3 +388,89 @@ export interface TicketPayment {
   created_by_id: number;
   created_at: string;
 }
+
+export interface Module {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  route: string | null;
+  display_order: number;
+  is_core: boolean;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface TenantModule {
+  id: number;
+  module_id: number;
+  module_code: string;
+  module_name: string;
+  module_icon: string | null;
+  module_route: string | null;
+  is_enabled: boolean;
+  enabled_at: string | null;
+}
+
+export interface Tenant {
+  id: number;
+  name: string;
+  code: string;
+  subdomain: string | null;
+  logo_url: string | null;
+  primary_color: string;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  address: string | null;
+  payment_status: 'active' | 'pending' | 'overdue' | 'suspended';
+  payment_due_date: string | null;
+  monthly_fee: number;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  modules?: TenantModule[];
+}
+
+export interface TenantListItem {
+  id: number;
+  name: string;
+  code: string;
+  subdomain: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  payment_status: 'active' | 'pending' | 'overdue' | 'suspended';
+  payment_due_date: string | null;
+  monthly_fee: number;
+  is_active: boolean;
+  created_at: string;
+  enabled_modules_count: number;
+}
+
+export interface TenantPayment {
+  id: number;
+  tenant_id: number;
+  amount: number;
+  payment_date: string;
+  period_start: string;
+  period_end: string;
+  payment_method: string | null;
+  reference: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface AdminDashboard {
+  total_tenants: number;
+  active_tenants: number;
+  payment_stats: {
+    active: number;
+    pending: number;
+    overdue: number;
+    suspended: number;
+  };
+  total_modules: number;
+  monthly_revenue: number;
+}

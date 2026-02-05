@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import engine, Base, SessionLocal
 from app.models import *
-from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables
+from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants
 
 
 def run_migrations():
@@ -33,6 +33,7 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     run_migrations()
     init_default_data()
+    init_default_modules()
     yield
 
 
@@ -65,6 +66,7 @@ app.include_router(expenses.router)
 app.include_router(reports.router)
 app.include_router(cost_control.router)
 app.include_router(tables.router)
+app.include_router(tenants.router)
 
 
 @app.get("/healthz")
@@ -79,6 +81,42 @@ async def root():
         "version": "1.0.0",
         "description": "Sistema POS para GALIA 1539"
     }
+
+
+def init_default_modules():
+    from app.models.tenant import Module
+    
+    db = SessionLocal()
+    try:
+        existing_module = db.query(Module).first()
+        if existing_module:
+            return
+        
+        modules = [
+            Module(code="dashboard", name="Dashboard", description="Panel principal con resumen de ventas y métricas", icon="LayoutDashboard", route="/dashboard", display_order=1, is_core=True),
+            Module(code="inventory", name="Inventario", description="Gestión de productos, grupos, familias y stock", icon="Package", route="/inventory", display_order=2, is_core=True),
+            Module(code="tables", name="Gestión de Mesas", description="Control de mesas, cuentas y comandas para restaurantes", icon="UtensilsCrossed", route="/tables", display_order=3, is_core=False),
+            Module(code="losses", name="Mermas", description="Registro y control de pérdidas de inventario", icon="AlertTriangle", route="/losses", display_order=4, is_core=False),
+            Module(code="transfers", name="Traspasos", description="Transferencias de productos entre sucursales", icon="ArrowLeftRight", route="/transfers", display_order=5, is_core=False),
+            Module(code="expenses", name="Gastos", description="Registro de gastos operativos", icon="Receipt", route="/expenses", display_order=6, is_core=False),
+            Module(code="cost_control", name="Control de Costos", description="Gestión y distribución de costos operativos", icon="Calculator", route="/cost-control", display_order=7, is_core=False),
+            Module(code="cash", name="Caja", description="Arqueos y cortes de caja", icon="Banknote", route="/cash", display_order=8, is_core=False),
+            Module(code="reports", name="Reportes", description="Reportes de ventas, inventario y empleados", icon="BarChart3", route="/reports", display_order=9, is_core=False),
+            Module(code="users", name="Usuarios", description="Gestión de usuarios y roles", icon="Users", route="/users", display_order=10, is_core=False),
+            Module(code="locations", name="Sucursales", description="Gestión de puntos de venta y almacenes", icon="MapPin", route="/locations", display_order=11, is_core=False),
+        ]
+        
+        for module in modules:
+            db.add(module)
+        
+        db.commit()
+        print("Módulos iniciales creados exitosamente")
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error al crear módulos iniciales: {e}")
+    finally:
+        db.close()
 
 
 def init_default_data():

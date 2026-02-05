@@ -35,6 +35,13 @@ from app.schemas.table import (
     PayTicketRequest, MoveTicketRequest, MergeTicketsRequest,
     SplitTicketRequest, AddItemsRequest
 )
+from app.schemas.tenant import (
+    ModuleCreate, ModuleUpdate, ModuleResponse,
+    TenantCreate, TenantUpdate, TenantResponse, TenantListResponse,
+    TenantModuleUpdate, TenantModuleResponse,
+    TenantPaymentCreate, TenantPaymentResponse,
+    UpdatePaymentStatusRequest
+)
 
 __all__ = [
     "UserCreate", "UserUpdate", "UserResponse", "UserLogin",
@@ -63,5 +70,10 @@ __all__ = [
     "ComandaCreate", "ComandaResponse",
     "TicketPaymentCreate", "TicketPaymentResponse",
     "PayTicketRequest", "MoveTicketRequest", "MergeTicketsRequest",
-    "SplitTicketRequest", "AddItemsRequest"
+    "SplitTicketRequest", "AddItemsRequest",
+    "ModuleCreate", "ModuleUpdate", "ModuleResponse",
+    "TenantCreate", "TenantUpdate", "TenantResponse", "TenantListResponse",
+    "TenantModuleUpdate", "TenantModuleResponse",
+    "TenantPaymentCreate", "TenantPaymentResponse",
+    "UpdatePaymentStatusRequest"
 ]
