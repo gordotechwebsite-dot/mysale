@@ -21,9 +21,16 @@ from app.schemas.table import (
     PayTicketRequest, MoveTicketRequest, MergeTicketsRequest,
     SplitTicketRequest, AddItemsRequest
 )
-from app.utils.auth import get_current_user
+from app.utils.auth import get_current_user, require_role
 
 router = APIRouter(prefix="/api/tables", tags=["tables"])
+
+
+def filter_by_tenant(query, model, tenant_id):
+    """Helper function to filter queries by tenant_id if present."""
+    if tenant_id:
+        return query.filter(model.tenant_id == tenant_id)
+    return query
 
 
 def get_table_response(table: Table, db: Session) -> TableResponse:
@@ -82,6 +89,7 @@ async def get_zones(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Zone).filter(Zone.is_active == True)
+    query = filter_by_tenant(query, Zone, current_user.tenant_id)
     if location_id:
         query = query.filter(Zone.location_id == location_id)
     zones = query.order_by(Zone.display_order).all()
@@ -104,6 +112,7 @@ async def get_zones_with_tables(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Zone).filter(Zone.is_active == True)
+    query = filter_by_tenant(query, Zone, current_user.tenant_id)
     if location_id:
         query = query.filter(Zone.location_id == location_id)
     zones = query.order_by(Zone.display_order).all()
@@ -135,9 +144,10 @@ async def get_zones_with_tables(
 async def create_zone(
     data: ZoneCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("superuser"))
 ):
     zone = Zone(
+        tenant_id=current_user.tenant_id,
         name=data.name,
         location_id=data.location_id,
         description=data.description,
@@ -165,7 +175,7 @@ async def update_zone(
     zone_id: int,
     data: ZoneUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("superuser"))
 ):
     zone = db.query(Zone).filter(Zone.id == zone_id).first()
     if not zone:
@@ -201,7 +211,7 @@ async def update_zone(
 async def delete_zone(
     zone_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("superuser"))
 ):
     zone = db.query(Zone).filter(Zone.id == zone_id).first()
     if not zone:
@@ -233,7 +243,7 @@ async def get_tables(
 async def create_table(
     data: TableCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("superuser"))
 ):
     try:
         shape = TableShape(data.shape) if data.shape else TableShape.SQUARE
@@ -262,7 +272,7 @@ async def update_table(
     table_id: int,
     data: TableUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("superuser"))
 ):
     table = db.query(Table).filter(Table.id == table_id).first()
     if not table:
@@ -306,7 +316,7 @@ async def batch_update_tables(
     tables: List[TableUpdate],
     table_ids: List[int],
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("superuser"))
 ):
     results = []
     for i, table_id in enumerate(table_ids):
@@ -332,7 +342,7 @@ async def batch_update_tables(
 async def delete_table(
     table_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("superuser"))
 ):
     table = db.query(Table).filter(Table.id == table_id).first()
     if not table:
