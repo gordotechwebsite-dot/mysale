@@ -9,7 +9,8 @@ class Group(Base):
     __tablename__ = "groups"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), unique=True, nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -21,6 +22,7 @@ class Family(Base):
     __tablename__ = "families"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     name = Column(String(100), nullable=False)
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=False)
     description = Column(Text, nullable=True)
@@ -35,6 +37,7 @@ class SubFamily(Base):
     __tablename__ = "subfamilies"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     name = Column(String(100), nullable=False)
     family_id = Column(Integer, ForeignKey("families.id"), nullable=False)
     description = Column(Text, nullable=True)
@@ -49,8 +52,9 @@ class Product(Base):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)
-    code = Column(String(50), unique=True, nullable=False, index=True)
-    barcode = Column(String(50), unique=True, nullable=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    code = Column(String(50), nullable=False, index=True)
+    barcode = Column(String(50), nullable=True, index=True)
     name = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     subfamily_id = Column(Integer, ForeignKey("subfamilies.id"), nullable=False)

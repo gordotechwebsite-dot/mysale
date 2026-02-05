@@ -17,6 +17,7 @@ class Loss(Base):
     __tablename__ = "losses"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
     reported_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     loss_type = Column(SQLEnum(LossType), nullable=False)

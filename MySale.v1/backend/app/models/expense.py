@@ -19,6 +19,7 @@ class Expense(Base):
     __tablename__ = "expenses"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
     category = Column(SQLEnum(ExpenseCategory), nullable=False)
     description = Column(Text, nullable=False)

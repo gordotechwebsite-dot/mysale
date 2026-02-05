@@ -26,6 +26,7 @@ class CostEntry(Base):
     __tablename__ = "cost_entries"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     name = Column(String(200), nullable=False)
     category = Column(SQLEnum(CostEntryCategory), nullable=False)
     amount = Column(Float, nullable=False)
@@ -44,6 +45,7 @@ class CostConfig(Base):
     __tablename__ = "cost_configs"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     distribution_method = Column(SQLEnum(CostDistributionMethod), default=CostDistributionMethod.PER_PRODUCT)
     percentage_value = Column(Float, default=0.0)
     is_auto_apply = Column(Boolean, default=False)
@@ -56,6 +58,7 @@ class CostApplication(Base):
     __tablename__ = "cost_applications"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     total_cost = Column(Float, nullable=False)
     product_count = Column(Integer, nullable=False)
     cost_per_product = Column(Float, nullable=False)
