@@ -18,6 +18,8 @@ import Losses from './pages/Losses';
 import Transfers from './pages/Transfers';
 import Expenses from './pages/Expenses';
 import LocationsDashboard from './pages/LocationsDashboard';
+import CostControl from './pages/CostControl';
+import TableManagement from './pages/TableManagement';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,7 +77,9 @@ function AppRoutes() {
               <Route path="transfers" element={<Transfers />} />
               <Route path="expenses" element={<Expenses />} />
               <Route path="locations-dashboard" element={<LocationsDashboard />} />
-            </Route>
+                          <Route path="cost-control" element={<CostControl />} />
+                          <Route path="tables" element={<TableManagement />} />
+                        </Route>
     </Routes>
   );
 }

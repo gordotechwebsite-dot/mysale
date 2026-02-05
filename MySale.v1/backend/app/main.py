@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import engine, Base, SessionLocal
 from app.models import *
-from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports
+from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables
 
 
 def run_migrations():
@@ -63,6 +63,8 @@ app.include_router(losses.router)
 app.include_router(transfers.router)
 app.include_router(expenses.router)
 app.include_router(reports.router)
+app.include_router(cost_control.router)
+app.include_router(tables.router)
 
 
 @app.get("/healthz")

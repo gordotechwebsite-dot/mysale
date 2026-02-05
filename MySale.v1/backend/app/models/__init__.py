@@ -7,6 +7,8 @@ from app.models.cash import CashRegister, CashDenomination, CashCut
 from app.models.loss import Loss, LossItem
 from app.models.transfer import Transfer, TransferItem
 from app.models.expense import Expense
+from app.models.cost_control import CostEntry, CostConfig, CostApplication
+from app.models.table import Zone, Table, Ticket, TicketItem, Comanda, TicketPayment
 
 __all__ = [
     "User", "Role", "Location",
@@ -16,5 +18,7 @@ __all__ = [
     "CashRegister", "CashDenomination", "CashCut",
     "Loss", "LossItem",
     "Transfer", "TransferItem",
-    "Expense"
+    "Expense",
+    "CostEntry", "CostConfig", "CostApplication",
+    "Zone", "Table", "Ticket", "TicketItem", "Comanda", "TicketPayment"
 ]
