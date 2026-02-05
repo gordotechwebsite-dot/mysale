@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  Building2, Users, Package, DollarSign, Plus, Edit, Trash2, 
+  Building2, Package, DollarSign, Plus, Edit, Trash2, 
   CheckCircle, XCircle, AlertTriangle, Clock, CreditCard,
   Settings, Eye, ToggleLeft, ToggleRight
 } from 'lucide-react';
