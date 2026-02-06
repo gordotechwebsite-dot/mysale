@@ -1,38 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Headphones } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 interface Message {
   id: number;
   text: string;
   isBot: boolean;
   timestamp: Date;
-}
-
-const FAQ_RESPONSES: Record<string, string> = {
-  'hola': '¡Hola! Soy el asistente virtual de MySale. ¿En qué puedo ayudarte hoy?',
-  'ayuda': 'Puedo ayudarte con:\n• Problemas de inventario\n• Gestión de ventas\n• Configuración de mesas\n• Problemas técnicos\n\n¿Sobre qué tema necesitas ayuda?',
-  'inventario': 'Para gestionar tu inventario:\n1. Ve al módulo "Inventario"\n2. Puedes agregar productos, grupos y familias\n3. Ajusta el stock desde la vista de productos\n\n¿Necesitas ayuda con algo específico del inventario?',
-  'venta': 'Para realizar una venta rápida:\n1. Ve al módulo "Venta Rápida"\n2. Selecciona los productos\n3. Confirma la venta\n\n¿Tienes algún problema con las ventas?',
-  'mesa': 'Para gestionar mesas:\n1. Ve al módulo "Gestión de Mesas"\n2. Crea zonas y mesas\n3. Abre cuentas y agrega productos\n\n¿Necesitas ayuda con la configuración de mesas?',
-  'error': 'Si tienes un error técnico:\n1. Intenta refrescar la página (F5)\n2. Cierra sesión y vuelve a entrar\n3. Si persiste, contacta soporte técnico\n\n¿Cuál es el error que estás viendo?',
-  'contacto': 'Para contactar soporte técnico directo:\n📧 Email: soporte@mysale.com\n📱 WhatsApp: +57 300 000 0000\n\nNuestro horario de atención es de Lunes a Sábado, 8am - 6pm.',
-  'gracias': '¡De nada! Estoy aquí para ayudarte. Si tienes más preguntas, no dudes en escribirme.',
-  'precio': 'Los precios de los productos se configuran en el módulo de Inventario. Puedes editar cada producto y ajustar su precio de venta.',
-  'turno': 'Para gestionar turnos:\n1. Inicia turno al comenzar el día\n2. Registra las ventas normalmente\n3. Cierra turno al finalizar\n\nEl sistema calculará automáticamente el resumen del día.',
-};
-
-function getResponse(input: string): string {
-  const lowerInput = input.toLowerCase().trim();
-  
-  // Check for keyword matches
-  for (const [keyword, response] of Object.entries(FAQ_RESPONSES)) {
-    if (lowerInput.includes(keyword)) {
-      return response;
-    }
-  }
-  
-  // Default response
-  return 'No estoy seguro de cómo ayudarte con eso. Puedes escribir:\n• "ayuda" para ver las opciones\n• "contacto" para hablar con soporte técnico\n\n¿En qué más puedo asistirte?';
 }
 
 export default function SupportChatbot() {
@@ -56,7 +31,7 @@ export default function SupportChatbot() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputValue.trim()) return;
 
     const userMessage: Message = {
@@ -67,18 +42,34 @@ export default function SupportChatbot() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const messageText = inputValue;
     setInputValue('');
 
-    // Simulate bot typing delay
-    setTimeout(() => {
+    try {
+      const response = await fetch(`${API_URL}/faq/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: messageText }),
+      });
+      
+      const data = await response.json();
+      
       const botResponse: Message = {
         id: messages.length + 2,
-        text: getResponse(inputValue),
+        text: data.answer,
         isBot: true,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botResponse]);
-    }, 500);
+    } catch {
+      const botResponse: Message = {
+        id: messages.length + 2,
+        text: 'Lo siento, hubo un error al procesar tu mensaje. Por favor intenta de nuevo.',
+        isBot: true,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, botResponse]);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
