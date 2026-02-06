@@ -41,7 +41,6 @@ const Layout: React.FC = () => {
   
   const isModuleEnabled = (moduleCode: string) => {
     if (isSuperuser) return true;
-    if (enabledModules.length === 0) return true;
     return enabledModules.some(m => m.code === moduleCode);
   };
 
