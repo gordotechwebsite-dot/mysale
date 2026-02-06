@@ -346,7 +346,7 @@ export default function SupportChatbot() {
             </div>
             {isConnectedToAgent && (
               <p className="text-xs text-gray-500 mt-2 text-center">
-                Conectado con soporte - Puedes enviar imagenes con el boton de camara
+                Conectado - Usa el icono de camara para enviar imagenes
               </p>
             )}
           </div>
