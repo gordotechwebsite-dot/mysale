@@ -82,16 +82,16 @@ async def create_tenant_with_user(
         db.add(tenant)
         db.flush()
         
-        admin_role = db.query(Role).filter(
+        superuser_role = db.query(Role).filter(
             Role.tenant_id == tenant.id,
-            Role.role_type == RoleType.ADMIN
+            Role.role_type == RoleType.SUPERUSER
         ).first()
         
-        if not admin_role:
-            admin_role = Role(
+        if not superuser_role:
+            superuser_role = Role(
                 tenant_id=tenant.id,
-                name="Administrador",
-                role_type=RoleType.ADMIN,
+                name="Superusuario",
+                role_type=RoleType.SUPERUSER,
                 can_void_sales=True,
                 can_manage_inventory=True,
                 can_manage_users=True,
@@ -100,7 +100,7 @@ async def create_tenant_with_user(
                 can_set_stock_thresholds=True,
                 can_close_shifts=True
             )
-            db.add(admin_role)
+            db.add(superuser_role)
             db.flush()
         
         user = User(
@@ -109,7 +109,7 @@ async def create_tenant_with_user(
             email=data.contact_email,
             full_name=data.contact_name or data.name,
             hashed_password=get_password_hash(data.pos_password),
-            role_id=admin_role.id,
+            role_id=superuser_role.id,
             is_active=True
         )
         db.add(user)
