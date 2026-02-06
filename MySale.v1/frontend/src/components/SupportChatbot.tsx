@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Headphones, Camera } from 'lucide-react';
+import { MessageCircle, X, Send, Headphones, Camera, UserCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -11,6 +11,7 @@ interface Message {
   timestamp: Date;
   isImage?: boolean;
   imageUrl?: string;
+  isAgentResponse?: boolean;
 }
 
 export default function SupportChatbot() {
@@ -56,9 +57,10 @@ export default function SupportChatbot() {
           if (agentMessages.length > 0) {
             const newMessages = agentMessages.map((msg: { id: number; message: string; agent_name: string }) => ({
               id: msg.id + 10000, // Offset to avoid ID conflicts
-              text: `👤 ${msg.agent_name || 'Agente'}: ${msg.message}`,
+              text: msg.message,
               isBot: true,
               timestamp: new Date(),
+              isAgentResponse: true,
             }));
             setMessages(prev => [...prev, ...newMessages]);
           }
@@ -267,28 +269,43 @@ export default function SupportChatbot() {
                 key={message.id}
                 className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}
               >
-                <div
-                  className={`max-w-[80%] p-3 rounded-2xl text-sm ${
-                    message.isBot
-                      ? 'bg-white text-gray-800 rounded-tl-none shadow-sm'
-                      : 'bg-emerald-600 text-white rounded-tr-none'
-                  }`}
-                >
-                  {message.isImage && message.imageUrl ? (
-                    <img 
-                      src={message.imageUrl} 
-                      alt="Imagen adjunta" 
-                      className="max-w-full rounded-lg"
-                    />
-                  ) : (
-                    <span 
-                      className="whitespace-pre-line"
-                      dangerouslySetInnerHTML={{ 
-                        __html: message.text.replace(/<b>/g, '<strong>').replace(/<\/b>/g, '</strong>') 
-                      }}
-                    />
-                  )}
-                </div>
+                {message.isAgentResponse && (
+                  <div className="flex items-start gap-2">
+                    <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <UserCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs text-orange-600 font-semibold mb-1">Support MySale</span>
+                      <div className="max-w-[80%] p-3 rounded-2xl text-sm bg-white text-gray-800 rounded-tl-none shadow-sm">
+                        <span className="whitespace-pre-line">{message.text}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {!message.isAgentResponse && (
+                  <div
+                    className={`max-w-[80%] p-3 rounded-2xl text-sm ${
+                      message.isBot
+                        ? 'bg-white text-gray-800 rounded-tl-none shadow-sm'
+                        : 'bg-emerald-600 text-white rounded-tr-none'
+                    }`}
+                  >
+                    {message.isImage && message.imageUrl ? (
+                      <img 
+                        src={message.imageUrl} 
+                        alt="Imagen adjunta" 
+                        className="max-w-full rounded-lg"
+                      />
+                    ) : (
+                      <span 
+                        className="whitespace-pre-line"
+                        dangerouslySetInnerHTML={{ 
+                          __html: message.text.replace(/<b>/g, '<strong>').replace(/<\/b>/g, '</strong>') 
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
             ))}
             <div ref={messagesEndRef} />
