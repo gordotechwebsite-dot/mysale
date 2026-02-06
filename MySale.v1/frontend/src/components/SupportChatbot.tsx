@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Headphones, Camera, UserCircle } from 'lucide-react';
+import { MessageCircle, X, Send, Headphones, Camera, HeadphonesIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -244,7 +244,7 @@ export default function SupportChatbot() {
           {/* Header */}
           <div className={`${isConnectedToAgent ? 'bg-orange-500' : 'bg-emerald-600'} text-white p-4 flex items-center gap-3 transition-colors`}>
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-              <MessageCircle className="w-5 h-5" />
+              <HeadphonesIcon className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-semibold">
@@ -272,7 +272,7 @@ export default function SupportChatbot() {
                 {message.isAgentResponse && (
                   <div className="flex items-start gap-2">
                     <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <UserCircle className="w-5 h-5 text-white" />
+                      <HeadphonesIcon className="w-4 h-4 text-white" />
                     </div>
                     <div className="flex flex-col">
                       <span className="text-xs text-orange-600 font-semibold mb-1">Support MySale</span>
