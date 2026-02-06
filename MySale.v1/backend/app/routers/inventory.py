@@ -210,12 +210,13 @@ async def create_product(
         if existing_barcode:
             raise HTTPException(status_code=400, detail="Ya existe un producto con ese codigo de barras")
     
-    subfamily_query = db.query(SubFamily).filter(SubFamily.id == product.subfamily_id)
-    if current_user.tenant_id:
-        subfamily_query = subfamily_query.filter(SubFamily.tenant_id == current_user.tenant_id)
-    subfamily = subfamily_query.first()
-    if not subfamily:
-        raise HTTPException(status_code=404, detail="Subfamilia no encontrada")
+    if product.subfamily_id:
+        subfamily_query = db.query(SubFamily).filter(SubFamily.id == product.subfamily_id)
+        if current_user.tenant_id:
+            subfamily_query = subfamily_query.filter(SubFamily.tenant_id == current_user.tenant_id)
+        subfamily = subfamily_query.first()
+        if not subfamily:
+            raise HTTPException(status_code=404, detail="Subfamilia no encontrada")
     
     db_product = Product(**product.model_dump(), tenant_id=current_user.tenant_id)
     db.add(db_product)

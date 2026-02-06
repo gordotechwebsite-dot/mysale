@@ -60,7 +60,7 @@ class ProductCreate(BaseModel):
     barcode: Optional[str] = None
     name: str
     description: Optional[str] = None
-    subfamily_id: int
+    subfamily_id: Optional[int] = None
     unit: str = "unidad"
     sale_price: float
     min_stock: int = 0
@@ -92,7 +92,7 @@ class ProductResponse(BaseModel):
     barcode: Optional[str]
     name: str
     description: Optional[str]
-    subfamily_id: int
+    subfamily_id: Optional[int]
     unit: str
     sale_price: float
     weighted_cost: float

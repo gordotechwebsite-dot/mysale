@@ -155,13 +155,18 @@ const Inventory: React.FC = () => {
   const handleAddProduct = async () => {
     setIsProcessing(true);
     try {
-      await createProduct({
+      const productData: any = {
         ...newProduct,
-        subfamily_id: parseInt(newProduct.subfamily_id),
         sale_price: parseFloat(newProduct.sale_price),
         min_stock: parseInt(newProduct.min_stock),
         max_stock: parseInt(newProduct.max_stock)
-      });
+      };
+      if (newProduct.subfamily_id && newProduct.subfamily_id !== 'none') {
+        productData.subfamily_id = parseInt(newProduct.subfamily_id);
+      } else {
+        delete productData.subfamily_id;
+      }
+      await createProduct(productData);
       await loadProducts();
       setShowAddProduct(false);
       setNewProduct({
@@ -517,9 +522,10 @@ const Inventory: React.FC = () => {
             />
             <Select value={newProduct.subfamily_id} onValueChange={(v) => setNewProduct({ ...newProduct, subfamily_id: v })}>
               <SelectTrigger>
-                <SelectValue placeholder="Seleccione subfamilia *" />
+                <SelectValue placeholder="Categoria (opcional)" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">Sin categoria</SelectItem>
                 {subFamilies.map(sf => (
                   <SelectItem key={sf.id} value={sf.id.toString()}>{sf.name}</SelectItem>
                 ))}
@@ -557,7 +563,7 @@ const Inventory: React.FC = () => {
             <Button variant="outline" onClick={() => setShowAddProduct(false)}>Cancelar</Button>
             <Button
               onClick={handleAddProduct}
-              disabled={isProcessing || !newProduct.code || !newProduct.name || !newProduct.subfamily_id || !newProduct.sale_price}
+              disabled={isProcessing || !newProduct.code || !newProduct.name || !newProduct.sale_price}
             >
               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crear'}
             </Button>

@@ -57,7 +57,7 @@ class Product(Base):
     barcode = Column(String(50), nullable=True, index=True)
     name = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
-    subfamily_id = Column(Integer, ForeignKey("subfamilies.id"), nullable=False)
+    subfamily_id = Column(Integer, ForeignKey("subfamilies.id"), nullable=True)
     unit = Column(String(20), default="unidad")
     sale_price = Column(Float, nullable=False)
     weighted_cost = Column(Float, default=0.0)
