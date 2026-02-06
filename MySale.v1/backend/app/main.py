@@ -7,9 +7,10 @@ from app.routers import auth, users, locations, inventory, shifts, sales, cash, 
 
 
 def run_migrations():
-    """Run database migrations to add missing columns"""
+    """Run database migrations to add missing columns and modules"""
     from sqlalchemy import text
     from app.database import SessionLocal
+    from app.models.tenant import Module
     
     db = SessionLocal()
     try:
@@ -21,6 +22,23 @@ def run_migrations():
             db.execute(text("ALTER TABLE locations ADD COLUMN image_url VARCHAR(500)"))
             db.commit()
             print("Migration: Added image_url column to locations table")
+        
+        # Add quick_sale module if it doesn't exist
+        existing_quick_sale = db.query(Module).filter(Module.code == "quick_sale").first()
+        if not existing_quick_sale:
+            quick_sale_module = Module(
+                code="quick_sale",
+                name="Venta Rapida",
+                description="Interfaz rapida para ventas directas sin turno",
+                icon="Zap",
+                route="/quick-sale",
+                display_order=2,
+                is_core=False,
+                is_active=True
+            )
+            db.add(quick_sale_module)
+            db.commit()
+            print("Migration: Added quick_sale module")
     except Exception as e:
         print(f"Migration error: {e}")
         db.rollback()
@@ -95,16 +113,17 @@ def init_default_modules():
         
         modules = [
             Module(code="dashboard", name="Dashboard", description="Panel principal con resumen de ventas y métricas", icon="LayoutDashboard", route="/dashboard", display_order=1, is_core=True),
-            Module(code="inventory", name="Inventario", description="Gestión de productos, grupos, familias y stock", icon="Package", route="/inventory", display_order=2, is_core=True),
-            Module(code="tables", name="Gestión de Mesas", description="Control de mesas, cuentas y comandas para restaurantes", icon="UtensilsCrossed", route="/tables", display_order=3, is_core=False),
-            Module(code="losses", name="Mermas", description="Registro y control de pérdidas de inventario", icon="AlertTriangle", route="/losses", display_order=4, is_core=False),
-            Module(code="transfers", name="Traspasos", description="Transferencias de productos entre sucursales", icon="ArrowLeftRight", route="/transfers", display_order=5, is_core=False),
-            Module(code="expenses", name="Gastos", description="Registro de gastos operativos", icon="Receipt", route="/expenses", display_order=6, is_core=False),
-            Module(code="cost_control", name="Control de Costos", description="Gestión y distribución de costos operativos", icon="Calculator", route="/cost-control", display_order=7, is_core=False),
-            Module(code="cash", name="Caja", description="Arqueos y cortes de caja", icon="Banknote", route="/cash", display_order=8, is_core=False),
-            Module(code="reports", name="Reportes", description="Reportes de ventas, inventario y empleados", icon="BarChart3", route="/reports", display_order=9, is_core=False),
-            Module(code="users", name="Usuarios", description="Gestión de usuarios y roles", icon="Users", route="/users", display_order=10, is_core=False),
-            Module(code="locations", name="Sucursales", description="Gestión de puntos de venta y almacenes", icon="MapPin", route="/locations", display_order=11, is_core=False),
+            Module(code="quick_sale", name="Venta Rapida", description="Interfaz rapida para ventas directas sin turno", icon="Zap", route="/quick-sale", display_order=2, is_core=False),
+            Module(code="inventory", name="Inventario", description="Gestión de productos, grupos, familias y stock", icon="Package", route="/inventory", display_order=3, is_core=True),
+            Module(code="tables", name="Gestion de Mesas", description="Control de mesas, cuentas y comandas para restaurantes", icon="UtensilsCrossed", route="/tables", display_order=4, is_core=False),
+            Module(code="losses", name="Mermas", description="Registro y control de pérdidas de inventario", icon="AlertTriangle", route="/losses", display_order=5, is_core=False),
+            Module(code="transfers", name="Traspasos", description="Transferencias de productos entre sucursales", icon="ArrowLeftRight", route="/transfers", display_order=6, is_core=False),
+            Module(code="expenses", name="Gastos", description="Registro de gastos operativos", icon="Receipt", route="/expenses", display_order=7, is_core=False),
+            Module(code="cost_control", name="Control de Costos", description="Gestión y distribución de costos operativos", icon="Calculator", route="/cost-control", display_order=8, is_core=False),
+            Module(code="cash", name="Caja", description="Arqueos y cortes de caja", icon="Banknote", route="/cash", display_order=9, is_core=False),
+            Module(code="reports", name="Reportes", description="Reportes de ventas, inventario y empleados", icon="BarChart3", route="/reports", display_order=10, is_core=False),
+            Module(code="users", name="Usuarios", description="Gestión de usuarios y roles", icon="Users", route="/users", display_order=11, is_core=False),
+            Module(code="locations", name="Sucursales", description="Gestión de puntos de venta y almacenes", icon="MapPin", route="/locations", display_order=12, is_core=False),
         ]
         
         for module in modules:

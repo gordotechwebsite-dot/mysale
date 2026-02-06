@@ -20,11 +20,12 @@ import {
   Store,
   Calculator,
   UtensilsCrossed,
-  Shield
+  Shield,
+  Zap
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, enabledModules } = useAuth();
   const { currentShift } = useShift();
   const location = useLocation();
   const navigate = useNavigate();
@@ -36,21 +37,29 @@ const Layout: React.FC = () => {
   };
 
   const isAdmin = user?.role?.role_type === 'superuser' || user?.role?.role_type === 'admin';
+  const isSuperuser = user?.role?.role_type === 'superuser';
+  
+  const isModuleEnabled = (moduleCode: string) => {
+    if (isSuperuser) return true;
+    if (enabledModules.length === 0) return true;
+    return enabledModules.some(m => m.code === moduleCode);
+  };
 
     const menuItems = [
-      { path: '/', icon: LayoutDashboard, label: 'Dashboard', show: true },
-      { path: '/locations-dashboard', icon: Store, label: 'Puntos de Venta', show: isAdmin },
-      { path: '/tables', icon: UtensilsCrossed, label: 'Gestión de Mesas', show: true },
-      { path: '/inventory', icon: Package, label: 'Inventario', show: isAdmin },
-      { path: '/cost-control', icon: Calculator, label: 'Control de Costos', show: isAdmin },
-      { path: '/transfers', icon: Truck, label: 'Transferencias', show: true },
-      { path: '/losses', icon: AlertTriangle, label: 'Mermas', show: true },
-      { path: '/expenses', icon: DollarSign, label: 'Gastos', show: isAdmin },
+      { path: '/', icon: LayoutDashboard, label: 'Dashboard', show: isModuleEnabled('dashboard') },
+      { path: '/quick-sale', icon: Zap, label: 'Venta Rapida', show: isModuleEnabled('quick_sale') },
+      { path: '/locations-dashboard', icon: Store, label: 'Puntos de Venta', show: isAdmin && isModuleEnabled('locations') },
+      { path: '/tables', icon: UtensilsCrossed, label: 'Gestion de Mesas', show: isModuleEnabled('tables') },
+      { path: '/inventory', icon: Package, label: 'Inventario', show: isAdmin && isModuleEnabled('inventory') },
+      { path: '/cost-control', icon: Calculator, label: 'Control de Costos', show: isAdmin && isModuleEnabled('cost_control') },
+      { path: '/transfers', icon: Truck, label: 'Transferencias', show: isModuleEnabled('transfers') },
+      { path: '/losses', icon: AlertTriangle, label: 'Mermas', show: isModuleEnabled('losses') },
+      { path: '/expenses', icon: DollarSign, label: 'Gastos', show: isAdmin && isModuleEnabled('expenses') },
       { path: '/shifts', icon: Clock, label: 'Turnos', show: true },
-      { path: '/reports', icon: FileText, label: 'Reportes', show: isAdmin },
-      { path: '/users', icon: Users, label: 'Usuarios', show: isAdmin },
-      { path: '/locations', icon: MapPin, label: 'Ubicaciones', show: user?.role?.role_type === 'superuser' },
-      { path: '/super-admin', icon: Shield, label: 'Super Admin', show: user?.role?.role_type === 'superuser' },
+      { path: '/reports', icon: FileText, label: 'Reportes', show: isAdmin && isModuleEnabled('reports') },
+      { path: '/users', icon: Users, label: 'Usuarios', show: isAdmin && isModuleEnabled('users') },
+      { path: '/locations', icon: MapPin, label: 'Ubicaciones', show: isSuperuser },
+      { path: '/super-admin', icon: Shield, label: 'Super Admin', show: isSuperuser },
     ];
 
   return (
