@@ -64,6 +64,9 @@ class Product(Base):
     min_stock = Column(Integer, default=0)
     max_stock = Column(Integer, default=1000)
     is_active = Column(Boolean, default=True)
+    is_weighted = Column(Boolean, default=False)
+    price_per_kg = Column(Float, nullable=True)
+    plu_code = Column(String(10), nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

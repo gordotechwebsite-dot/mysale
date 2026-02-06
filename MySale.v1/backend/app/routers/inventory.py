@@ -130,6 +130,80 @@ async def get_next_product_code(
     return {"code": f"PROD{next_number:04d}"}
 
 
+@router.post("/products/decode-barcode")
+async def decode_weighted_barcode(
+    barcode: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Decode a weighted product barcode from a scale.
+    Format: 23PPPPPWWWWWC where:
+    - 23 = prefix for weighted products
+    - PPPPP = PLU code (5 digits)
+    - WWWWW = weight in grams (5 digits, divide by 1000 for kg)
+    - C = check digit
+    """
+    if len(barcode) != 13 or not barcode.startswith("23"):
+        return {"found": False, "error": "Codigo de barras no es de producto pesable"}
+    
+    plu_code = barcode[2:7]
+    weight_raw = barcode[7:12]
+    
+    try:
+        weight_kg = int(weight_raw) / 1000
+    except ValueError:
+        return {"found": False, "error": "Peso invalido en codigo de barras"}
+    
+    query = db.query(Product).filter(
+        Product.plu_code == plu_code,
+        Product.is_weighted == True,
+        Product.is_active == True
+    )
+    if current_user.tenant_id:
+        query = query.filter(Product.tenant_id == current_user.tenant_id)
+    
+    product = query.first()
+    
+    if not product:
+        return {"found": False, "error": f"Producto con PLU {plu_code} no encontrado"}
+    
+    total_price = weight_kg * (product.price_per_kg or 0)
+    
+    return {
+        "found": True,
+        "product_id": product.id,
+        "product_name": product.name,
+        "product_code": product.code,
+        "plu_code": plu_code,
+        "weight_kg": weight_kg,
+        "price_per_kg": product.price_per_kg,
+        "total_price": round(total_price, 0),
+        "unit": "kg"
+    }
+
+
+@router.get("/products/by-plu/{plu_code}")
+async def get_product_by_plu(
+    plu_code: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get a weighted product by its PLU code"""
+    query = db.query(Product).filter(
+        Product.plu_code == plu_code,
+        Product.is_active == True
+    )
+    if current_user.tenant_id:
+        query = query.filter(Product.tenant_id == current_user.tenant_id)
+    
+    product = query.first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    return product
+
+
 @router.get("/products", response_model=List[ProductResponse])
 async def get_products(
     subfamily_id: Optional[int] = None,

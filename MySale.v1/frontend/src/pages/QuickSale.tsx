@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useCart } from '../context/CartContext';
-import { getProducts, getLocations, createSale } from '../api';
+import { getProducts, getLocations, createSale, decodeWeightedBarcode } from '../api';
 import type { Product, Location } from '../types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,8 @@ import {
   Loader2,
   Check,
   X,
-  Zap
+  Zap,
+  Scale
 } from 'lucide-react';
 
 const QuickSale: React.FC = () => {
@@ -50,6 +51,12 @@ const QuickSale: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
+  const [weightedProductInfo, setWeightedProductInfo] = useState<{
+    product_name: string;
+    weight_kg: number;
+    price_per_kg: number;
+    total_price: number;
+  } | null>(null);
 
   useEffect(() => {
     loadInitialData();
@@ -108,9 +115,57 @@ const QuickSale: React.FC = () => {
     searchRef.current?.focus();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && filteredProducts.length === 1) {
-      handleProductClick(filteredProducts[0]);
+  const handleWeightedBarcode = async (barcode: string) => {
+    try {
+      const result = await decodeWeightedBarcode(barcode);
+      if (result.found && result.product_id && result.total_price !== undefined) {
+        const weightedProduct: Product = {
+          id: result.product_id,
+          code: result.product_code || '',
+          barcode: barcode,
+          name: `${result.product_name} (${result.weight_kg?.toFixed(3)} kg)`,
+          description: null,
+          subfamily_id: 0,
+          unit: 'kg',
+          sale_price: result.total_price,
+          weighted_cost: 0,
+          min_stock: 0,
+          max_stock: 0,
+          is_active: true,
+          is_weighted: true,
+          price_per_kg: result.price_per_kg || 0,
+          plu_code: result.plu_code || null,
+          created_at: ''
+        };
+        addItem(weightedProduct);
+        setWeightedProductInfo({
+          product_name: result.product_name || '',
+          weight_kg: result.weight_kg || 0,
+          price_per_kg: result.price_per_kg || 0,
+          total_price: result.total_price
+        });
+        setTimeout(() => setWeightedProductInfo(null), 3000);
+        setSearchTerm('');
+        searchRef.current?.focus();
+      } else {
+        alert(result.error || 'Producto pesable no encontrado');
+      }
+    } catch (error) {
+      console.error('Error decoding weighted barcode:', error);
+      alert('Error al decodificar codigo de barras');
+    }
+  };
+
+  const handleKeyDown = async (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      if (searchTerm.length === 13 && searchTerm.startsWith('23')) {
+        e.preventDefault();
+        await handleWeightedBarcode(searchTerm);
+        return;
+      }
+      if (filteredProducts.length === 1) {
+        handleProductClick(filteredProducts[0]);
+      }
     }
     if (e.key === 'F2') {
       e.preventDefault();
@@ -213,6 +268,17 @@ const QuickSale: React.FC = () => {
                 autoFocus
               />
             </div>
+            {weightedProductInfo && (
+              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3 animate-pulse">
+                <Scale className="w-5 h-5 text-blue-600" />
+                <div className="flex-1">
+                  <p className="font-medium text-blue-800">{weightedProductInfo.product_name}</p>
+                  <p className="text-sm text-blue-600">
+                    {weightedProductInfo.weight_kg.toFixed(3)} kg x {formatCurrency(weightedProductInfo.price_per_kg)}/kg = {formatCurrency(weightedProductInfo.total_price)}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-auto">

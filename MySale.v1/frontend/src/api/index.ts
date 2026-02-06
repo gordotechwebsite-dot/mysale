@@ -99,6 +99,22 @@ export const getNextProductCode = async (): Promise<{ code: string }> => {
   return response.data;
 };
 
+export const decodeWeightedBarcode = async (barcode: string): Promise<{
+  found: boolean;
+  error?: string;
+  product_id?: number;
+  product_name?: string;
+  product_code?: string;
+  plu_code?: string;
+  weight_kg?: number;
+  price_per_kg?: number;
+  total_price?: number;
+  unit?: string;
+}> => {
+  const response = await api.post(`/api/inventory/products/decode-barcode?barcode=${barcode}`);
+  return response.data;
+};
+
 export const createProduct = async (data: {
   code: string;
   barcode?: string;

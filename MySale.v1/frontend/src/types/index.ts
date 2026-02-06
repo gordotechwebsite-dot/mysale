@@ -80,8 +80,24 @@ export interface Product {
   min_stock: number;
   max_stock: number;
   is_active: boolean;
+  is_weighted: boolean;
+  price_per_kg: number | null;
+  plu_code: string | null;
   created_at: string;
   stocks?: ProductStock[];
+}
+
+export interface WeightedBarcodeResult {
+  found: boolean;
+  error?: string;
+  product_id?: number;
+  product_name?: string;
+  product_code?: string;
+  plu_code?: string;
+  weight_kg?: number;
+  price_per_kg?: number;
+  total_price?: number;
+  unit?: string;
 }
 
 export interface Shift {
