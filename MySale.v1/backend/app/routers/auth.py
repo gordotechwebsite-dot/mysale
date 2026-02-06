@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
+from typing import List
 from app.database import get_db
 from app.models.user import User, Role, RoleType
+from app.models.tenant import TenantModule, Module
 from app.schemas.user import Token, UserResponse, UserLogin
 from app.utils.auth import (
     verify_password, get_password_hash, create_access_token,
@@ -167,3 +169,24 @@ async def get_me(current_user: User = Depends(get_current_user)):
         points=current_user.points,
         created_at=current_user.created_at
     )
+
+
+@router.get("/my-modules")
+async def get_my_modules(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get enabled modules for the current user's tenant."""
+    if not current_user.tenant_id:
+        all_modules = db.query(Module).filter(Module.is_active == True).order_by(Module.display_order).all()
+        return [{"code": m.code, "name": m.name, "icon": m.icon, "route": m.route} for m in all_modules]
+    
+    enabled_modules = db.query(Module).join(
+        TenantModule, TenantModule.module_id == Module.id
+    ).filter(
+        TenantModule.tenant_id == current_user.tenant_id,
+        TenantModule.is_enabled == True,
+        Module.is_active == True
+    ).order_by(Module.display_order).all()
+    
+    return [{"code": m.code, "name": m.name, "icon": m.icon, "route": m.route} for m in enabled_modules]

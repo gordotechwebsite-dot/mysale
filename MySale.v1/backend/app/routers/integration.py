@@ -25,6 +25,11 @@ class CreateTenantRequest(BaseModel):
     monthly_fee: float = 0
     pos_username: str
     pos_password: str
+    enabled_modules: Optional[list] = None
+
+
+class UpdateModulesRequest(BaseModel):
+    enabled_modules: list
 
 
 class CreateTenantResponse(BaseModel):
@@ -109,12 +114,18 @@ async def create_tenant_with_user(
         db.add(user)
         db.flush()
         
-        core_modules = db.query(Module).filter(Module.is_core == True, Module.is_active == True).all()
-        for module in core_modules:
+        all_modules = db.query(Module).filter(Module.is_active == True).all()
+        for module in all_modules:
+            is_enabled = False
+            if data.enabled_modules:
+                is_enabled = module.code in data.enabled_modules
+            else:
+                is_enabled = module.is_core
+            
             tenant_module = TenantModule(
                 tenant_id=tenant.id,
                 module_id=module.id,
-                is_enabled=True
+                is_enabled=is_enabled
             )
             db.add(tenant_module)
         
@@ -180,6 +191,37 @@ async def update_tenant_status(
     db.commit()
     
     return {"success": True, "message": f"Tenant {'activated' if is_active else 'deactivated'} successfully"}
+
+
+@router.put("/update-modules/{tenant_code}")
+async def update_tenant_modules(
+    tenant_code: str,
+    data: UpdateModulesRequest,
+    db: Session = Depends(get_db),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Update enabled modules for a tenant. Called by POSAdmin when modules are changed.
+    """
+    tenant = db.query(Tenant).filter(Tenant.code == tenant_code).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    db.query(TenantModule).filter(TenantModule.tenant_id == tenant.id).delete()
+    
+    all_modules = db.query(Module).filter(Module.is_active == True).all()
+    for module in all_modules:
+        is_enabled = module.code in data.enabled_modules
+        tenant_module = TenantModule(
+            tenant_id=tenant.id,
+            module_id=module.id,
+            is_enabled=is_enabled
+        )
+        db.add(tenant_module)
+    
+    db.commit()
+    
+    return {"success": True, "message": "Modules updated successfully"}
 
 
 @router.get("/health")
