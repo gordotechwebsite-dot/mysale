@@ -23,22 +23,39 @@ def run_migrations():
             db.commit()
             print("Migration: Added image_url column to locations table")
         
-        # Add quick_sale module if it doesn't exist
-        existing_quick_sale = db.query(Module).filter(Module.code == "quick_sale").first()
-        if not existing_quick_sale:
-            quick_sale_module = Module(
-                code="quick_sale",
-                name="Venta Rapida",
-                description="Interfaz rapida para ventas directas sin turno",
-                icon="Zap",
-                route="/quick-sale",
-                display_order=2,
-                is_core=False,
-                is_active=True
-            )
-            db.add(quick_sale_module)
-            db.commit()
-            print("Migration: Added quick_sale module")
+        # Ensure all modules exist in the database
+        all_modules = [
+            {"code": "dashboard", "name": "Dashboard", "description": "Panel principal con resumen de ventas y métricas", "icon": "LayoutDashboard", "route": "/dashboard", "display_order": 1, "is_core": True},
+            {"code": "quick_sale", "name": "Venta Rapida", "description": "Interfaz rapida para ventas directas sin turno", "icon": "Zap", "route": "/quick-sale", "display_order": 2, "is_core": False},
+            {"code": "inventory", "name": "Inventario", "description": "Gestión de productos, grupos, familias y stock", "icon": "Package", "route": "/inventory", "display_order": 3, "is_core": True},
+            {"code": "tables", "name": "Gestion de Mesas", "description": "Control de mesas, cuentas y comandas para restaurantes", "icon": "UtensilsCrossed", "route": "/tables", "display_order": 4, "is_core": False},
+            {"code": "losses", "name": "Mermas", "description": "Registro y control de pérdidas de inventario", "icon": "AlertTriangle", "route": "/losses", "display_order": 5, "is_core": False},
+            {"code": "transfers", "name": "Traspasos", "description": "Transferencias de productos entre sucursales", "icon": "ArrowLeftRight", "route": "/transfers", "display_order": 6, "is_core": False},
+            {"code": "expenses", "name": "Gastos", "description": "Registro de gastos operativos", "icon": "Receipt", "route": "/expenses", "display_order": 7, "is_core": False},
+            {"code": "cost_control", "name": "Control de Costos", "description": "Gestión y distribución de costos operativos", "icon": "Calculator", "route": "/cost-control", "display_order": 8, "is_core": False},
+            {"code": "cash", "name": "Caja", "description": "Arqueos y cortes de caja", "icon": "Banknote", "route": "/cash", "display_order": 9, "is_core": False},
+            {"code": "reports", "name": "Reportes", "description": "Reportes de ventas, inventario y empleados", "icon": "BarChart3", "route": "/reports", "display_order": 10, "is_core": False},
+            {"code": "users", "name": "Usuarios", "description": "Gestión de usuarios y roles", "icon": "Users", "route": "/users", "display_order": 11, "is_core": False},
+            {"code": "locations", "name": "Sucursales", "description": "Gestión de puntos de venta y almacenes", "icon": "MapPin", "route": "/locations", "display_order": 12, "is_core": False},
+        ]
+        
+        for module_data in all_modules:
+            existing = db.query(Module).filter(Module.code == module_data["code"]).first()
+            if not existing:
+                new_module = Module(
+                    code=module_data["code"],
+                    name=module_data["name"],
+                    description=module_data["description"],
+                    icon=module_data["icon"],
+                    route=module_data["route"],
+                    display_order=module_data["display_order"],
+                    is_core=module_data["is_core"],
+                    is_active=True
+                )
+                db.add(new_module)
+                print(f"Migration: Added {module_data['code']} module")
+        
+        db.commit()
     except Exception as e:
         print(f"Migration error: {e}")
         db.rollback()
