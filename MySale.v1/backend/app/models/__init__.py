@@ -10,6 +10,7 @@ from app.models.expense import Expense
 from app.models.cost_control import CostEntry, CostConfig, CostApplication
 from app.models.table import Zone, Table, Ticket, TicketItem, Comanda, TicketPayment
 from app.models.tenant import Module, Tenant, TenantModule, TenantPayment, PaymentStatus
+from app.models.audit import AuditLog, AuditAction
 
 __all__ = [
     "User", "Role", "Location",
@@ -22,5 +23,6 @@ __all__ = [
     "Expense",
     "CostEntry", "CostConfig", "CostApplication",
     "Zone", "Table", "Ticket", "TicketItem", "Comanda", "TicketPayment",
-    "Module", "Tenant", "TenantModule", "TenantPayment", "PaymentStatus"
+    "Module", "Tenant", "TenantModule", "TenantPayment", "PaymentStatus",
+    "AuditLog", "AuditAction"
 ]

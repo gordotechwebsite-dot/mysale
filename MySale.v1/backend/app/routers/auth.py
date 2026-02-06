@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from typing import List
+import json
 from app.database import get_db
 from app.models.user import User, Role, RoleType
 from app.models.tenant import TenantModule, Module
+from app.models.audit import AuditLog
 from app.schemas.user import Token, UserResponse, UserLogin
 from app.utils.auth import (
     verify_password, get_password_hash, create_access_token,
@@ -15,13 +17,46 @@ from app.utils.auth import (
 router = APIRouter(prefix="/api/auth", tags=["Autenticacion"])
 
 
+def log_audit(db: Session, action: str, user_id: int = None, tenant_id: int = None, 
+              username: str = None, resource_type: str = None, resource_id: int = None,
+              details: dict = None, ip_address: str = None, user_agent: str = None):
+    """Helper function to create audit log entries."""
+    audit_log = AuditLog(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        username=username,
+        action=action,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        details=json.dumps(details) if details else None,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
+    db.add(audit_log)
+    db.commit()
+
+
 @router.post("/login", response_model=Token)
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
+    # Get client info for audit logging
+    client_ip = request.client.host if request.client else None
+    user_agent = request.headers.get("user-agent", "")
+    
     user = db.query(User).filter(User.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
+        # Log failed login attempt
+        log_audit(
+            db=db,
+            action="login_failed",
+            username=form_data.username,
+            details={"reason": "invalid_credentials"},
+            ip_address=client_ip,
+            user_agent=user_agent
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario o contrasena incorrectos",
@@ -29,6 +64,17 @@ async def login(
         )
     
     if not user.is_active:
+        # Log failed login attempt for inactive user
+        log_audit(
+            db=db,
+            action="login_failed",
+            user_id=user.id,
+            tenant_id=user.tenant_id,
+            username=user.username,
+            details={"reason": "user_inactive"},
+            ip_address=client_ip,
+            user_agent=user_agent
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Usuario inactivo"
@@ -69,6 +115,19 @@ async def login(
         is_active=user.is_active,
         points=user.points,
         created_at=user.created_at
+    )
+    
+    # Log successful login
+    log_audit(
+        db=db,
+        action="login",
+        user_id=user.id,
+        tenant_id=user.tenant_id,
+        username=user.username,
+        resource_type="session",
+        details={"method": "password"},
+        ip_address=client_ip,
+        user_agent=user_agent
     )
     
     return Token(
