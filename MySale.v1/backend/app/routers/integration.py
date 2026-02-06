@@ -7,6 +7,7 @@ import os
 from app.database import get_db
 from app.models.tenant import Tenant, Module, TenantModule, PaymentStatus
 from app.models.user import User, Role, RoleType
+from app.models.location import Location, LocationType
 from app.utils.auth import get_password_hash
 
 router = APIRouter(prefix="/api/integration", tags=["integration"])
@@ -128,6 +129,16 @@ async def create_tenant_with_user(
                 is_enabled=is_enabled
             )
             db.add(tenant_module)
+        
+        default_location = Location(
+            tenant_id=tenant.id,
+            name=data.name,
+            code=data.code[:10],
+            location_type=LocationType.POS,
+            daily_base_cash=100000,
+            folio_prefix=data.code[:2].upper()
+        )
+        db.add(default_location)
         
         db.commit()
         

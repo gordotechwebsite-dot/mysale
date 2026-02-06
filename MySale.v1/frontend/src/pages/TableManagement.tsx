@@ -130,10 +130,13 @@ export default function TableManagement() {
       setLocations(posLocations);
       if (posLocations.length > 0) {
         setSelectedLocation(posLocations[0].id);
+      } else {
+        setLoading(false);
       }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       toast.error(err.response?.data?.detail || 'Error al cargar ubicaciones');
+      setLoading(false);
     }
   };
 
@@ -467,10 +470,22 @@ export default function TableManagement() {
 
   const freeTables = zones.flatMap(z => z.tables).filter(t => t.status === 'free' && t.id !== selectedTable?.id);
 
-  if (loading && zones.length === 0) {
+  if (loading && zones.length === 0 && locations.length > 0) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+      </div>
+    );
+  }
+
+  if (!loading && locations.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full bg-slate-900">
+        <div className="text-center p-8">
+          <h2 className="text-xl font-bold text-white mb-4">No hay ubicaciones configuradas</h2>
+          <p className="text-slate-400 mb-4">Para usar Gestión de Mesas, primero debe crear una ubicación de tipo POS.</p>
+          <p className="text-slate-500 text-sm">Vaya a Sucursales para crear una ubicación.</p>
+        </div>
       </div>
     );
   }
