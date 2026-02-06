@@ -59,10 +59,12 @@ async def create_tenant_with_user(
         raise HTTPException(status_code=400, detail="Username already exists")
     
     try:
+        subdomain_value = data.subdomain if data.subdomain and data.subdomain.strip() else None
+        
         tenant = Tenant(
             name=data.name,
             code=data.code,
-            subdomain=data.subdomain,
+            subdomain=subdomain_value,
             contact_name=data.contact_name,
             contact_email=data.contact_email,
             contact_phone=data.contact_phone,
