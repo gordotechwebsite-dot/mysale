@@ -53,16 +53,86 @@ async def create_tenant_with_user(
     api_key: str = Depends(verify_api_key)
 ):
     """
-    Create a new tenant and admin user for POSAdmin integration.
-    This endpoint is called by POSAdmin when a new client is created.
+    Create or update a tenant and admin user for POSAdmin integration.
+    This endpoint is called by POSAdmin when a client is created or synced.
+    If tenant already exists, it will update the user password and modules.
     """
     existing_tenant = db.query(Tenant).filter(Tenant.code == data.code).first()
-    if existing_tenant:
-        raise HTTPException(status_code=400, detail="Tenant code already exists")
-    
     existing_user = db.query(User).filter(User.username == data.pos_username).first()
+    
+    # If tenant exists, update it instead of failing
+    if existing_tenant:
+        # Update existing user's password
+        if existing_user:
+            existing_user.hashed_password = get_password_hash(data.pos_password)
+            existing_user.is_active = True
+            db.commit()
+            
+            # Update modules
+            if data.enabled_modules:
+                db.query(TenantModule).filter(TenantModule.tenant_id == existing_tenant.id).delete()
+                all_modules = db.query(Module).filter(Module.is_active == True).all()
+                for module in all_modules:
+                    is_enabled = module.code in data.enabled_modules
+                    tenant_module = TenantModule(
+                        tenant_id=existing_tenant.id,
+                        module_id=module.id,
+                        is_enabled=is_enabled
+                    )
+                    db.add(tenant_module)
+                db.commit()
+            
+            return CreateTenantResponse(
+                success=True,
+                tenant_id=existing_tenant.id,
+                user_id=existing_user.id,
+                message="Tenant and user updated successfully"
+            )
+        else:
+            # Tenant exists but user doesn't - create the user
+            superuser_role = db.query(Role).filter(
+                Role.tenant_id == existing_tenant.id,
+                Role.role_type == RoleType.SUPERUSER
+            ).first()
+            
+            if not superuser_role:
+                superuser_role = Role(
+                    tenant_id=existing_tenant.id,
+                    name="Superusuario",
+                    role_type=RoleType.SUPERUSER,
+                    can_void_sales=True,
+                    can_manage_inventory=True,
+                    can_manage_users=True,
+                    can_view_reports=True,
+                    can_manage_locations=True,
+                    can_set_stock_thresholds=True,
+                    can_close_shifts=True
+                )
+                db.add(superuser_role)
+                db.flush()
+            
+            user = User(
+                tenant_id=existing_tenant.id,
+                username=data.pos_username,
+                email=data.contact_email,
+                full_name=data.contact_name or data.name,
+                hashed_password=get_password_hash(data.pos_password),
+                role_id=superuser_role.id,
+                is_active=True
+            )
+            db.add(user)
+            db.commit()
+            
+            return CreateTenantResponse(
+                success=True,
+                tenant_id=existing_tenant.id,
+                user_id=user.id,
+                message="User created for existing tenant"
+            )
+    
+    # Check if user exists with different tenant
     if existing_user:
-        raise HTTPException(status_code=400, detail="Username already exists")
+        raise HTTPException(status_code=400, detail="Username already exists for different tenant")
     
     try:
         subdomain_value = data.subdomain if data.subdomain and data.subdomain.strip() else None

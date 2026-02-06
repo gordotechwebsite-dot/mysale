@@ -3,7 +3,11 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mysale.db")
+# Use /data/app.db for persistent storage on Fly.io, fallback to local for development
+if os.path.exists("/data"):
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////data/app.db")
+else:
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./mysale.db")
 
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
