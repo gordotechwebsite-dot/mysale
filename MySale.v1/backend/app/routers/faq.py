@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
@@ -274,10 +274,10 @@ async def chat_send_image(
 
 @router.post("/chat/upload-image")
 async def upload_image_to_telegram(
-    file: bytes,
-    session_id: str,
-    user_name: str = "Usuario",
-    description: str = ""
+    file: UploadFile = File(...),
+    session_id: str = Form(...),
+    user_name: str = Form("Usuario"),
+    description: str = Form("")
 ):
     """Upload an image directly to Telegram support group"""
     try:
@@ -289,6 +289,9 @@ async def upload_image_to_telegram(
 👤 Usuario: {user_name}
 📝 {description if description else 'Sin descripción'}"""
         
+        # Read file content
+        file_content = await file.read()
+        
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 url,
@@ -296,7 +299,7 @@ async def upload_image_to_telegram(
                     "chat_id": TELEGRAM_CHAT_ID,
                     "caption": caption
                 },
-                files={"photo": ("image.jpg", file, "image/jpeg")}
+                files={"photo": (file.filename or "image.jpg", file_content, file.content_type or "image/jpeg")}
             )
             
             if response.status_code == 200:

@@ -177,15 +177,22 @@ export default function SupportChatbot() {
       };
       setMessages((prev) => [...prev, imageMessage]);
 
-      if (isConnectedToAgent && sessionId) {
+      if (isConnectedToAgent && sessionId && file) {
         try {
-          await fetch(`${API_URL}/faq/chat/send-image?session_id=${sessionId}&user_name=${encodeURIComponent(user?.full_name || user?.username || 'Usuario')}&tenant_name=MySale&description=${encodeURIComponent('Imagen adjunta por el usuario')}`, {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('session_id', sessionId);
+          formData.append('user_name', user?.full_name || user?.username || 'Usuario');
+          formData.append('description', 'Imagen adjunta por el usuario');
+          
+          await fetch(`${API_URL}/faq/chat/upload-image`, {
             method: 'POST',
+            body: formData,
           });
         } catch {
-          // Silent fail - image notification failed but user already sees the image
+          // Silent fail - image upload failed but user already sees the image
         }
-      } else {
+      }else {
         const botResponse: Message = {
           id: messages.length + 2,
           text: 'Para enviar imágenes al equipo de soporte, primero escribe "agente" para conectarte con un representante.',
