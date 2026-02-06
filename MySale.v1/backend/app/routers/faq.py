@@ -2,10 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
+import httpx
+import os
 from app.database import get_db
 from app.models.faq import FAQ
 
 router = APIRouter(prefix="/faq", tags=["FAQ"])
+
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8178377263:AAElzqyqBfeLfRVgfLaISVF929YTIWtHlLY")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "-5152973716")
 
 
 class FAQCreate(BaseModel):
@@ -41,11 +46,38 @@ class FAQResponse(BaseModel):
 
 class ChatQuery(BaseModel):
     message: str
+    user_name: Optional[str] = None
+    tenant_name: Optional[str] = None
+    session_id: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
     answer: str
     matched_faq_id: Optional[int] = None
+    connected_to_agent: bool = False
+    session_id: Optional[str] = None
+
+
+class AgentMessage(BaseModel):
+    session_id: str
+    message: str
+    from_agent: bool = False
+
+
+async def send_telegram_message(message: str) -> bool:
+    """Send a message to the Telegram support group"""
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json={
+                "chat_id": TELEGRAM_CHAT_ID,
+                "text": message,
+                "parse_mode": "HTML"
+            })
+            return response.status_code == 200
+    except Exception as e:
+        print(f"Error sending Telegram message: {e}")
+        return False
 
 
 @router.get("/", response_model=List[FAQResponse])
@@ -94,9 +126,51 @@ def delete_faq(faq_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/chat", response_model=ChatResponse)
-def chat_query(query: ChatQuery, db: Session = Depends(get_db)):
+async def chat_query(query: ChatQuery, db: Session = Depends(get_db)):
     """Process a chat message and return matching FAQ answer"""
     message = query.message.lower().strip()
+    
+    # Check if user wants to connect with an agent
+    agent_keywords = ["agente", "humano", "persona", "hablar con alguien", "soporte humano", "agente real"]
+    wants_agent = any(keyword in message for keyword in agent_keywords)
+    
+    if wants_agent:
+        # Generate session ID for this support conversation
+        import uuid
+        session_id = str(uuid.uuid4())[:8]
+        
+        # Build message for Telegram
+        user_name = query.user_name or "Usuario"
+        tenant_name = query.tenant_name or "Sin identificar"
+        
+        telegram_message = f"""🆘 <b>Nueva solicitud de soporte</b>
+
+👤 <b>Usuario:</b> {user_name}
+🏪 <b>Negocio:</b> {tenant_name}
+🎫 <b>Ticket:</b> #{session_id}
+
+💬 <b>Mensaje:</b>
+{query.message}
+
+Para responder, usa: /responder {session_id} [tu mensaje]"""
+        
+        # Send to Telegram
+        await send_telegram_message(telegram_message)
+        
+        response = f"""En unos momentos se conectará contigo nuestro especialista.
+
+🎫 Tu número de ticket es: <b>#{session_id}</b>
+
+Para hacer esto más rápido, ¿podrías describir el problema?
+
+Si necesitas enviar una imagen del error, haz clic en el botón 📷 para adjuntarla."""
+        
+        return ChatResponse(
+            answer=response, 
+            matched_faq_id=None, 
+            connected_to_agent=True,
+            session_id=session_id
+        )
     
     # Get all active FAQs ordered by priority
     faqs = db.query(FAQ).filter(FAQ.is_active == True).order_by(FAQ.priority.desc()).all()
@@ -122,11 +196,93 @@ def chat_query(query: ChatQuery, db: Session = Depends(get_db)):
     # Default response if no match
     default_response = """No encontré una respuesta específica para tu pregunta. Puedes escribir:
 • "ayuda" para ver las opciones disponibles
-• "contacto" para hablar con soporte técnico
+• "agente" para hablar con soporte técnico
 
 ¿En qué más puedo asistirte?"""
     
     return ChatResponse(answer=default_response, matched_faq_id=None)
+
+
+@router.post("/chat/follow-up")
+async def chat_follow_up(query: ChatQuery):
+    """Send a follow-up message to the support team"""
+    if not query.session_id:
+        raise HTTPException(status_code=400, detail="Session ID is required for follow-up messages")
+    
+    user_name = query.user_name or "Usuario"
+    
+    telegram_message = f"""💬 <b>Mensaje de seguimiento</b>
+
+🎫 <b>Ticket:</b> #{query.session_id}
+👤 <b>Usuario:</b> {user_name}
+
+{query.message}"""
+    
+    await send_telegram_message(telegram_message)
+    
+    return {"success": True, "message": "Mensaje enviado al equipo de soporte"}
+
+
+@router.post("/chat/send-image")
+async def chat_send_image(
+    session_id: str,
+    user_name: str = "Usuario",
+    tenant_name: str = "Sin identificar",
+    description: str = ""
+):
+    """Send an image to the support team via Telegram"""
+    try:
+        telegram_message = f"""📷 <b>Imagen recibida</b>
+
+🎫 <b>Ticket:</b> #{session_id}
+👤 <b>Usuario:</b> {user_name}
+🏪 <b>Negocio:</b> {tenant_name}
+
+📝 <b>Descripción:</b>
+{description if description else 'Sin descripción'}
+
+(La imagen fue adjuntada por el usuario)"""
+        
+        await send_telegram_message(telegram_message)
+        
+        return {"success": True, "message": "Notificación de imagen enviada"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/chat/upload-image")
+async def upload_image_to_telegram(
+    file: bytes,
+    session_id: str,
+    user_name: str = "Usuario",
+    description: str = ""
+):
+    """Upload an image directly to Telegram support group"""
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+        
+        caption = f"""📷 Imagen de soporte
+
+🎫 Ticket: #{session_id}
+👤 Usuario: {user_name}
+📝 {description if description else 'Sin descripción'}"""
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url,
+                data={
+                    "chat_id": TELEGRAM_CHAT_ID,
+                    "caption": caption
+                },
+                files={"photo": ("image.jpg", file, "image/jpeg")}
+            )
+            
+            if response.status_code == 200:
+                return {"success": True, "message": "Imagen enviada al equipo de soporte"}
+            else:
+                raise HTTPException(status_code=500, detail="Error al enviar imagen a Telegram")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/seed")
