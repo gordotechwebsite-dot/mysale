@@ -117,6 +117,19 @@ async def create_subfamily(
     return db_subfamily
 
 
+@router.get("/products/next-code")
+async def get_next_product_code(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    query = db.query(Product)
+    if current_user.tenant_id:
+        query = query.filter(Product.tenant_id == current_user.tenant_id)
+    count = query.count()
+    next_number = count + 1
+    return {"code": f"PROD{next_number:04d}"}
+
+
 @router.get("/products", response_model=List[ProductResponse])
 async def get_products(
     subfamily_id: Optional[int] = None,

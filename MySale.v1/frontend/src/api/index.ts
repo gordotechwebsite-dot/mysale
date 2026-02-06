@@ -94,6 +94,11 @@ export const getProducts = async (params?: {
   return response.data;
 };
 
+export const getNextProductCode = async (): Promise<{ code: string }> => {
+  const response = await api.get('/api/inventory/products/next-code');
+  return response.data;
+};
+
 export const createProduct = async (data: {
   code: string;
   barcode?: string;

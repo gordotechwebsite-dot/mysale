@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   getGroups, getFamilies, getSubFamilies, getProducts,
   createGroup, createFamily, createSubFamily, createProduct, registerPurchase,
-  getLocations
+  getLocations, getNextProductCode
 } from '../api';
 import type { Group, Family, SubFamily, Product, Location } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -206,6 +206,24 @@ const Inventory: React.FC = () => {
     setShowPurchase(true);
   };
 
+  const openAddProductDialog = async () => {
+    try {
+      const { code } = await getNextProductCode();
+      setNewProduct({
+        code, barcode: '', name: '', description: '',
+        subfamily_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100'
+      });
+      setShowAddProduct(true);
+    } catch (error) {
+      console.error('Error getting next code:', error);
+      setNewProduct({
+        code: '', barcode: '', name: '', description: '',
+        subfamily_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100'
+      });
+      setShowAddProduct(true);
+    }
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -246,7 +264,7 @@ const Inventory: React.FC = () => {
                   <Package className="w-5 h-5" />
                   Productos
                 </CardTitle>
-                <Button onClick={() => setShowAddProduct(true)} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={openAddProductDialog} className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Nuevo Producto
                 </Button>
@@ -503,23 +521,24 @@ const Inventory: React.FC = () => {
             <DialogTitle>Nuevo Producto</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                placeholder="Codigo *"
-                value={newProduct.code}
-                onChange={(e) => setNewProduct({ ...newProduct, code: e.target.value })}
-              />
-              <Input
-                placeholder="Codigo de barras"
-                value={newProduct.barcode}
-                onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
-              />
-            </div>
             <Input
               placeholder="Nombre del producto *"
               value={newProduct.name}
               onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
             />
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                placeholder="Codigo (autogenerado)"
+                value={newProduct.code}
+                readOnly
+                className="bg-gray-100"
+              />
+              <Input
+                placeholder="Codigo de barras (opcional)"
+                value={newProduct.barcode}
+                onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
+              />
+            </div>
             <Select value={newProduct.subfamily_id} onValueChange={(v) => setNewProduct({ ...newProduct, subfamily_id: v })}>
               <SelectTrigger>
                 <SelectValue placeholder="Categoria (opcional)" />
