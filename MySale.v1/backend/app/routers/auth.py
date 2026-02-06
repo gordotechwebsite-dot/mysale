@@ -65,6 +65,7 @@ async def login(
         role_id=user.role_id,
         role=role_response,
         location_id=user.location_id,
+        tenant_id=user.tenant_id,
         is_active=user.is_active,
         points=user.points,
         created_at=user.created_at
@@ -126,6 +127,7 @@ async def login_biometric(
         role_id=user.role_id,
         role=role_response,
         location_id=user.location_id,
+        tenant_id=user.tenant_id,
         is_active=user.is_active,
         points=user.points,
         created_at=user.created_at
@@ -165,6 +167,7 @@ async def get_me(current_user: User = Depends(get_current_user)):
         role_id=current_user.role_id,
         role=role_response,
         location_id=current_user.location_id,
+        tenant_id=current_user.tenant_id,
         is_active=current_user.is_active,
         points=current_user.points,
         created_at=current_user.created_at

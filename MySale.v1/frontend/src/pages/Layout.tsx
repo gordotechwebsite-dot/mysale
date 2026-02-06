@@ -40,7 +40,9 @@ const Layout: React.FC = () => {
   const isSuperuser = user?.role?.role_type === 'superuser';
   
   const isModuleEnabled = (moduleCode: string) => {
-    if (isSuperuser) return true;
+    // System admin (no tenant_id) sees all modules
+    if (isSuperuser && !user?.tenant_id) return true;
+    // Tenant users only see their enabled modules
     return enabledModules.some(m => m.code === moduleCode);
   };
 
@@ -54,11 +56,11 @@ const Layout: React.FC = () => {
       { path: '/transfers', icon: Truck, label: 'Transferencias', show: isModuleEnabled('transfers') },
       { path: '/losses', icon: AlertTriangle, label: 'Mermas', show: isModuleEnabled('losses') },
       { path: '/expenses', icon: DollarSign, label: 'Gastos', show: isAdmin && isModuleEnabled('expenses') },
-      { path: '/shifts', icon: Clock, label: 'Turnos', show: true },
+      { path: '/shifts', icon: Clock, label: 'Turnos', show: isModuleEnabled('shifts') },
       { path: '/reports', icon: FileText, label: 'Reportes', show: isAdmin && isModuleEnabled('reports') },
       { path: '/users', icon: Users, label: 'Usuarios', show: isAdmin && isModuleEnabled('users') },
-      { path: '/locations', icon: MapPin, label: 'Ubicaciones', show: isSuperuser },
-      { path: '/super-admin', icon: Shield, label: 'Super Admin', show: isSuperuser },
+      { path: '/locations', icon: MapPin, label: 'Ubicaciones', show: isSuperuser && isModuleEnabled('locations') },
+      { path: '/super-admin', icon: Shield, label: 'Super Admin', show: isSuperuser && isModuleEnabled('super_admin') },
     ];
 
   return (
