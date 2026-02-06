@@ -1,16 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
 import httpx
 import os
+import re
 from app.database import get_db
 from app.models.faq import FAQ
+from app.models.support import SupportConversation, SupportMessage
 
 router = APIRouter(prefix="/faq", tags=["FAQ"])
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8178377263:AAElzqyqBfeLfRVgfLaISVF929YTIWtHlLY")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "-5152973716")
+BACKEND_URL = os.getenv("BACKEND_URL", "https://app-mpfzcgcr.fly.dev")
 
 
 class FAQCreate(BaseModel):
@@ -142,6 +145,25 @@ async def chat_query(query: ChatQuery, db: Session = Depends(get_db)):
         # Build message for Telegram
         user_name = query.user_name or "Usuario"
         tenant_name = query.tenant_name or "Sin identificar"
+        
+        # Create conversation in database
+        conversation = SupportConversation(
+            session_id=session_id,
+            user_name=user_name,
+            tenant_name=tenant_name,
+            status="active"
+        )
+        db.add(conversation)
+        db.commit()
+        
+        # Save user message
+        user_msg = SupportMessage(
+            session_id=session_id,
+            message=query.message,
+            from_agent=False
+        )
+        db.add(user_msg)
+        db.commit()
         
         telegram_message = f"""🆘 <b>Nueva solicitud de soporte</b>
 
@@ -283,6 +305,89 @@ async def upload_image_to_telegram(
                 raise HTTPException(status_code=500, detail="Error al enviar imagen a Telegram")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/chat/messages/{session_id}")
+def get_chat_messages(session_id: str, db: Session = Depends(get_db)):
+    """Get all messages for a support conversation"""
+    messages = db.query(SupportMessage).filter(
+        SupportMessage.session_id == session_id
+    ).order_by(SupportMessage.created_at.asc()).all()
+    
+    return [
+        {
+            "id": msg.id,
+            "message": msg.message,
+            "from_agent": msg.from_agent,
+            "agent_name": msg.agent_name,
+            "created_at": msg.created_at.isoformat() if msg.created_at else None
+        }
+        for msg in messages
+    ]
+
+
+@router.post("/telegram/webhook")
+async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
+    """Webhook to receive messages from Telegram"""
+    try:
+        data = await request.json()
+        
+        # Check if it's a message
+        if "message" not in data:
+            return {"ok": True}
+        
+        message = data["message"]
+        text = message.get("text", "")
+        
+        # Check if it's a response command: /responder session_id message
+        if text.startswith("/responder "):
+            parts = text[11:].split(" ", 1)
+            if len(parts) >= 2:
+                session_id = parts[0]
+                agent_message = parts[1]
+                
+                # Get agent name from Telegram
+                from_user = message.get("from", {})
+                agent_name = from_user.get("first_name", "Agente")
+                if from_user.get("last_name"):
+                    agent_name += f" {from_user['last_name']}"
+                
+                # Check if conversation exists
+                conversation = db.query(SupportConversation).filter(
+                    SupportConversation.session_id == session_id
+                ).first()
+                
+                if conversation:
+                    # Save agent message
+                    new_message = SupportMessage(
+                        session_id=session_id,
+                        message=agent_message,
+                        from_agent=True,
+                        agent_name=agent_name
+                    )
+                    db.add(new_message)
+                    db.commit()
+                    
+                    # Send confirmation to Telegram
+                    await send_telegram_message(f"✅ Mensaje enviado al cliente (Ticket #{session_id})")
+                else:
+                    await send_telegram_message(f"❌ No se encontró el ticket #{session_id}")
+        
+        return {"ok": True}
+    except Exception as e:
+        print(f"Telegram webhook error: {e}")
+        return {"ok": True}
+
+
+@router.post("/telegram/setup-webhook")
+async def setup_telegram_webhook():
+    """Setup the Telegram webhook (call this once after deployment)"""
+    webhook_url = f"{BACKEND_URL}/faq/telegram/webhook"
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook"
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, json={"url": webhook_url})
+        return response.json()
 
 
 @router.post("/seed")

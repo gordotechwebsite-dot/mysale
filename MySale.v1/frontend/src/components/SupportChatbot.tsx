@@ -39,6 +39,40 @@ export default function SupportChatbot() {
     scrollToBottom();
   }, [messages]);
 
+  // Poll for agent messages when connected
+  useEffect(() => {
+    if (!isConnectedToAgent || !sessionId) return;
+
+    const pollMessages = async () => {
+      try {
+        const response = await fetch(`${API_URL}/faq/chat/messages/${sessionId}`);
+        if (response.ok) {
+          const data = await response.json();
+          // Find new agent messages
+          const agentMessages = data.filter((msg: { from_agent: boolean; id: number }) => 
+            msg.from_agent && !messages.some(m => m.id === msg.id + 10000)
+          );
+          
+          if (agentMessages.length > 0) {
+            const newMessages = agentMessages.map((msg: { id: number; message: string; agent_name: string }) => ({
+              id: msg.id + 10000, // Offset to avoid ID conflicts
+              text: `👤 ${msg.agent_name || 'Agente'}: ${msg.message}`,
+              isBot: true,
+              timestamp: new Date(),
+            }));
+            setMessages(prev => [...prev, ...newMessages]);
+          }
+        }
+      } catch {
+        // Silent fail on polling
+      }
+    };
+
+    // Poll every 3 seconds
+    const interval = setInterval(pollMessages, 3000);
+    return () => clearInterval(interval);
+  }, [isConnectedToAgent, sessionId, messages]);
+
   const handleSend = async () => {
     if (!inputValue.trim()) return;
 
@@ -54,9 +88,9 @@ export default function SupportChatbot() {
     setInputValue('');
 
     try {
-      // If connected to agent, send follow-up message
+      // If connected to agent, send follow-up message (no confirmation shown)
       if (isConnectedToAgent && sessionId) {
-        const response = await fetch(`${API_URL}/faq/chat/follow-up`, {
+        await fetch(`${API_URL}/faq/chat/follow-up`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -66,16 +100,6 @@ export default function SupportChatbot() {
             tenant_name: 'MySale'
           }),
         });
-        
-        if (response.ok) {
-          const botResponse: Message = {
-            id: messages.length + 2,
-            text: '✓ Tu mensaje ha sido enviado al equipo de soporte. Te responderán pronto.',
-            isBot: true,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, botResponse]);
-        }
         return;
       }
 
@@ -158,22 +182,8 @@ export default function SupportChatbot() {
           await fetch(`${API_URL}/faq/chat/send-image?session_id=${sessionId}&user_name=${encodeURIComponent(user?.full_name || user?.username || 'Usuario')}&tenant_name=MySale&description=${encodeURIComponent('Imagen adjunta por el usuario')}`, {
             method: 'POST',
           });
-
-          const botResponse: Message = {
-            id: messages.length + 2,
-            text: '✓ Tu imagen ha sido notificada al equipo de soporte.',
-            isBot: true,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, botResponse]);
         } catch {
-          const botResponse: Message = {
-            id: messages.length + 2,
-            text: 'Hubo un error al enviar la imagen. Por favor intenta de nuevo.',
-            isBot: true,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, botResponse]);
+          // Silent fail - image notification failed but user already sees the image
         }
       } else {
         const botResponse: Message = {

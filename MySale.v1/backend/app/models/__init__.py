@@ -12,6 +12,7 @@ from app.models.table import Zone, Table, Ticket, TicketItem, Comanda, TicketPay
 from app.models.tenant import Module, Tenant, TenantModule, TenantPayment, PaymentStatus
 from app.models.audit import AuditLog, AuditAction
 from app.models.faq import FAQ
+from app.models.support import SupportConversation, SupportMessage
 
 __all__ = [
     "User", "Role", "Location",
