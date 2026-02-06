@@ -21,7 +21,8 @@ import {
   Calculator,
   UtensilsCrossed,
   Shield,
-  Zap
+  Zap,
+  Banknote
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
@@ -56,6 +57,7 @@ const Layout: React.FC = () => {
       { path: '/transfers', icon: Truck, label: 'Transferencias', show: isModuleEnabled('transfers') },
       { path: '/losses', icon: AlertTriangle, label: 'Mermas', show: isModuleEnabled('losses') },
       { path: '/expenses', icon: DollarSign, label: 'Gastos', show: isAdmin && isModuleEnabled('expenses') },
+      { path: '/cash', icon: Banknote, label: 'Caja', show: isModuleEnabled('cash') },
       { path: '/shifts', icon: Clock, label: 'Turnos', show: isModuleEnabled('shifts') },
       { path: '/reports', icon: FileText, label: 'Reportes', show: isAdmin && isModuleEnabled('reports') },
       { path: '/users', icon: Users, label: 'Usuarios', show: isAdmin && isModuleEnabled('users') },

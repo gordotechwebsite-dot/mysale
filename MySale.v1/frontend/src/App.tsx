@@ -22,6 +22,7 @@ import LocationsDashboard from './pages/LocationsDashboard';
 import CostControl from './pages/CostControl';
 import TableManagement from './pages/TableManagement';
 import SuperAdmin from './pages/SuperAdmin';
+import Cash from './pages/Cash';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,6 +83,7 @@ function AppRoutes() {
         <Route path="locations-dashboard" element={<LocationsDashboard />} />
         <Route path="cost-control" element={<CostControl />} />
         <Route path="tables" element={<TableManagement />} />
+        <Route path="cash" element={<Cash />} />
         <Route path="super-admin" element={<SuperAdmin />} />
       </Route>
     </Routes>
