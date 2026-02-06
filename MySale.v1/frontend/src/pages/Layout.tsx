@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
 import { Button } from '@/components/ui/button';
+import SupportChatbot from '@/components/SupportChatbot';
 import {
   LayoutDashboard,
   Package,
@@ -158,6 +159,8 @@ const Layout: React.FC = () => {
           <Outlet />
         </div>
       </main>
+
+      <SupportChatbot />
     </div>
   );
 };
