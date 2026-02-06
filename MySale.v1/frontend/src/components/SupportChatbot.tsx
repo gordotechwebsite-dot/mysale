@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Headphones, Camera, HeadphonesIcon } from 'lucide-react';
+import { X, Send, Headphones, Camera, HeadphonesIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
