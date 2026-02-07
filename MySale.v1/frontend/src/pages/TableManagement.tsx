@@ -589,11 +589,6 @@ export default function TableManagement() {
               {selectedTable.name} {currentTicket ? `- Cuenta #${currentTicket.id}` : '- Nueva Cuenta'}
             </h1>
           </div>
-          {currentTicket && (
-            <div className="text-3xl font-bold text-emerald-400">
-              Total: ${(currentTicket.total + cartTotal).toLocaleString()}
-            </div>
-          )}
         </div>
 
         {!currentTicket ? (
