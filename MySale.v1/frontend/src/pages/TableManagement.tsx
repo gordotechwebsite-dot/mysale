@@ -1097,19 +1097,12 @@ export default function TableManagement() {
                   {table.capacity}
                 </span>
 
-                {table.status !== 'free' && (
+                {table.status !== 'free' && table.ticket_time && (
                   <div className="mt-2 text-center">
-                    {table.ticket_time && (
-                      <span className="text-white/80 text-xs flex items-center justify-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {table.ticket_time}
-                      </span>
-                    )}
-                    {table.ticket_total !== undefined && table.ticket_total > 0 && (
-                      <span className="text-white font-semibold text-sm">
-                        ${table.ticket_total.toLocaleString()}
-                      </span>
-                    )}
+                    <span className="text-white/80 text-xs flex items-center justify-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {table.ticket_time}
+                    </span>
                   </div>
                 )}
 
