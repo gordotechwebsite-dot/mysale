@@ -49,12 +49,12 @@ def get_table_response(table: Table, db: Session) -> TableResponse:
             Comanda.ticket_id == current_ticket.id,
             Comanda.status.in_([ComandaStatus.PENDING, ComandaStatus.IN_PREPARATION])
         ).count()
-        ticket_total = current_ticket.total
+        ticket_total = current_ticket.total if current_ticket.total > 0 else None
         if current_ticket.opened_at:
             delta = datetime.utcnow() - current_ticket.opened_at
             hours, remainder = divmod(int(delta.total_seconds()), 3600)
-            minutes, _ = divmod(remainder, 60)
-            ticket_time = f"{hours:02d}:{minutes:02d}"
+            minutes, seconds = divmod(remainder, 60)
+            ticket_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         waiter = db.query(User).filter(User.id == current_ticket.waiter_id).first()
         waiter_name = waiter.full_name if waiter else None
     
