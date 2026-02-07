@@ -34,9 +34,10 @@ def run_migrations():
             {"code": "expenses", "name": "Gastos", "description": "Registro de gastos operativos", "icon": "Receipt", "route": "/expenses", "display_order": 7, "is_core": False},
             {"code": "cost_control", "name": "Control de Costos", "description": "Gestión y distribución de costos operativos", "icon": "Calculator", "route": "/cost-control", "display_order": 8, "is_core": False},
             {"code": "cash", "name": "Caja", "description": "Arqueos y cortes de caja", "icon": "Banknote", "route": "/cash", "display_order": 9, "is_core": False},
-            {"code": "reports", "name": "Reportes", "description": "Reportes de ventas, inventario y empleados", "icon": "BarChart3", "route": "/reports", "display_order": 10, "is_core": False},
-            {"code": "users", "name": "Usuarios", "description": "Gestión de usuarios y roles", "icon": "Users", "route": "/users", "display_order": 11, "is_core": False},
-            {"code": "locations", "name": "Sucursales", "description": "Gestión de puntos de venta y almacenes", "icon": "MapPin", "route": "/locations", "display_order": 12, "is_core": False},
+            {"code": "shifts", "name": "Turnos", "description": "Gestión de turnos de trabajo y horarios", "icon": "Clock", "route": "/shifts", "display_order": 10, "is_core": False},
+            {"code": "reports", "name": "Reportes", "description": "Reportes de ventas, inventario y empleados", "icon": "BarChart3", "route": "/reports", "display_order": 11, "is_core": False},
+            {"code": "users", "name": "Usuarios", "description": "Gestión de usuarios y roles", "icon": "Users", "route": "/users", "display_order": 12, "is_core": False},
+            {"code": "locations", "name": "Sucursales", "description": "Gestión de puntos de venta y almacenes", "icon": "MapPin", "route": "/locations", "display_order": 13, "is_core": False},
         ]
         
         for module_data in all_modules:
@@ -139,9 +140,10 @@ def init_default_modules():
             Module(code="expenses", name="Gastos", description="Registro de gastos operativos", icon="Receipt", route="/expenses", display_order=7, is_core=False),
             Module(code="cost_control", name="Control de Costos", description="Gestión y distribución de costos operativos", icon="Calculator", route="/cost-control", display_order=8, is_core=False),
             Module(code="cash", name="Caja", description="Arqueos y cortes de caja", icon="Banknote", route="/cash", display_order=9, is_core=False),
-            Module(code="reports", name="Reportes", description="Reportes de ventas, inventario y empleados", icon="BarChart3", route="/reports", display_order=10, is_core=False),
-            Module(code="users", name="Usuarios", description="Gestión de usuarios y roles", icon="Users", route="/users", display_order=11, is_core=False),
-            Module(code="locations", name="Sucursales", description="Gestión de puntos de venta y almacenes", icon="MapPin", route="/locations", display_order=12, is_core=False),
+            Module(code="shifts", name="Turnos", description="Gestión de turnos de trabajo y horarios", icon="Clock", route="/shifts", display_order=10, is_core=False),
+            Module(code="reports", name="Reportes", description="Reportes de ventas, inventario y empleados", icon="BarChart3", route="/reports", display_order=11, is_core=False),
+            Module(code="users", name="Usuarios", description="Gestión de usuarios y roles", icon="Users", route="/users", display_order=12, is_core=False),
+            Module(code="locations", name="Sucursales", description="Gestión de puntos de venta y almacenes", icon="MapPin", route="/locations", display_order=13, is_core=False),
         ]
         
         for module in modules:
