@@ -40,7 +40,7 @@ def get_table_response(table: Table, db: Session) -> TableResponse:
     ).first()
     
     pending_comandas = 0
-    ticket_total = 0
+    ticket_total = None
     ticket_time = None
     waiter_name = None
     
