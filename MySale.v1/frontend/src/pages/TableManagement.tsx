@@ -1084,7 +1084,7 @@ export default function TableManagement() {
                   min-h-[120px] flex flex-col items-center justify-center p-4
                 `}
               >
-                {table.pending_comandas && table.pending_comandas > 0 && (
+                {(table.pending_comandas ?? 0) > 0 && (
                   <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
                     {table.pending_comandas}
                   </div>
