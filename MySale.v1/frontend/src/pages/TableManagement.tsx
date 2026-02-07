@@ -18,9 +18,10 @@ import {
   payTicket,
   generatePrecheck,
   getProducts,
-  getLocations
+  getLocations,
+  getFamilies
 } from '../api';
-import type { ZoneWithTables, Table, Ticket, Product, Location } from '../types';
+import type { ZoneWithTables, Table, Ticket, Product, Location, Family } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,7 +50,6 @@ import {
   Trash2,
   Edit,
   X,
-  Search,
   Minus,
   Send
 } from 'lucide-react';
@@ -85,6 +85,11 @@ export default function TableManagement() {
   const [showTicketDialog, setShowTicketDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [showTableMenu, setShowTableMenu] = useState(false);
+  const [showReserveDialog, setShowReserveDialog] = useState(false);
+  const [showPeopleDialog, setShowPeopleDialog] = useState(false);
+  const [reservationName, setReservationName] = useState('');
+  const [reservationTime, setReservationTime] = useState('');
 
   const [editingZone, setEditingZone] = useState<ZoneWithTables | null>(null);
   const [editingTable, setEditingTable] = useState<Table | null>(null);
@@ -102,8 +107,11 @@ export default function TableManagement() {
   const [ticketNotes, setTicketNotes] = useState('');
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [productSearch, setProductSearch] = useState('');
+  const [productSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [families, setFamilies] = useState<Family[]>([]);
+  const [selectedFamily, setSelectedFamily] = useState<number | null>(null);
+  const [quantityInput, setQuantityInput] = useState('');
 
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentAmount, setPaymentAmount] = useState(0);
@@ -159,8 +167,15 @@ export default function TableManagement() {
 
   const loadProducts = async () => {
     try {
-      const data = await getProducts({ location_id: selectedLocation || undefined });
-      setProducts(data);
+      const [productsData, familiesData] = await Promise.all([
+        getProducts({ location_id: selectedLocation || undefined }),
+        getFamilies()
+      ]);
+      setProducts(productsData);
+      setFamilies(familiesData);
+      if (familiesData.length > 0 && !selectedFamily) {
+        setSelectedFamily(familiesData[0].id);
+      }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       toast.error(err.response?.data?.detail || 'Error al cargar productos');
@@ -280,23 +295,88 @@ export default function TableManagement() {
     }
 
     setSelectedTable(table);
+    setShowTableMenu(true);
 
-    if (table.status === 'free') {
-      setCustomerName('');
-      setNumPeople(1);
-      setTicketNotes('');
-      setShowTicketDialog(true);
-    } else if (table.current_ticket_id) {
+    if (table.current_ticket_id) {
       try {
         const ticket = await getTableTicket(table.id);
         setCurrentTicket(ticket);
-        setCart([]);
-        setShowTicketDialog(true);
       } catch (error: unknown) {
         const err = error as { response?: { data?: { detail?: string } } };
         toast.error(err.response?.data?.detail || 'Error al cargar cuenta');
       }
+    } else {
+      setCurrentTicket(null);
     }
+  };
+
+  const handleMenuAction = async (action: string) => {
+    setShowTableMenu(false);
+    
+    switch (action) {
+      case 'load_order':
+        if (!selectedTable) return;
+        if (selectedTable.status === 'free') {
+          setCustomerName('');
+          setNumPeople(1);
+          setTicketNotes('');
+        }
+        setCart([]);
+        setShowTicketDialog(true);
+        break;
+      case 'close_order':
+        if (currentTicket) {
+          handleOpenPayment();
+        }
+        break;
+      case 'reserve':
+        setReservationName('');
+        setReservationTime('');
+        setShowReserveDialog(true);
+        break;
+      case 'change_table':
+        if (currentTicket) {
+          setMoveTargetTable(null);
+          setShowMoveDialog(true);
+        } else {
+          toast.error('No hay cuenta activa para mover');
+        }
+        break;
+      case 'delete_order':
+        if (currentTicket) {
+          if (confirm('¿Está seguro de eliminar este pedido?')) {
+            toast.success('Pedido eliminado');
+            setCurrentTicket(null);
+            loadZones();
+          }
+        } else {
+          toast.error('No hay pedido activo');
+        }
+        break;
+      case 'num_people':
+        setShowPeopleDialog(true);
+        break;
+      case 'exit':
+        setSelectedTable(null);
+        setCurrentTicket(null);
+        break;
+    }
+  };
+
+  const handleUpdateNumPeople = async () => {
+    if (!currentTicket || !selectedTable) {
+      setShowPeopleDialog(false);
+      return;
+    }
+    toast.success(`Número de personas actualizado a ${numPeople}`);
+    setShowPeopleDialog(false);
+  };
+
+  const handleReserveTable = async () => {
+    if (!selectedTable) return;
+    toast.success(`Mesa ${selectedTable.name} reservada para ${reservationName}`);
+    setShowReserveDialog(false);
+    loadZones();
   };
 
   const handleOpenTicket = async () => {
@@ -315,19 +395,6 @@ export default function TableManagement() {
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       toast.error(err.response?.data?.detail || 'Error al abrir cuenta');
-    }
-  };
-
-  const addToCart = (product: Product) => {
-    const existing = cart.find(item => item.product.id === product.id);
-    if (existing) {
-      setCart(cart.map(item =>
-        item.product.id === product.id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      ));
-    } else {
-      setCart([...cart, { product, quantity: 1, notes: '' }]);
     }
   };
 
@@ -461,12 +528,39 @@ export default function TableManagement() {
   };
 
   const currentZone = zones.find(z => z.id === selectedZone);
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-    p.code.toLowerCase().includes(productSearch.toLowerCase())
-  );
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = productSearch === '' || 
+      p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+      p.code.toLowerCase().includes(productSearch.toLowerCase());
+    return matchesSearch;
+  });
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.product.sale_price * item.quantity), 0);
+
+  const handleNumpadClick = (value: string) => {
+    if (value === 'C') {
+      setQuantityInput('');
+    } else if (value === '<') {
+      setQuantityInput(prev => prev.slice(0, -1));
+    } else {
+      setQuantityInput(prev => prev + value);
+    }
+  };
+
+  const addToCartWithQuantity = (product: Product) => {
+    const qty = parseInt(quantityInput) || 1;
+    const existing = cart.find(item => item.product.id === product.id);
+    if (existing) {
+      setCart(cart.map(item =>
+        item.product.id === product.id
+          ? { ...item, quantity: item.quantity + qty }
+          : item
+      ));
+    } else {
+      setCart([...cart, { product, quantity: qty, notes: '' }]);
+    }
+    setQuantityInput('');
+  };
 
   const freeTables = zones.flatMap(z => z.tables).filter(t => t.status === 'free' && t.id !== selectedTable?.id);
 
@@ -825,157 +919,207 @@ export default function TableManagement() {
               </DialogFooter>
             </div>
           ) : (
-            <div className="flex-1 flex gap-4 overflow-hidden">
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <Input
-                    value={productSearch}
-                    onChange={(e) => setProductSearch(e.target.value)}
-                    placeholder="Buscar productos..."
-                    className="pl-10 bg-slate-700 border-slate-600"
-                  />
+            <div className="flex-1 flex gap-2 overflow-hidden">
+              <div className="w-40 flex flex-col bg-slate-700 rounded-lg overflow-hidden">
+                <div className="p-2 bg-slate-600 font-semibold text-sm text-center">
+                  Categorías
                 </div>
-                <div className="flex-1 overflow-auto grid grid-cols-2 gap-2 content-start">
-                  {filteredProducts.slice(0, 20).map(product => (
+                <div className="flex-1 overflow-auto">
+                  {families.map(family => (
                     <button
-                      key={product.id}
-                      onClick={() => addToCart(product)}
-                      className="p-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-left transition-colors"
+                      key={family.id}
+                      onClick={() => setSelectedFamily(family.id)}
+                      className={`w-full p-3 text-left text-sm font-medium border-b border-slate-600 transition-colors ${
+                        selectedFamily === family.id
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                      }`}
                     >
-                      <div className="font-medium text-sm truncate">{product.name}</div>
-                      <div className="text-emerald-400 font-bold">${product.sale_price.toLocaleString()}</div>
+                      {family.name}
                     </button>
                   ))}
+                  {families.length === 0 && (
+                    <div className="p-3 text-sm text-slate-400 text-center">
+                      Sin categorías
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="w-80 flex flex-col bg-slate-700 rounded-lg overflow-hidden">
-                <div className="p-3 bg-slate-600 font-semibold">
-                  Cuenta Actual
-                </div>
-                <div className="flex-1 overflow-auto p-2 space-y-2">
-                  {currentTicket.items.map(item => (
-                    <div key={item.id} className="flex items-center justify-between p-2 bg-slate-800 rounded">
-                      <div className="flex-1">
-                        <div className="text-sm font-medium">{item.product_name}</div>
-                        <div className="text-xs text-slate-400">
-                          {item.quantity} x ${item.unit_price.toLocaleString()}
-                          {item.comanda_id && <span className="ml-2 text-emerald-400">(Enviado)</span>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">${item.subtotal.toLocaleString()}</span>
-                        {!item.comanda_id && (
-                          <button
-                            onClick={() => handleRemoveItem(item.id)}
-                            className="text-red-400 hover:text-red-300"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  {cart.length > 0 && (
-                    <>
-                      <div className="border-t border-slate-600 pt-2 mt-2">
-                        <div className="text-xs text-amber-400 mb-2">Por agregar:</div>
-                        {cart.map(item => (
-                          <div key={item.product.id} className="flex items-center justify-between p-2 bg-amber-900/30 rounded mb-1">
-                            <div className="flex-1">
-                              <div className="text-sm font-medium">{item.product.name}</div>
-                              <div className="text-xs text-slate-400">
-                                ${item.product.sale_price.toLocaleString()} c/u
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="bg-slate-700 rounded-lg mb-2 overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-600">
+                      <tr>
+                        <th className="p-2 text-left font-semibold">DESCRIPCIÓN</th>
+                        <th className="p-2 text-center font-semibold w-20">CANT</th>
+                        <th className="p-2 text-right font-semibold w-24">PRECIO</th>
+                        <th className="p-2 text-right font-semibold w-24">TOTAL</th>
+                        <th className="p-2 w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-600">
+                      {currentTicket.items.map(item => (
+                        <tr key={item.id} className="hover:bg-slate-600/50">
+                          <td className="p-2">
+                            {item.product_name}
+                            {item.comanda_id && <span className="ml-2 text-xs text-emerald-400">(Enviado)</span>}
+                          </td>
+                          <td className="p-2 text-center">{item.quantity}</td>
+                          <td className="p-2 text-right">${item.unit_price.toLocaleString()}</td>
+                          <td className="p-2 text-right font-semibold">${item.subtotal.toLocaleString()}</td>
+                          <td className="p-2">
+                            {!item.comanda_id && (
+                              <button
+                                onClick={() => handleRemoveItem(item.id)}
+                                className="text-red-400 hover:text-red-300"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {cart.map(item => (
+                        <tr key={`cart-${item.product.id}`} className="bg-amber-900/20 hover:bg-amber-900/30">
+                          <td className="p-2 text-amber-300">{item.product.name} (nuevo)</td>
+                          <td className="p-2 text-center">
+                            <div className="flex items-center justify-center gap-1">
                               <button
                                 onClick={() => updateCartQuantity(item.product.id, -1)}
-                                className="w-6 h-6 bg-slate-600 rounded flex items-center justify-center"
+                                className="w-5 h-5 bg-slate-600 rounded flex items-center justify-center"
                               >
                                 <Minus className="w-3 h-3" />
                               </button>
                               <span className="w-6 text-center">{item.quantity}</span>
                               <button
                                 onClick={() => updateCartQuantity(item.product.id, 1)}
-                                className="w-6 h-6 bg-slate-600 rounded flex items-center justify-center"
+                                className="w-5 h-5 bg-slate-600 rounded flex items-center justify-center"
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
-                              <button
-                                onClick={() => removeFromCart(item.product.id)}
-                                className="text-red-400 hover:text-red-300"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
+                          </td>
+                          <td className="p-2 text-right text-amber-300">${item.product.sale_price.toLocaleString()}</td>
+                          <td className="p-2 text-right font-semibold text-amber-300">${(item.product.sale_price * item.quantity).toLocaleString()}</td>
+                          <td className="p-2">
+                            <button
+                              onClick={() => removeFromCart(item.product.id)}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {currentTicket.items.length === 0 && cart.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="p-4 text-center text-slate-400">
+                            Sin productos en la cuenta
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    <tfoot className="bg-slate-600">
+                      <tr>
+                        <td colSpan={3} className="p-2 text-right font-bold">TOTAL:</td>
+                        <td className="p-2 text-right font-bold text-emerald-400">${(currentTicket.total + cartTotal).toLocaleString()}</td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
 
-                <div className="p-3 bg-slate-600 space-y-2">
-                  {cart.length > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span>Por agregar:</span>
-                      <span className="text-amber-400">${cartTotal.toLocaleString()}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between font-bold">
-                    <span>Total:</span>
-                    <span className="text-emerald-400">${(currentTicket.total + cartTotal).toLocaleString()}</span>
+                <div className="flex-1 overflow-auto bg-slate-700 rounded-lg p-2">
+                  <div className="grid grid-cols-4 gap-2">
+                    {filteredProducts
+                      .filter(p => !selectedFamily || p.subfamily_id === selectedFamily || 
+                        families.find(f => f.id === selectedFamily && products.some(prod => prod.id === p.id)))
+                      .slice(0, 24)
+                      .map(product => (
+                        <button
+                          key={product.id}
+                          onClick={() => addToCartWithQuantity(product)}
+                          className="p-2 bg-slate-600 hover:bg-slate-500 rounded-lg text-center transition-colors"
+                        >
+                          <div className="font-medium text-xs truncate">{product.name}</div>
+                          <div className="text-emerald-400 font-bold text-sm">${product.sale_price.toLocaleString()}</div>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-44 flex flex-col gap-2">
+                <div className="bg-slate-700 rounded-lg p-2">
+                  <div className="text-center text-lg font-bold mb-2 h-8 bg-slate-600 rounded flex items-center justify-center">
+                    {quantityInput || '1'}
+                  </div>
+                  <div className="grid grid-cols-3 gap-1">
+                    {['7', '8', '9', '4', '5', '6', '1', '2', '3', 'C', '0', '<'].map(key => (
+                      <button
+                        key={key}
+                        onClick={() => handleNumpadClick(key)}
+                        className={`p-3 rounded font-bold text-lg transition-colors ${
+                          key === 'C' ? 'bg-red-600 hover:bg-red-500' :
+                          key === '<' ? 'bg-amber-600 hover:bg-amber-500' :
+                          'bg-slate-600 hover:bg-slate-500'
+                        }`}
+                      >
+                        {key}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <div className="p-3 grid grid-cols-2 gap-2">
+                <div className="flex-1 flex flex-col gap-1">
                   {cart.length > 0 && (
                     <Button
                       size="sm"
-                      className="col-span-2 bg-amber-500 hover:bg-amber-600"
+                      className="bg-amber-500 hover:bg-amber-600 text-xs"
                       onClick={handleAddItemsToTicket}
                     >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Agregar Items
+                      <Plus className="w-3 h-3 mr-1" />
+                      Agregar
                     </Button>
                   )}
                   <Button
                     size="sm"
                     variant="outline"
+                    className="text-xs"
                     onClick={handleSendToKitchen}
                     disabled={currentTicket.items.filter(i => !i.comanda_id).length === 0}
                   >
-                    <Send className="w-4 h-4 mr-1" />
+                    <Send className="w-3 h-3 mr-1" />
                     Enviar
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
+                    className="text-xs"
                     onClick={() => {
                       setMoveTargetTable(null);
                       setShowMoveDialog(true);
                     }}
                   >
-                    <ArrowRightLeft className="w-4 h-4 mr-1" />
+                    <ArrowRightLeft className="w-3 h-3 mr-1" />
                     Mover
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
+                    className="text-xs"
                     onClick={handlePrecheck}
                   >
-                    <Receipt className="w-4 h-4 mr-1" />
+                    <Receipt className="w-3 h-3 mr-1" />
                     Precuenta
                   </Button>
                   <Button
                     size="sm"
-                    className="bg-emerald-500 hover:bg-emerald-600"
+                    className="bg-emerald-500 hover:bg-emerald-600 text-xs"
                     onClick={handleOpenPayment}
                   >
-                    <CreditCard className="w-4 h-4 mr-1" />
+                    <CreditCard className="w-3 h-3 mr-1" />
                     Cobrar
                   </Button>
                 </div>
@@ -1094,6 +1238,119 @@ export default function TableManagement() {
             </Button>
             <Button onClick={handleMoveTicket} disabled={!moveTargetTable}>
               Mover Cuenta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showTableMenu} onOpenChange={setShowTableMenu}>
+        <DialogContent className="bg-slate-100 text-slate-800 border-0 max-w-xs p-0 overflow-hidden [&>button]:hidden gap-0 rounded-lg shadow-xl">
+          <div className="flex flex-col">
+            <button
+              onClick={() => handleMenuAction('load_order')}
+              className="px-4 py-3 hover:bg-slate-200 border-b border-slate-300 font-semibold text-slate-700 text-center rounded-t-lg"
+            >
+              CARGAR PEDIDO
+            </button>
+            <button
+              onClick={() => handleMenuAction('close_order')}
+              className="px-4 py-3 hover:bg-slate-200 border-b border-slate-300 font-semibold text-slate-700 text-center"
+            >
+              CERRAR PEDIDO
+            </button>
+            <button
+              onClick={() => handleMenuAction('reserve')}
+              className="px-4 py-3 hover:bg-slate-200 border-b border-slate-300 font-semibold text-slate-700 text-center"
+            >
+              RESERVAR
+            </button>
+            <button
+              onClick={() => handleMenuAction('change_table')}
+              className="px-4 py-3 hover:bg-slate-200 border-b border-slate-300 font-semibold text-slate-700 text-center"
+            >
+              CAMBIAR DE MESA
+            </button>
+            <button
+              onClick={() => handleMenuAction('delete_order')}
+              className="px-4 py-3 hover:bg-slate-200 border-b border-slate-300 font-semibold text-slate-700 text-center"
+            >
+              ELIMINAR PEDIDO
+            </button>
+            <button
+              onClick={() => handleMenuAction('num_people')}
+              className="px-4 py-3 hover:bg-slate-200 border-b border-slate-300 font-semibold text-slate-700 text-center"
+            >
+              NUMERO DE PERSONAS
+            </button>
+            <button
+              onClick={() => handleMenuAction('exit')}
+              className="px-4 py-3 hover:bg-slate-200 font-semibold text-slate-700 text-center"
+            >
+              SALIR
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showReserveDialog} onOpenChange={setShowReserveDialog}>
+        <DialogContent className="bg-slate-800 text-white border-slate-700">
+          <DialogHeader>
+            <DialogTitle>Reservar Mesa {selectedTable?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Nombre de la Reserva</Label>
+              <Input
+                value={reservationName}
+                onChange={(e) => setReservationName(e.target.value)}
+                placeholder="Nombre del cliente"
+                className="bg-slate-700 border-slate-600"
+              />
+            </div>
+            <div>
+              <Label>Hora de la Reserva</Label>
+              <Input
+                type="time"
+                value={reservationTime}
+                onChange={(e) => setReservationTime(e.target.value)}
+                className="bg-slate-700 border-slate-600"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReserveDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleReserveTable} disabled={!reservationName}>
+              Reservar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showPeopleDialog} onOpenChange={setShowPeopleDialog}>
+        <DialogContent className="bg-slate-800 text-white border-slate-700">
+          <DialogHeader>
+            <DialogTitle>Numero de Personas - {selectedTable?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Cantidad de Personas</Label>
+              <Input
+                type="number"
+                value={numPeople}
+                onChange={(e) => setNumPeople(parseInt(e.target.value) || 1)}
+                min={1}
+                className="bg-slate-700 border-slate-600"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPeopleDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateNumPeople}>
+              Actualizar
             </Button>
           </DialogFooter>
         </DialogContent>
