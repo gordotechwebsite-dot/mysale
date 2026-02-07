@@ -42,7 +42,6 @@ import {
 import {
   Plus,
   Settings,
-  Users,
   Clock,
   CreditCard,
   Receipt,
@@ -1092,10 +1091,6 @@ export default function TableManagement() {
                 )}
 
                 <span className="text-white font-bold text-xl">{table.name}</span>
-                <span className="text-white/70 text-sm flex items-center gap-1 mt-1">
-                  <Users className="w-3 h-3" />
-                  {table.capacity}
-                </span>
 
                 {table.status !== 'free' && table.ticket_time && (
                   <div className="mt-2 text-center">
