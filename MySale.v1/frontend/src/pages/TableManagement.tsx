@@ -90,6 +90,7 @@ export default function TableManagement() {
   const [showPeopleDialog, setShowPeopleDialog] = useState(false);
   const [reservationName, setReservationName] = useState('');
   const [reservationTime, setReservationTime] = useState('');
+  const [orderMode, setOrderMode] = useState(false);
 
   const [editingZone, setEditingZone] = useState<ZoneWithTables | null>(null);
   const [editingTable, setEditingTable] = useState<Table | null>(null);
@@ -322,7 +323,7 @@ export default function TableManagement() {
           setTicketNotes('');
         }
         setCart([]);
-        setShowTicketDialog(true);
+        setOrderMode(true);
         break;
       case 'close_order':
         if (currentTicket) {
@@ -563,6 +564,385 @@ export default function TableManagement() {
   };
 
   const freeTables = zones.flatMap(z => z.tables).filter(t => t.status === 'free' && t.id !== selectedTable?.id);
+
+  const handleExitOrderMode = () => {
+    setOrderMode(false);
+    setCart([]);
+    setCurrentTicket(null);
+    setSelectedTable(null);
+    loadZones();
+  };
+
+  if (orderMode && selectedTable) {
+    return (
+      <div className="h-full flex flex-col bg-slate-900">
+        <div className="flex items-center justify-between p-3 bg-slate-800 border-b border-slate-700">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExitOrderMode}
+              className="text-white"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Salir
+            </Button>
+            <h1 className="text-xl font-bold text-white">
+              {selectedTable.name} {currentTicket ? `- Cuenta #${currentTicket.id}` : '- Nueva Cuenta'}
+            </h1>
+          </div>
+          {currentTicket && (
+            <div className="text-2xl font-bold text-emerald-400">
+              Total: ${(currentTicket.total + cartTotal).toLocaleString()}
+            </div>
+          )}
+        </div>
+
+        {!currentTicket ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="bg-slate-800 p-8 rounded-lg w-96 space-y-4">
+              <h2 className="text-xl font-bold text-white text-center mb-6">Abrir Nueva Cuenta</h2>
+              <div>
+                <Label className="text-white">Nombre del Cliente (opcional)</Label>
+                <Input
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Nombre del cliente"
+                  className="bg-slate-700 border-slate-600 text-white text-lg h-12"
+                />
+              </div>
+              <div>
+                <Label className="text-white">Número de Personas</Label>
+                <Input
+                  type="number"
+                  value={numPeople}
+                  onChange={(e) => setNumPeople(parseInt(e.target.value) || 1)}
+                  min={1}
+                  className="bg-slate-700 border-slate-600 text-white text-lg h-12"
+                />
+              </div>
+              <div>
+                <Label className="text-white">Notas</Label>
+                <Input
+                  value={ticketNotes}
+                  onChange={(e) => setTicketNotes(e.target.value)}
+                  placeholder="Notas adicionales"
+                  className="bg-slate-700 border-slate-600 text-white text-lg h-12"
+                />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <Button variant="outline" onClick={handleExitOrderMode} className="flex-1 h-12">
+                  Cancelar
+                </Button>
+                <Button onClick={handleOpenTicket} className="flex-1 h-12 bg-emerald-500 hover:bg-emerald-600">
+                  Abrir Cuenta
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex gap-3 p-3 overflow-hidden">
+            <div className="w-48 flex flex-col bg-slate-800 rounded-lg overflow-hidden">
+              <div className="p-3 bg-slate-700 font-bold text-center text-white">
+                CATEGORÍAS
+              </div>
+              <div className="flex-1 overflow-auto">
+                {families.map(family => (
+                  <button
+                    key={family.id}
+                    onClick={() => setSelectedFamily(family.id)}
+                    className={`w-full p-4 text-left font-medium border-b border-slate-700 transition-colors ${
+                      selectedFamily === family.id
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                    }`}
+                  >
+                    {family.name}
+                  </button>
+                ))}
+                {families.length === 0 && (
+                  <div className="p-4 text-slate-400 text-center">
+                    Sin categorías
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="bg-slate-800 rounded-lg mb-3 overflow-hidden max-h-[40%]">
+                <table className="w-full">
+                  <thead className="bg-slate-700 sticky top-0">
+                    <tr>
+                      <th className="p-3 text-left font-bold text-white">DESCRIPCIÓN</th>
+                      <th className="p-3 text-center font-bold text-white w-24">CANT</th>
+                      <th className="p-3 text-right font-bold text-white w-32">PRECIO</th>
+                      <th className="p-3 text-right font-bold text-white w-32">TOTAL</th>
+                      <th className="p-3 w-16"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700 overflow-auto">
+                    {currentTicket.items.map(item => (
+                      <tr key={item.id} className="hover:bg-slate-700/50">
+                        <td className="p-3 text-white">
+                          {item.product_name}
+                          {item.comanda_id && <span className="ml-2 text-xs text-emerald-400">(Enviado)</span>}
+                        </td>
+                        <td className="p-3 text-center text-white text-lg">{item.quantity}</td>
+                        <td className="p-3 text-right text-white">${item.unit_price.toLocaleString()}</td>
+                        <td className="p-3 text-right font-bold text-white">${item.subtotal.toLocaleString()}</td>
+                        <td className="p-3">
+                          {!item.comanda_id && (
+                            <button
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="text-red-400 hover:text-red-300 p-1"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {cart.map(item => (
+                      <tr key={`cart-${item.product.id}`} className="bg-amber-900/30 hover:bg-amber-900/40">
+                        <td className="p-3 text-amber-300">{item.product.name} (nuevo)</td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => updateCartQuantity(item.product.id, -1)}
+                              className="w-8 h-8 bg-slate-600 rounded flex items-center justify-center hover:bg-slate-500"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <span className="w-8 text-center text-lg text-white">{item.quantity}</span>
+                            <button
+                              onClick={() => updateCartQuantity(item.product.id, 1)}
+                              className="w-8 h-8 bg-slate-600 rounded flex items-center justify-center hover:bg-slate-500"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="p-3 text-right text-amber-300">${item.product.sale_price.toLocaleString()}</td>
+                        <td className="p-3 text-right font-bold text-amber-300">${(item.product.sale_price * item.quantity).toLocaleString()}</td>
+                        <td className="p-3">
+                          <button
+                            onClick={() => removeFromCart(item.product.id)}
+                            className="text-red-400 hover:text-red-300 p-1"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {currentTicket.items.length === 0 && cart.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="p-6 text-center text-slate-400 text-lg">
+                          Sin productos en la cuenta
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex-1 overflow-auto bg-slate-800 rounded-lg p-3">
+                <div className="grid grid-cols-5 gap-3">
+                  {filteredProducts
+                    .filter(p => !selectedFamily || p.subfamily_id === selectedFamily || 
+                      families.find(f => f.id === selectedFamily && products.some(prod => prod.id === p.id)))
+                    .slice(0, 30)
+                    .map(product => (
+                      <button
+                        key={product.id}
+                        onClick={() => addToCartWithQuantity(product)}
+                        className="p-4 bg-slate-700 hover:bg-slate-600 rounded-lg text-center transition-colors"
+                      >
+                        <div className="font-medium text-white truncate">{product.name}</div>
+                        <div className="text-emerald-400 font-bold text-lg">${product.sale_price.toLocaleString()}</div>
+                      </button>
+                    ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="w-56 flex flex-col gap-3">
+              <div className="bg-slate-800 rounded-lg p-3">
+                <div className="text-center text-2xl font-bold mb-3 h-12 bg-slate-700 rounded flex items-center justify-center text-white">
+                  {quantityInput || '1'}
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {['7', '8', '9', '4', '5', '6', '1', '2', '3', 'C', '0', '<'].map(key => (
+                    <button
+                      key={key}
+                      onClick={() => handleNumpadClick(key)}
+                      className={`p-4 rounded font-bold text-xl transition-colors ${
+                        key === 'C' ? 'bg-red-600 hover:bg-red-500 text-white' :
+                        key === '<' ? 'bg-amber-600 hover:bg-amber-500 text-white' :
+                        'bg-slate-700 hover:bg-slate-600 text-white'
+                      }`}
+                    >
+                      {key}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex-1 flex flex-col gap-2">
+                {cart.length > 0 && (
+                  <Button
+                    className="bg-amber-500 hover:bg-amber-600 h-12 text-lg"
+                    onClick={handleAddItemsToTicket}
+                  >
+                    <Plus className="w-5 h-5 mr-2" />
+                    Agregar
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  className="h-12 text-lg"
+                  onClick={handleSendToKitchen}
+                  disabled={currentTicket.items.filter(i => !i.comanda_id).length === 0}
+                >
+                  <Send className="w-5 h-5 mr-2" />
+                  Enviar
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-12 text-lg"
+                  onClick={() => {
+                    setMoveTargetTable(null);
+                    setShowMoveDialog(true);
+                  }}
+                >
+                  <ArrowRightLeft className="w-5 h-5 mr-2" />
+                  Mover
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-12 text-lg"
+                  onClick={handlePrecheck}
+                >
+                  <Receipt className="w-5 h-5 mr-2" />
+                  Precuenta
+                </Button>
+                <Button
+                  className="bg-emerald-500 hover:bg-emerald-600 h-12 text-lg"
+                  onClick={handleOpenPayment}
+                >
+                  <CreditCard className="w-5 h-5 mr-2" />
+                  Cobrar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+          <DialogContent className="bg-slate-800 text-white border-slate-700">
+            <DialogHeader>
+              <DialogTitle>Cobrar Cuenta</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="text-center text-3xl font-bold text-emerald-400">
+                ${currentTicket?.total.toLocaleString()}
+              </div>
+              <div>
+                <Label>Método de Pago</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger className="bg-slate-700 border-slate-600">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Efectivo</SelectItem>
+                    <SelectItem value="card">Tarjeta</SelectItem>
+                    <SelectItem value="transfer">Transferencia</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {paymentMethod === 'cash' && (
+                <div>
+                  <Label>Monto Recibido</Label>
+                  <Input
+                    type="number"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                    className="bg-slate-700 border-slate-600"
+                  />
+                  {paymentAmount > (currentTicket?.total || 0) && (
+                    <div className="text-amber-400 mt-2">
+                      Cambio: ${(paymentAmount - (currentTicket?.total || 0)).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              )}
+              {paymentMethod !== 'cash' && (
+                <div>
+                  <Label>Referencia</Label>
+                  <Input
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    placeholder="Número de referencia"
+                    className="bg-slate-700 border-slate-600"
+                  />
+                </div>
+              )}
+              <div>
+                <Label>Propina</Label>
+                <Input
+                  type="number"
+                  value={tip}
+                  onChange={(e) => setTip(parseFloat(e.target.value) || 0)}
+                  className="bg-slate-700 border-slate-600"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handlePayTicket} className="bg-emerald-500 hover:bg-emerald-600">
+                Confirmar Pago
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
+          <DialogContent className="bg-slate-800 text-white border-slate-700">
+            <DialogHeader>
+              <DialogTitle>Mover Cuenta a Otra Mesa</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Label>Seleccionar Mesa Destino</Label>
+              <Select
+                value={moveTargetTable?.toString() || ''}
+                onValueChange={(v) => setMoveTargetTable(parseInt(v))}
+              >
+                <SelectTrigger className="bg-slate-700 border-slate-600">
+                  <SelectValue placeholder="Seleccionar mesa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {freeTables.map(table => (
+                    <SelectItem key={table.id} value={table.id.toString()}>
+                      {table.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowMoveDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleMoveTicket} disabled={!moveTargetTable}>
+                Mover
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
 
   if (loading && zones.length === 0 && locations.length > 0) {
     return (
