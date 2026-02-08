@@ -125,3 +125,82 @@ async def get_denominations():
         "bills": [100000, 50000, 20000, 10000, 5000, 2000, 1000],
         "coins": [500, 200, 100, 50]
     }
+
+
+@router.get("/counts")
+async def get_cash_counts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get cash counts/arqueos for the current user's shifts"""
+    cuts = db.query(CashCut).join(Shift).filter(
+        Shift.user_id == current_user.id
+    ).order_by(CashCut.created_at.desc()).limit(50).all()
+    
+    result = []
+    for cut in cuts:
+        shift = db.query(Shift).filter(Shift.id == cut.shift_id).first()
+        user = db.query(User).filter(User.id == cut.user_id).first()
+        result.append({
+            "id": cut.id,
+            "shift_id": cut.shift_id,
+            "count_type": "closing" if cut.is_blind else "partial",
+            "counted_amount": cut.declared_cash,
+            "expected_amount": cut.expected_cash,
+            "difference": cut.difference,
+            "notes": cut.notes,
+            "created_at": cut.created_at.isoformat(),
+            "user_name": user.full_name if user else "Desconocido"
+        })
+    
+    return result
+
+
+@router.post("/counts")
+async def create_cash_count(
+    count_data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Create a simple cash count/arqueo"""
+    shift = db.query(Shift).filter(Shift.id == count_data.get("shift_id")).first()
+    if not shift:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    
+    if shift.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Solo puede hacer arqueo de su propio turno"
+        )
+    
+    counted_amount = count_data.get("counted_amount", 0)
+    expected_cash = shift.initial_cash + shift.total_cash_sales
+    difference = counted_amount - expected_cash
+    
+    count_type = count_data.get("count_type", "partial")
+    is_blind = count_type == "closing"
+    
+    cash_cut = CashCut(
+        shift_id=shift.id,
+        user_id=current_user.id,
+        expected_cash=expected_cash,
+        declared_cash=counted_amount,
+        difference=difference,
+        is_blind=is_blind,
+        notes=count_data.get("notes")
+    )
+    db.add(cash_cut)
+    db.commit()
+    db.refresh(cash_cut)
+    
+    return {
+        "id": cash_cut.id,
+        "shift_id": cash_cut.shift_id,
+        "count_type": count_type,
+        "counted_amount": cash_cut.declared_cash,
+        "expected_amount": cash_cut.expected_cash,
+        "difference": cash_cut.difference,
+        "notes": cash_cut.notes,
+        "created_at": cash_cut.created_at.isoformat(),
+        "user_name": current_user.full_name
+    }

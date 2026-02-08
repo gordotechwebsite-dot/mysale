@@ -15,7 +15,8 @@ class Sale(Base):
     __tablename__ = "sales"
 
     id = Column(Integer, primary_key=True, index=True)
-    folio = Column(String(50), unique=True, nullable=False, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    folio = Column(String(50), nullable=False, index=True)
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
     shift_id = Column(Integer, ForeignKey("shifts.id"), nullable=False)
     cashier_id = Column(Integer, ForeignKey("users.id"), nullable=False)

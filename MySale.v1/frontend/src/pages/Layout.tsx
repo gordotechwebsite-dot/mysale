@@ -3,9 +3,9 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
 import { Button } from '@/components/ui/button';
+import SupportChatbot from '@/components/SupportChatbot';
 import {
   LayoutDashboard,
-  ShoppingCart,
   Package,
   Users,
   MapPin,
@@ -20,11 +20,14 @@ import {
   X,
   Store,
   Calculator,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Shield,
+  Zap,
+  Banknote
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, enabledModules } = useAuth();
   const { currentShift } = useShift();
   const location = useLocation();
   const navigate = useNavigate();
@@ -36,21 +39,31 @@ const Layout: React.FC = () => {
   };
 
   const isAdmin = user?.role?.role_type === 'superuser' || user?.role?.role_type === 'admin';
+  const isSuperuser = user?.role?.role_type === 'superuser';
+  
+  const isModuleEnabled = (moduleCode: string) => {
+    // System admin (no tenant_id) sees all modules
+    if (isSuperuser && !user?.tenant_id) return true;
+    // Tenant users only see their enabled modules
+    return enabledModules.some(m => m.code === moduleCode);
+  };
 
     const menuItems = [
-      { path: '/', icon: LayoutDashboard, label: 'Dashboard', show: true },
-      { path: '/locations-dashboard', icon: Store, label: 'Puntos de Venta', show: isAdmin },
-      { path: '/tables', icon: UtensilsCrossed, label: 'Gestión de Mesas', show: true },
-      { path: '/pos', icon: ShoppingCart, label: 'Punto de Venta', show: true },
-      { path: '/inventory', icon: Package, label: 'Inventario', show: isAdmin },
-      { path: '/cost-control', icon: Calculator, label: 'Control de Costos', show: isAdmin },
-      { path: '/transfers', icon: Truck, label: 'Transferencias', show: true },
-      { path: '/losses', icon: AlertTriangle, label: 'Mermas', show: true },
-      { path: '/expenses', icon: DollarSign, label: 'Gastos', show: isAdmin },
-      { path: '/shifts', icon: Clock, label: 'Turnos', show: true },
-      { path: '/reports', icon: FileText, label: 'Reportes', show: isAdmin },
-      { path: '/users', icon: Users, label: 'Usuarios', show: isAdmin },
-      { path: '/locations', icon: MapPin, label: 'Ubicaciones', show: user?.role?.role_type === 'superuser' },
+      { path: '/', icon: LayoutDashboard, label: 'Dashboard', show: isModuleEnabled('dashboard') },
+      { path: '/quick-sale', icon: Zap, label: 'Venta Rapida', show: isModuleEnabled('quick_sale') },
+      { path: '/locations-dashboard', icon: Store, label: 'Puntos de Venta', show: isAdmin && isModuleEnabled('locations') },
+      { path: '/tables', icon: UtensilsCrossed, label: 'Gestion de Mesas', show: isModuleEnabled('tables') },
+      { path: '/inventory', icon: Package, label: 'Inventario', show: isAdmin && isModuleEnabled('inventory') },
+      { path: '/cost-control', icon: Calculator, label: 'Control de Costos', show: isAdmin && isModuleEnabled('cost_control') },
+      { path: '/transfers', icon: Truck, label: 'Transferencias', show: isModuleEnabled('transfers') },
+      { path: '/losses', icon: AlertTriangle, label: 'Mermas', show: isModuleEnabled('losses') },
+      { path: '/expenses', icon: DollarSign, label: 'Gastos', show: isAdmin && isModuleEnabled('expenses') },
+      { path: '/cash', icon: Banknote, label: 'Caja', show: isModuleEnabled('cash') },
+      { path: '/shifts', icon: Clock, label: 'Turnos', show: isModuleEnabled('shifts') },
+      { path: '/reports', icon: FileText, label: 'Reportes', show: isAdmin && isModuleEnabled('reports') },
+      { path: '/users', icon: Users, label: 'Usuarios', show: isAdmin && isModuleEnabled('users') },
+      { path: '/locations', icon: MapPin, label: 'Ubicaciones', show: isSuperuser && isModuleEnabled('locations') },
+      { path: '/super-admin', icon: Shield, label: 'Super Admin', show: isSuperuser && isModuleEnabled('super_admin') },
     ];
 
   return (
@@ -146,6 +159,8 @@ const Layout: React.FC = () => {
           <Outlet />
         </div>
       </main>
+
+      <SupportChatbot />
     </div>
   );
 };

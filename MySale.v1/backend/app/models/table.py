@@ -52,6 +52,7 @@ class Zone(Base):
     __tablename__ = "zones"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     name = Column(String(100), nullable=False)
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
     description = Column(Text, nullable=True)

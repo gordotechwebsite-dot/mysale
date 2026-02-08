@@ -12,13 +12,21 @@ from app.utils.auth import get_password_hash, get_current_user, require_role
 router = APIRouter(prefix="/api/users", tags=["Usuarios"])
 
 
+def filter_by_tenant(query, model, tenant_id):
+    """Helper function to filter queries by tenant_id if present."""
+    if tenant_id:
+        return query.filter(model.tenant_id == tenant_id)
+    return query
+
+
 @router.get("/roles", response_model=List[RoleResponse])
 async def get_roles(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    roles = db.query(Role).all()
-    return roles
+    query = db.query(Role)
+    query = filter_by_tenant(query, Role, current_user.tenant_id)
+    return query.all()
 
 
 @router.post("/roles", response_model=RoleResponse)
@@ -34,7 +42,7 @@ async def create_role(
             detail="Ya existe un rol con ese nombre"
         )
     
-    db_role = Role(**role.model_dump())
+    db_role = Role(**role.model_dump(), tenant_id=current_user.tenant_id)
     db.add(db_role)
     db.commit()
     db.refresh(db_role)
@@ -48,7 +56,9 @@ async def get_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    users = db.query(User).offset(skip).limit(limit).all()
+    query = db.query(User)
+    query = filter_by_tenant(query, User, current_user.tenant_id)
+    users = query.offset(skip).limit(limit).all()
     return [
         UserResponse(
             id=u.id,
@@ -93,6 +103,7 @@ async def create_user(
     
     hashed_password = get_password_hash(user.password)
     db_user = User(
+        tenant_id=current_user.tenant_id,
         username=user.username,
         email=user.email,
         full_name=user.full_name,

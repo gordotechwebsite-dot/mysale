@@ -12,6 +12,13 @@ from app.utils.auth import get_current_user, require_role
 router = APIRouter(prefix="/api/shifts", tags=["Turnos"])
 
 
+def filter_by_tenant(query, model, tenant_id):
+    """Helper function to filter queries by tenant_id if present."""
+    if tenant_id:
+        return query.filter(model.tenant_id == tenant_id)
+    return query
+
+
 @router.get("/", response_model=List[ShiftResponse])
 async def get_shifts(
     location_id: Optional[int] = None,
@@ -23,6 +30,7 @@ async def get_shifts(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Shift)
+    query = filter_by_tenant(query, Shift, current_user.tenant_id)
     
     if location_id:
         query = query.filter(Shift.location_id == location_id)
@@ -116,6 +124,7 @@ async def open_shift(
         )
     
     shift = Shift(
+        tenant_id=current_user.tenant_id,
         user_id=current_user.id,
         location_id=shift_data.location_id,
         initial_cash=shift_data.initial_cash or location.daily_base_cash,

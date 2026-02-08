@@ -9,6 +9,10 @@ from app.models.transfer import Transfer, TransferItem
 from app.models.expense import Expense
 from app.models.cost_control import CostEntry, CostConfig, CostApplication
 from app.models.table import Zone, Table, Ticket, TicketItem, Comanda, TicketPayment
+from app.models.tenant import Module, Tenant, TenantModule, TenantPayment, PaymentStatus
+from app.models.audit import AuditLog, AuditAction
+from app.models.faq import FAQ
+from app.models.support import SupportConversation, SupportMessage
 
 __all__ = [
     "User", "Role", "Location",
@@ -20,5 +24,8 @@ __all__ = [
     "Transfer", "TransferItem",
     "Expense",
     "CostEntry", "CostConfig", "CostApplication",
-    "Zone", "Table", "Ticket", "TicketItem", "Comanda", "TicketPayment"
+    "Zone", "Table", "Ticket", "TicketItem", "Comanda", "TicketPayment",
+    "Module", "Tenant", "TenantModule", "TenantPayment", "PaymentStatus",
+    "AuditLog", "AuditAction",
+    "FAQ"
 ]

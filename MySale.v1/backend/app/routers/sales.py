@@ -14,6 +14,13 @@ from app.utils.auth import get_current_user
 router = APIRouter(prefix="/api/sales", tags=["Ventas"])
 
 
+def filter_by_tenant(query, model, tenant_id):
+    """Helper function to filter queries by tenant_id if present."""
+    if tenant_id:
+        return query.filter(model.tenant_id == tenant_id)
+    return query
+
+
 def generate_folio(db: Session, location: Location) -> str:
     location.folio_counter += 1
     prefix = location.folio_prefix or location.code
@@ -33,6 +40,7 @@ async def get_sales(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Sale)
+    query = filter_by_tenant(query, Sale, current_user.tenant_id)
     
     if location_id:
         query = query.filter(Sale.location_id == location_id)
@@ -93,7 +101,9 @@ async def get_sale(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    sale = db.query(Sale).filter(Sale.id == sale_id).first()
+    query = db.query(Sale).filter(Sale.id == sale_id)
+    query = filter_by_tenant(query, Sale, current_user.tenant_id)
+    sale = query.first()
     if not sale:
         raise HTTPException(status_code=404, detail="Venta no encontrada")
     
@@ -204,6 +214,7 @@ async def create_sale(
         change_given = sale_data.amount_received - total
     
     sale = Sale(
+        tenant_id=current_user.tenant_id,
         folio=folio,
         location_id=shift.location_id,
         shift_id=shift.id,
@@ -296,7 +307,9 @@ async def get_sale_by_folio(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    sale = db.query(Sale).filter(Sale.folio == folio).first()
+    query = db.query(Sale).filter(Sale.folio == folio)
+    query = filter_by_tenant(query, Sale, current_user.tenant_id)
+    sale = query.first()
     if not sale:
         raise HTTPException(status_code=404, detail="Venta no encontrada")
     

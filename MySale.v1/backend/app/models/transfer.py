@@ -16,6 +16,7 @@ class Transfer(Base):
     __tablename__ = "transfers"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     from_location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
     to_location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)

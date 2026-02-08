@@ -12,7 +12,8 @@ from app.schemas.inventory import (
     ProductCreate, ProductUpdate, ProductResponse, ProductStockResponse,
     StockAdjustment, PurchaseCreate
 )
-from app.utils.auth import get_current_user, require_role
+from app.utils.auth import get_current_user, require_role, get_current_tenant
+from app.models.tenant import Tenant
 
 router = APIRouter(prefix="/api/inventory", tags=["Inventario"])
 
@@ -22,7 +23,10 @@ async def get_groups(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return db.query(Group).filter(Group.is_active == True).all()
+    query = db.query(Group).filter(Group.is_active == True)
+    if current_user.tenant_id:
+        query = query.filter(Group.tenant_id == current_user.tenant_id)
+    return query.all()
 
 
 @router.post("/groups", response_model=GroupResponse)
@@ -31,11 +35,14 @@ async def create_group(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
-    existing = db.query(Group).filter(Group.name == group.name).first()
+    query = db.query(Group).filter(Group.name == group.name)
+    if current_user.tenant_id:
+        query = query.filter(Group.tenant_id == current_user.tenant_id)
+    existing = query.first()
     if existing:
         raise HTTPException(status_code=400, detail="Ya existe un grupo con ese nombre")
     
-    db_group = Group(**group.model_dump())
+    db_group = Group(**group.model_dump(), tenant_id=current_user.tenant_id)
     db.add(db_group)
     db.commit()
     db.refresh(db_group)
@@ -49,6 +56,8 @@ async def get_families(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Family).filter(Family.is_active == True)
+    if current_user.tenant_id:
+        query = query.filter(Family.tenant_id == current_user.tenant_id)
     if group_id:
         query = query.filter(Family.group_id == group_id)
     return query.all()
@@ -60,11 +69,14 @@ async def create_family(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
-    group = db.query(Group).filter(Group.id == family.group_id).first()
+    query = db.query(Group).filter(Group.id == family.group_id)
+    if current_user.tenant_id:
+        query = query.filter(Group.tenant_id == current_user.tenant_id)
+    group = query.first()
     if not group:
         raise HTTPException(status_code=404, detail="Grupo no encontrado")
     
-    db_family = Family(**family.model_dump())
+    db_family = Family(**family.model_dump(), tenant_id=current_user.tenant_id)
     db.add(db_family)
     db.commit()
     db.refresh(db_family)
@@ -78,6 +90,8 @@ async def get_subfamilies(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(SubFamily).filter(SubFamily.is_active == True)
+    if current_user.tenant_id:
+        query = query.filter(SubFamily.tenant_id == current_user.tenant_id)
     if family_id:
         query = query.filter(SubFamily.family_id == family_id)
     return query.all()
@@ -89,15 +103,105 @@ async def create_subfamily(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
-    family = db.query(Family).filter(Family.id == subfamily.family_id).first()
+    query = db.query(Family).filter(Family.id == subfamily.family_id)
+    if current_user.tenant_id:
+        query = query.filter(Family.tenant_id == current_user.tenant_id)
+    family = query.first()
     if not family:
         raise HTTPException(status_code=404, detail="Familia no encontrada")
     
-    db_subfamily = SubFamily(**subfamily.model_dump())
+    db_subfamily = SubFamily(**subfamily.model_dump(), tenant_id=current_user.tenant_id)
     db.add(db_subfamily)
     db.commit()
     db.refresh(db_subfamily)
     return db_subfamily
+
+
+@router.get("/products/next-code")
+async def get_next_product_code(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    query = db.query(Product)
+    if current_user.tenant_id:
+        query = query.filter(Product.tenant_id == current_user.tenant_id)
+    count = query.count()
+    next_number = count + 1
+    return {"code": f"PROD{next_number:04d}"}
+
+
+@router.post("/products/decode-barcode")
+async def decode_weighted_barcode(
+    barcode: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Decode a weighted product barcode from a scale.
+    Format: 23PPPPPWWWWWC where:
+    - 23 = prefix for weighted products
+    - PPPPP = PLU code (5 digits)
+    - WWWWW = weight in grams (5 digits, divide by 1000 for kg)
+    - C = check digit
+    """
+    if len(barcode) != 13 or not barcode.startswith("23"):
+        return {"found": False, "error": "Codigo de barras no es de producto pesable"}
+    
+    plu_code = barcode[2:7]
+    weight_raw = barcode[7:12]
+    
+    try:
+        weight_kg = int(weight_raw) / 1000
+    except ValueError:
+        return {"found": False, "error": "Peso invalido en codigo de barras"}
+    
+    query = db.query(Product).filter(
+        Product.plu_code == plu_code,
+        Product.is_weighted == True,
+        Product.is_active == True
+    )
+    if current_user.tenant_id:
+        query = query.filter(Product.tenant_id == current_user.tenant_id)
+    
+    product = query.first()
+    
+    if not product:
+        return {"found": False, "error": f"Producto con PLU {plu_code} no encontrado"}
+    
+    total_price = weight_kg * (product.price_per_kg or 0)
+    
+    return {
+        "found": True,
+        "product_id": product.id,
+        "product_name": product.name,
+        "product_code": product.code,
+        "plu_code": plu_code,
+        "weight_kg": weight_kg,
+        "price_per_kg": product.price_per_kg,
+        "total_price": round(total_price, 0),
+        "unit": "kg"
+    }
+
+
+@router.get("/products/by-plu/{plu_code}")
+async def get_product_by_plu(
+    plu_code: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get a weighted product by its PLU code"""
+    query = db.query(Product).filter(
+        Product.plu_code == plu_code,
+        Product.is_active == True
+    )
+    if current_user.tenant_id:
+        query = query.filter(Product.tenant_id == current_user.tenant_id)
+    
+    product = query.first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    return product
 
 
 @router.get("/products", response_model=List[ProductResponse])
@@ -111,6 +215,8 @@ async def get_products(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Product).filter(Product.is_active == True)
+    if current_user.tenant_id:
+        query = query.filter(Product.tenant_id == current_user.tenant_id)
     
     if subfamily_id:
         query = query.filter(Product.subfamily_id == subfamily_id)
@@ -176,25 +282,38 @@ async def create_product(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
-    existing = db.query(Product).filter(Product.code == product.code).first()
+    code_query = db.query(Product).filter(Product.code == product.code)
+    if current_user.tenant_id:
+        code_query = code_query.filter(Product.tenant_id == current_user.tenant_id)
+    existing = code_query.first()
     if existing:
         raise HTTPException(status_code=400, detail="Ya existe un producto con ese codigo")
     
     if product.barcode:
-        existing_barcode = db.query(Product).filter(Product.barcode == product.barcode).first()
+        barcode_query = db.query(Product).filter(Product.barcode == product.barcode)
+        if current_user.tenant_id:
+            barcode_query = barcode_query.filter(Product.tenant_id == current_user.tenant_id)
+        existing_barcode = barcode_query.first()
         if existing_barcode:
             raise HTTPException(status_code=400, detail="Ya existe un producto con ese codigo de barras")
     
-    subfamily = db.query(SubFamily).filter(SubFamily.id == product.subfamily_id).first()
-    if not subfamily:
-        raise HTTPException(status_code=404, detail="Subfamilia no encontrada")
+    if product.subfamily_id:
+        subfamily_query = db.query(SubFamily).filter(SubFamily.id == product.subfamily_id)
+        if current_user.tenant_id:
+            subfamily_query = subfamily_query.filter(SubFamily.tenant_id == current_user.tenant_id)
+        subfamily = subfamily_query.first()
+        if not subfamily:
+            raise HTTPException(status_code=404, detail="Subfamilia no encontrada")
     
-    db_product = Product(**product.model_dump())
+    db_product = Product(**product.model_dump(), tenant_id=current_user.tenant_id)
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
     
-    locations = db.query(Location).all()
+    loc_query = db.query(Location)
+    if current_user.tenant_id:
+        loc_query = loc_query.filter(Location.tenant_id == current_user.tenant_id)
+    locations = loc_query.all()
     for location in locations:
         stock = ProductStock(
             product_id=db_product.id,
@@ -228,7 +347,10 @@ async def get_product(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    product = db.query(Product).filter(Product.id == product_id).first()
+    query = db.query(Product).filter(Product.id == product_id)
+    if current_user.tenant_id:
+        query = query.filter(Product.tenant_id == current_user.tenant_id)
+    product = query.first()
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
@@ -267,7 +389,10 @@ async def update_product(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
-    product = db.query(Product).filter(Product.id == product_id).first()
+    query = db.query(Product).filter(Product.id == product_id)
+    if current_user.tenant_id:
+        query = query.filter(Product.tenant_id == current_user.tenant_id)
+    product = query.first()
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
@@ -310,11 +435,17 @@ async def register_purchase(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
-    product = db.query(Product).filter(Product.id == purchase.product_id).first()
+    prod_query = db.query(Product).filter(Product.id == purchase.product_id)
+    if current_user.tenant_id:
+        prod_query = prod_query.filter(Product.tenant_id == current_user.tenant_id)
+    product = prod_query.first()
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
-    location = db.query(Location).filter(Location.id == purchase.location_id).first()
+    loc_query = db.query(Location).filter(Location.id == purchase.location_id)
+    if current_user.tenant_id:
+        loc_query = loc_query.filter(Location.tenant_id == current_user.tenant_id)
+    location = loc_query.first()
     if not location:
         raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
     
@@ -369,7 +500,10 @@ async def adjust_stock(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
-    product = db.query(Product).filter(Product.id == adjustment.product_id).first()
+    prod_query = db.query(Product).filter(Product.id == adjustment.product_id)
+    if current_user.tenant_id:
+        prod_query = prod_query.filter(Product.tenant_id == current_user.tenant_id)
+    product = prod_query.first()
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     
@@ -417,7 +551,10 @@ async def blind_inventory(
 ):
     from datetime import datetime
     
-    location = db.query(Location).filter(Location.id == location_id).first()
+    loc_query = db.query(Location).filter(Location.id == location_id)
+    if current_user.tenant_id:
+        loc_query = loc_query.filter(Location.tenant_id == current_user.tenant_id)
+    location = loc_query.first()
     if not location:
         raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
     
@@ -477,6 +614,8 @@ async def get_stock_alerts(
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
     query = db.query(ProductStock).join(Product)
+    if current_user.tenant_id:
+        query = query.filter(Product.tenant_id == current_user.tenant_id)
     
     if location_id:
         query = query.filter(ProductStock.location_id == location_id)

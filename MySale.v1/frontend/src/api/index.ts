@@ -3,7 +3,8 @@ import type {
   User, Role, Location, Group, Family, SubFamily, Product,
   Shift, Sale, CashCut, CashDenomination, Loss, Transfer, Expense,
   ShiftAlert, DashboardData, CostEntry, CostConfig, CostCalculation, CostApplication,
-  Zone, Table, ZoneWithTables, Ticket, Comanda, TicketPayment
+  Zone, Table, ZoneWithTables, Ticket, Comanda, TicketPayment,
+  Module, Tenant, TenantListItem, TenantPayment, AdminDashboard
 } from '../types';
 
 export * from './auth';
@@ -90,6 +91,27 @@ export const getProducts = async (params?: {
   search?: string;
 }): Promise<Product[]> => {
   const response = await api.get('/api/inventory/products', { params });
+  return response.data;
+};
+
+export const getNextProductCode = async (): Promise<{ code: string }> => {
+  const response = await api.get('/api/inventory/products/next-code');
+  return response.data;
+};
+
+export const decodeWeightedBarcode = async (barcode: string): Promise<{
+  found: boolean;
+  error?: string;
+  product_id?: number;
+  product_name?: string;
+  product_code?: string;
+  plu_code?: string;
+  weight_kg?: number;
+  price_per_kg?: number;
+  total_price?: number;
+  unit?: string;
+}> => {
+  const response = await api.post(`/api/inventory/products/decode-barcode?barcode=${barcode}`);
   return response.data;
 };
 
@@ -617,5 +639,131 @@ export const getTicketPayments = async (ticketId: number): Promise<TicketPayment
 
 export const generatePrecheck = async (ticketId: number): Promise<Ticket> => {
   const response = await api.post(`/api/tables/tickets/${ticketId}/precheck`);
+  return response.data;
+};
+
+export const getAdminDashboard = async (): Promise<AdminDashboard> => {
+  const response = await api.get('/api/admin/dashboard');
+  return response.data;
+};
+
+export const getModules = async (): Promise<Module[]> => {
+  const response = await api.get('/api/admin/modules');
+  return response.data;
+};
+
+export const createModule = async (data: {
+  code: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  route?: string;
+  display_order?: number;
+  is_core?: boolean;
+}): Promise<Module> => {
+  const response = await api.post('/api/admin/modules', data);
+  return response.data;
+};
+
+export const updateModule = async (id: number, data: {
+  code?: string;
+  name?: string;
+  description?: string;
+  icon?: string;
+  route?: string;
+  display_order?: number;
+  is_core?: boolean;
+  is_active?: boolean;
+}): Promise<Module> => {
+  const response = await api.put(`/api/admin/modules/${id}`, data);
+  return response.data;
+};
+
+export const getTenants = async (params?: {
+  is_active?: boolean;
+  payment_status?: string;
+}): Promise<TenantListItem[]> => {
+  const response = await api.get('/api/admin/tenants', { params });
+  return response.data;
+};
+
+export const getTenant = async (id: number): Promise<Tenant> => {
+  const response = await api.get(`/api/admin/tenants/${id}`);
+  return response.data;
+};
+
+export const createTenant = async (data: {
+  name: string;
+  code: string;
+  subdomain?: string;
+  logo_url?: string;
+  primary_color?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  address?: string;
+  monthly_fee?: number;
+  notes?: string;
+}): Promise<Tenant> => {
+  const response = await api.post('/api/admin/tenants', data);
+  return response.data;
+};
+
+export const updateTenant = async (id: number, data: {
+  name?: string;
+  code?: string;
+  subdomain?: string;
+  logo_url?: string;
+  primary_color?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  address?: string;
+  monthly_fee?: number;
+  notes?: string;
+  is_active?: boolean;
+}): Promise<Tenant> => {
+  const response = await api.put(`/api/admin/tenants/${id}`, data);
+  return response.data;
+};
+
+export const deleteTenant = async (id: number): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/admin/tenants/${id}`);
+  return response.data;
+};
+
+export const updateTenantPaymentStatus = async (id: number, data: {
+  payment_status: string;
+  payment_due_date?: string;
+}): Promise<{ message: string }> => {
+  const response = await api.put(`/api/admin/tenants/${id}/payment-status`, data);
+  return response.data;
+};
+
+export const updateTenantModules = async (id: number, modules: {
+  module_id: number;
+  is_enabled: boolean;
+}[]): Promise<{ message: string }> => {
+  const response = await api.put(`/api/admin/tenants/${id}/modules`, modules);
+  return response.data;
+};
+
+export const getTenantPayments = async (tenantId: number): Promise<TenantPayment[]> => {
+  const response = await api.get(`/api/admin/tenants/${tenantId}/payments`);
+  return response.data;
+};
+
+export const createTenantPayment = async (tenantId: number, data: {
+  amount: number;
+  period_start: string;
+  period_end: string;
+  payment_method?: string;
+  reference?: string;
+  notes?: string;
+}): Promise<TenantPayment> => {
+  const response = await api.post(`/api/admin/tenants/${tenantId}/payments`, {
+    ...data,
+    tenant_id: tenantId
+  });
   return response.data;
 };
