@@ -16,13 +16,21 @@ from app.utils.auth import get_current_user, require_role
 router = APIRouter(prefix="/api/locations", tags=["Ubicaciones"])
 
 
+def filter_by_tenant(query, model, tenant_id):
+    """Helper function to filter queries by tenant_id if present."""
+    if tenant_id:
+        return query.filter(model.tenant_id == tenant_id)
+    return query
+
+
 @router.get("/", response_model=List[LocationResponse])
 async def get_locations(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    locations = db.query(Location).all()
-    return locations
+    query = db.query(Location)
+    query = filter_by_tenant(query, Location, current_user.tenant_id)
+    return query.all()
 
 
 @router.get("/dashboard", response_model=List[LocationDashboardResponse])
@@ -30,10 +38,12 @@ async def get_locations_dashboard(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
-    locations = db.query(Location).filter(
+    query = db.query(Location).filter(
         Location.location_type == LocationType.POS,
         Location.is_active == True
-    ).all()
+    )
+    query = filter_by_tenant(query, Location, current_user.tenant_id)
+    locations = query.all()
     
     today = datetime.utcnow().date()
     today_start = datetime.combine(today, datetime.min.time())
@@ -120,14 +130,16 @@ async def create_location(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER))
 ):
-    existing = db.query(Location).filter(Location.code == location.code).first()
+    query = db.query(Location).filter(Location.code == location.code)
+    query = filter_by_tenant(query, Location, current_user.tenant_id)
+    existing = query.first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ya existe una ubicacion con ese codigo"
         )
     
-    db_location = Location(**location.model_dump())
+    db_location = Location(**location.model_dump(), tenant_id=current_user.tenant_id)
     db.add(db_location)
     db.commit()
     db.refresh(db_location)
@@ -140,7 +152,9 @@ async def get_location(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    location = db.query(Location).filter(Location.id == location_id).first()
+    query = db.query(Location).filter(Location.id == location_id)
+    query = filter_by_tenant(query, Location, current_user.tenant_id)
+    location = query.first()
     if not location:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -156,7 +170,9 @@ async def update_location(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
-    location = db.query(Location).filter(Location.id == location_id).first()
+    query = db.query(Location).filter(Location.id == location_id)
+    query = filter_by_tenant(query, Location, current_user.tenant_id)
+    location = query.first()
     if not location:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -178,7 +194,9 @@ async def delete_location(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER))
 ):
-    location = db.query(Location).filter(Location.id == location_id).first()
+    query = db.query(Location).filter(Location.id == location_id)
+    query = filter_by_tenant(query, Location, current_user.tenant_id)
+    location = query.first()
     if not location:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

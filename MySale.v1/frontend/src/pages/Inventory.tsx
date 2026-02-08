@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   getGroups, getFamilies, getSubFamilies, getProducts,
   createGroup, createFamily, createSubFamily, createProduct, registerPurchase,
-  getLocations
+  getLocations, getNextProductCode
 } from '../api';
 import type { Group, Family, SubFamily, Product, Location } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,7 +36,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Package, Search, Loader2, ShoppingBag } from 'lucide-react';
+import { Plus, Package, Search, Loader2, ShoppingBag, Scale } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 const Inventory: React.FC = () => {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -62,7 +64,8 @@ const Inventory: React.FC = () => {
   const [newSubFamily, setNewSubFamily] = useState({ name: '', family_id: '', description: '' });
   const [newProduct, setNewProduct] = useState({
     code: '', barcode: '', name: '', description: '',
-    subfamily_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100'
+    subfamily_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100',
+    is_weighted: false, price_per_kg: '', plu_code: ''
   });
   const [purchase, setPurchase] = useState({
     product_id: 0, location_id: '', quantity: '', unit_cost: ''
@@ -155,18 +158,27 @@ const Inventory: React.FC = () => {
   const handleAddProduct = async () => {
     setIsProcessing(true);
     try {
-      await createProduct({
+      const productData: any = {
         ...newProduct,
-        subfamily_id: parseInt(newProduct.subfamily_id),
         sale_price: parseFloat(newProduct.sale_price),
         min_stock: parseInt(newProduct.min_stock),
-        max_stock: parseInt(newProduct.max_stock)
-      });
+        max_stock: parseInt(newProduct.max_stock),
+        is_weighted: newProduct.is_weighted,
+        price_per_kg: newProduct.is_weighted && newProduct.price_per_kg ? parseFloat(newProduct.price_per_kg) : null,
+        plu_code: newProduct.is_weighted && newProduct.plu_code ? newProduct.plu_code : null
+      };
+      if (newProduct.subfamily_id && newProduct.subfamily_id !== 'none') {
+        productData.subfamily_id = parseInt(newProduct.subfamily_id);
+      } else {
+        delete productData.subfamily_id;
+      }
+      await createProduct(productData);
       await loadProducts();
       setShowAddProduct(false);
       setNewProduct({
         code: '', barcode: '', name: '', description: '',
-        subfamily_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100'
+        subfamily_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100',
+        is_weighted: false, price_per_kg: '', plu_code: ''
       });
     } catch (error: any) {
       alert(error.response?.data?.detail || 'Error al crear producto');
@@ -199,6 +211,26 @@ const Inventory: React.FC = () => {
     setSelectedProduct(product);
     setPurchase({ ...purchase, product_id: product.id });
     setShowPurchase(true);
+  };
+
+  const openAddProductDialog = async () => {
+    try {
+      const { code } = await getNextProductCode();
+      setNewProduct({
+        code, barcode: '', name: '', description: '',
+        subfamily_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100',
+        is_weighted: false, price_per_kg: '', plu_code: ''
+      });
+      setShowAddProduct(true);
+    } catch (error) {
+      console.error('Error getting next code:', error);
+      setNewProduct({
+        code: '', barcode: '', name: '', description: '',
+        subfamily_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100',
+        is_weighted: false, price_per_kg: '', plu_code: ''
+      });
+      setShowAddProduct(true);
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -241,7 +273,7 @@ const Inventory: React.FC = () => {
                   <Package className="w-5 h-5" />
                   Productos
                 </CardTitle>
-                <Button onClick={() => setShowAddProduct(true)} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={openAddProductDialog} className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Nuevo Producto
                 </Button>
@@ -498,28 +530,30 @@ const Inventory: React.FC = () => {
             <DialogTitle>Nuevo Producto</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                placeholder="Codigo *"
-                value={newProduct.code}
-                onChange={(e) => setNewProduct({ ...newProduct, code: e.target.value })}
-              />
-              <Input
-                placeholder="Codigo de barras"
-                value={newProduct.barcode}
-                onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
-              />
-            </div>
             <Input
               placeholder="Nombre del producto *"
               value={newProduct.name}
               onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
             />
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                placeholder="Codigo (autogenerado)"
+                value={newProduct.code}
+                readOnly
+                className="bg-gray-100"
+              />
+              <Input
+                placeholder="Codigo de barras (opcional)"
+                value={newProduct.barcode}
+                onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
+              />
+            </div>
             <Select value={newProduct.subfamily_id} onValueChange={(v) => setNewProduct({ ...newProduct, subfamily_id: v })}>
               <SelectTrigger>
-                <SelectValue placeholder="Seleccione subfamilia *" />
+                <SelectValue placeholder="Categoria (opcional)" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">Sin categoria</SelectItem>
                 {subFamilies.map(sf => (
                   <SelectItem key={sf.id} value={sf.id.toString()}>{sf.name}</SelectItem>
                 ))}
@@ -552,12 +586,50 @@ const Inventory: React.FC = () => {
                 onChange={(e) => setNewProduct({ ...newProduct, max_stock: e.target.value })}
               />
             </div>
+            <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <Checkbox
+                id="is_weighted"
+                checked={newProduct.is_weighted}
+                onCheckedChange={(checked) => setNewProduct({ ...newProduct, is_weighted: checked as boolean })}
+              />
+              <div className="flex items-center gap-2">
+                <Scale className="w-4 h-4 text-blue-600" />
+                <Label htmlFor="is_weighted" className="text-sm font-medium cursor-pointer">
+                  Producto pesable (balanza)
+                </Label>
+              </div>
+            </div>
+            {newProduct.is_weighted && (
+              <div className="space-y-3 p-3 bg-gray-50 rounded-lg border">
+                <p className="text-sm text-gray-600 font-medium">Configuracion de balanza SAT</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs text-gray-500">Codigo PLU (5 digitos)</Label>
+                    <Input
+                      placeholder="Ej: 00013"
+                      value={newProduct.plu_code}
+                      maxLength={5}
+                      onChange={(e) => setNewProduct({ ...newProduct, plu_code: e.target.value.replace(/\D/g, '').padStart(5, '0').slice(-5) })}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Precio por kg *</Label>
+                    <Input
+                      type="number"
+                      placeholder="Ej: 8000"
+                      value={newProduct.price_per_kg}
+                      onChange={(e) => setNewProduct({ ...newProduct, price_per_kg: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddProduct(false)}>Cancelar</Button>
             <Button
               onClick={handleAddProduct}
-              disabled={isProcessing || !newProduct.code || !newProduct.name || !newProduct.subfamily_id || !newProduct.sale_price}
+              disabled={isProcessing || !newProduct.code || !newProduct.name || !newProduct.sale_price || (newProduct.is_weighted && (!newProduct.plu_code || !newProduct.price_per_kg))}
             >
               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crear'}
             </Button>

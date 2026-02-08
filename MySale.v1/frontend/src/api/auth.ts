@@ -18,3 +18,8 @@ export const getMe = async (): Promise<User> => {
   const response = await api.get('/api/auth/me');
   return response.data;
 };
+
+export const getMyModules = async (): Promise<{ code: string; name: string; icon: string; route: string }[]> => {
+  const response = await api.get('/api/auth/my-modules');
+  return response.data;
+};
