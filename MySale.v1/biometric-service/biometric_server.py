@@ -243,13 +243,41 @@ else:
     reader_status['last_error'] = 'Ningun SDK disponible'
 
 
+_hide_mode = False
+_console_hwnd = None
+
+
+def _show_console():
+    global _console_hwnd
+    if not _hide_mode or not _console_hwnd:
+        return
+    user32 = ctypes.windll.user32
+    user32.MoveWindow(_console_hwnd, -1, -1, 1, 1, True)
+    user32.ShowWindow(_console_hwnd, 4)
+
+
+def _hide_console():
+    if not _hide_mode or not _console_hwnd:
+        return
+    user32 = ctypes.windll.user32
+    GWL_EXSTYLE = -20
+    WS_EX_TOOLWINDOW = 0x00000080
+    WS_EX_APPWINDOW = 0x00040000
+    style = user32.GetWindowLongW(_console_hwnd, GWL_EXSTYLE)
+    style = (style | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW
+    user32.SetWindowLongW(_console_hwnd, GWL_EXSTYLE, style)
+    user32.ShowWindow(_console_hwnd, 6)
+    user32.MoveWindow(_console_hwnd, -32000, -32000, 1, 1, True)
+
+
 def _winbio_identify():
     try:
         winbio_lib.WinBioCancel(ctypes.c_size_t(winbio_session))
         time.sleep(0.3)
-        print("[WBF] Sesion reseteada (cancel)")
     except Exception:
         pass
+
+    _show_console()
 
     unit_id = ctypes.c_uint(0)
     identity = WINBIO_IDENTITY()
@@ -274,6 +302,8 @@ def _winbio_identify():
     t = threading.Thread(target=do_identify, daemon=True)
     t.start()
     t.join(timeout=30)
+
+    _hide_console()
 
     if t.is_alive():
         print("[WBF] Timeout - cancelando operacion...")
@@ -584,23 +614,12 @@ def run_server():
         print("  (Configuracion > Cuentas > Opciones de inicio de sesion > Huella)")
         print("")
 
+    global _hide_mode, _console_hwnd
     if '--hide' in sys.argv and sys.platform == 'win32':
-        try:
-            kernel32 = ctypes.windll.kernel32
-            user32 = ctypes.windll.user32
-            hwnd = kernel32.GetConsoleWindow()
-            if hwnd:
-                GWL_EXSTYLE = -20
-                WS_EX_TOOLWINDOW = 0x00000080
-                WS_EX_APPWINDOW = 0x00040000
-                style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
-                style = (style | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW
-                user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
-                user32.ShowWindow(hwnd, 6)
-                user32.MoveWindow(hwnd, -32000, -32000, 100, 100, False)
-                print("[HIDE] Ventana oculta de la barra de tareas")
-        except Exception as e:
-            print(f"[HIDE] Error: {e}")
+        _hide_mode = True
+        _console_hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+        _hide_console()
+        print("[HIDE] Modo oculto activado")
     else:
         print("Presione Ctrl+C para detener el servicio.")
     print("")
