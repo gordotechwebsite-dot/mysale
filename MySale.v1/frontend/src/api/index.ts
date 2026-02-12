@@ -870,8 +870,17 @@ export const biometricLogin = async (data: {
   template: string;
   tenant_id?: number;
 }): Promise<LoginResponse> => {
-  const response = await api.post('/api/biometric/login', data);
-  return response.data;
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const response = await fetch(`${API_URL}/api/biometric/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw { response: { status: response.status, data: errorData } };
+  }
+  return response.json();
 };
 
 export const biometricClockInOut = async (data: {

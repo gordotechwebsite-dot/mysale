@@ -41,22 +41,16 @@ const Login: React.FC = () => {
     setBiometricStep('checking');
 
     try {
-      const status = await checkBiometricServiceStatus();
-      if (status.status !== 'ok' && !status.reader_connected && !status.service_running) {
-        setBiometricStep('error');
-        setBiometricError('El servicio biométrico no está disponible. Ejecute el servicio MySale Biometric.');
-        return;
-      }
+      await checkBiometricServiceStatus();
     } catch {
       setBiometricStep('error');
       setBiometricError('No se puede conectar al servicio biométrico. Asegúrese de que el servicio esté ejecutándose.');
       return;
     }
 
-    setBiometricStep('waiting_finger');
+    setBiometricStep('capturing');
 
     try {
-      setBiometricStep('capturing');
       const captureResult = await captureFingerprintFromService();
 
       if (!captureResult.success || !captureResult.template) {
@@ -67,11 +61,12 @@ const Login: React.FC = () => {
 
       setBiometricStep('verifying');
       const response = await biometricLogin({ template: captureResult.template });
+      setUsername(response.user.username);
       login(response.access_token, response.user);
       navigate('/');
     } catch (err: any) {
       setBiometricStep('error');
-      setBiometricError(err.response?.data?.detail || 'Huella no reconocida');
+      setBiometricError(err.response?.data?.detail || 'Huella no reconocida o no registrada');
     }
   };
 
