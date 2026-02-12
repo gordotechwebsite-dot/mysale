@@ -74,20 +74,8 @@ def hash_template(template: str) -> str:
 
 
 def verify_fingerprint_match(stored_template: str, captured_template: str) -> tuple[bool, int]:
-    stored_hash = hash_template(stored_template)
-    captured_hash = hash_template(captured_template)
-    
-    if stored_hash == captured_hash:
+    if stored_template == captured_template:
         return True, 100
-    
-    stored_bytes = base64.b64decode(stored_template) if stored_template else b''
-    captured_bytes = base64.b64decode(captured_template) if captured_template else b''
-    
-    if len(stored_bytes) > 0 and len(captured_bytes) > 0:
-        matching_bytes = sum(1 for a, b in zip(stored_bytes[:100], captured_bytes[:100]) if a == b)
-        score = int((matching_bytes / min(100, len(stored_bytes), len(captured_bytes))) * 100)
-        return score >= 70, score
-    
     return False, 0
 
 
