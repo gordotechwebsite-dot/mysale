@@ -25,13 +25,15 @@ reader_status = {
     'last_error': None
 }
 
-# Intentar cargar la DLL del lector (solo funciona en Windows)
 fingerprint_lib = None
 try:
     if sys.platform == 'win32':
         dll_path = os.path.join(os.path.dirname(__file__), 'uareu4500.dll')
         if os.path.exists(dll_path):
             fingerprint_lib = ctypes.CDLL(dll_path, winmode=0)
+            fingerprint_lib.python_read_fingerprint_and_get_base64_string.restype = ctypes.c_char_p
+            fingerprint_lib.python_compare_base64_string_with_finger.argtypes = [ctypes.c_char_p]
+            fingerprint_lib.python_compare_base64_string_with_finger.restype = ctypes.c_int
             reader_status['connected'] = True
             reader_status['device_name'] = 'DigitalPersona 4500'
 except Exception as e:
@@ -236,32 +238,25 @@ class BiometricHandler(BaseHTTPRequestHandler):
         return base64.b64encode(template_hash).decode()
     
     def _capture_real_fingerprint(self, timeout):
-        """Captura real de huella usando el SDK"""
-        # Esta función se implementará con el SDK real
-        # Por ahora retorna un template simulado
-        if fingerprint_lib:
-            # Llamada al SDK
-            # result = fingerprint_lib.python_capture_fingerprint(timeout)
-            pass
-        return self._generate_mock_template()
+        fmd_ptr = fingerprint_lib.python_read_fingerprint_and_get_base64_string()
+        if not fmd_ptr:
+            raise Exception('No se pudo capturar la huella del lector')
+        return ctypes.string_at(fmd_ptr).decode('utf-8')
     
     def _verify_real_fingerprint(self, stored_template, timeout):
-        """Verificación real de huella usando el SDK"""
-        # Esta función se implementará con el SDK real
-        if fingerprint_lib:
-            # Llamada al SDK
-            # result = fingerprint_lib.python_verify_fingerprint(stored_template, timeout)
-            pass
-        return {'match': True, 'score': 95}
+        result = fingerprint_lib.python_compare_base64_string_with_finger(
+            stored_template.encode('utf-8')
+        )
+        return {'match': bool(result), 'score': 100 if result else 0}
     
     def _enroll_real_fingerprint(self, num_captures, timeout):
-        """Enrolamiento real usando el SDK"""
-        # Esta función se implementará con el SDK real
-        if fingerprint_lib:
-            # Llamada al SDK
-            # result = fingerprint_lib.python_enroll_fingerprint(num_captures, timeout)
-            pass
-        return self._generate_mock_template()
+        best_template = None
+        for _ in range(num_captures):
+            fmd_ptr = fingerprint_lib.python_read_fingerprint_and_get_base64_string()
+            if not fmd_ptr:
+                raise Exception('No se pudo capturar la huella del lector')
+            best_template = ctypes.string_at(fmd_ptr).decode('utf-8')
+        return best_template
     
     def log_message(self, format, *args):
         """Personaliza el logging"""
