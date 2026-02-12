@@ -311,17 +311,20 @@ def _winbio_identify():
             raise Exception(f'Captura de mala calidad. Intente de nuevo.')
         raise Exception(f'WinBioIdentify fallo: 0x{error_code:08X}')
 
-    print(f"[WBF] Identificacion OK, unidad: {unit_id.value}, tipo identidad: {identity.Type}, subfactor: {sub_factor.value}")
+    sf = sub_factor.value
+    print(f"[WBF] Identificacion OK, unidad: {unit_id.value}, tipo identidad: {identity.Type}, subfactor: {sf}")
 
     if identity.Type == WINBIO_ID_TYPE_SID:
         sid_size = identity.Value.AccountSid.AccountSidSize
         sid_bytes = bytes(identity.Value.AccountSid.AccountSid[:sid_size])
         sid_b64 = base64.b64encode(sid_bytes).decode('utf-8')
-        print(f"[WBF] SID identificado: {sid_size} bytes")
-        return sid_b64
+        template = f"{sid_b64}:{sf}"
+        print(f"[WBF] SID identificado: {sid_size} bytes, subfactor: {sf}")
+        return template
     else:
         raw_bytes = bytes(ctypes.string_at(ctypes.byref(identity.Value), ctypes.sizeof(identity.Value)))
-        return base64.b64encode(raw_bytes).decode('utf-8')
+        raw_b64 = base64.b64encode(raw_bytes).decode('utf-8')
+        return f"{raw_b64}:{sf}"
 
 
 def sdk_capture_base64():
