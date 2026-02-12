@@ -1,5 +1,5 @@
 """
-MySale Biometric Service v3.0.0
+MySale Biometric Service v4.0.0
 Servicio local para Windows - lector de huellas DigitalPersona 4500
 Modos: wrapper (uareu4500.dll) | direct (dpfpdd+dpfj) | winbio (WBF) | simulation
 """
@@ -9,7 +9,6 @@ import sys
 import json
 import base64
 import ctypes
-import ctypes.wintypes
 import hashlib
 import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -30,12 +29,13 @@ CAPTURE_BUFFER_SIZE = 512000
 WINBIO_TYPE_FINGERPRINT = 0x00000008
 WINBIO_POOL_SYSTEM = 0x00000001
 WINBIO_FLAG_DEFAULT = 0x00000000
-WINBIO_NO_PURPOSE_AVAILABLE = 0x00
-WINBIO_PURPOSE_VERIFY = 0x01
-WINBIO_DATA_FLAG_RAW = 0x01
-WINBIO_DATA_FLAG_INTERMEDIATE = 0x02
-WINBIO_DATA_FLAG_PROCESSED = 0x04
+WINBIO_ID_TYPE_SID = 3
+WINBIO_ID_TYPE_NULL = 0
+SECURITY_MAX_SID_SIZE = 68
 S_OK = 0
+WINBIO_E_UNKNOWN_ID = 0x80098005
+WINBIO_E_BAD_CAPTURE = 0x80098003
+WINBIO_E_ENROLLMENT_IN_PROGRESS = 0x8009800B
 
 
 class DPFPDD_VER_INFO(ctypes.Structure):
@@ -89,16 +89,27 @@ class DPFPDD_CAPTURE_RESULT(ctypes.Structure):
     ]
 
 
-class WINBIO_BIR_DATA(ctypes.Structure):
-    _fields_ = [("Size", ctypes.c_uint32), ("Offset", ctypes.c_uint32)]
-
-
-class WINBIO_BIR(ctypes.Structure):
+class _WINBIO_ACCOUNTSID(ctypes.Structure):
     _fields_ = [
-        ("HeaderBlock", WINBIO_BIR_DATA),
-        ("StandardDataBlock", WINBIO_BIR_DATA),
-        ("VendorDataBlock", WINBIO_BIR_DATA),
-        ("SignatureBlock", WINBIO_BIR_DATA),
+        ("AccountSidSize", ctypes.c_ulong),
+        ("AccountSid", ctypes.c_ubyte * SECURITY_MAX_SID_SIZE),
+    ]
+
+
+class _WINBIO_IDENTITY_VALUE(ctypes.Union):
+    _fields_ = [
+        ("Null", ctypes.c_ulong),
+        ("Wildcard", ctypes.c_ulong),
+        ("TemplateGuid", ctypes.c_ubyte * 16),
+        ("AccountSid", _WINBIO_ACCOUNTSID),
+        ("SecureId", ctypes.c_longlong),
+    ]
+
+
+class WINBIO_IDENTITY(ctypes.Structure):
+    _fields_ = [
+        ("Type", ctypes.c_ulong),
+        ("Value", _WINBIO_IDENTITY_VALUE),
     ]
 
 
@@ -231,37 +242,40 @@ else:
     reader_status['last_error'] = 'Ningun SDK disponible'
 
 
-def _winbio_capture_raw():
+def _winbio_identify():
     unit_id = ctypes.c_uint(0)
-    sample_ptr = ctypes.c_void_p()
-    sample_size = ctypes.c_size_t(0)
+    identity = WINBIO_IDENTITY()
+    sub_factor = ctypes.c_ubyte(0)
     reject_detail = ctypes.c_uint(0)
 
     print("[WBF] Esperando huella en el lector...")
-    hr = winbio_lib.WinBioCaptureSample(
+    hr = winbio_lib.WinBioIdentify(
         ctypes.c_size_t(winbio_session),
-        ctypes.c_ubyte(WINBIO_PURPOSE_VERIFY),
-        ctypes.c_ubyte(WINBIO_DATA_FLAG_RAW),
         ctypes.byref(unit_id),
-        ctypes.byref(sample_ptr),
-        ctypes.byref(sample_size),
+        ctypes.byref(identity),
+        ctypes.byref(sub_factor),
         ctypes.byref(reject_detail)
     )
 
+    error_code = hr & 0xFFFFFFFF
     if hr != S_OK:
-        if reject_detail.value != 0:
-            print(f"[WBF] Captura rechazada: detail=0x{reject_detail.value:08X}")
-        raise Exception(f'WinBioCaptureSample fallo: 0x{hr & 0xFFFFFFFF:08X}')
+        if error_code == WINBIO_E_UNKNOWN_ID:
+            raise Exception('Huella no registrada en Windows. Registre su huella en: Configuracion > Cuentas > Opciones de inicio de sesion > Huella digital')
+        if error_code == WINBIO_E_BAD_CAPTURE:
+            raise Exception(f'Captura de mala calidad. Intente de nuevo.')
+        raise Exception(f'WinBioIdentify fallo: 0x{error_code:08X}')
 
-    total_size = sample_size.value
-    print(f"[WBF] Captura OK, tamano: {total_size} bytes, unidad: {unit_id.value}")
+    print(f"[WBF] Identificacion OK, unidad: {unit_id.value}, tipo identidad: {identity.Type}, subfactor: {sub_factor.value}")
 
-    raw_data = (ctypes.c_ubyte * total_size)()
-    ctypes.memmove(raw_data, sample_ptr.value, total_size)
-
-    winbio_lib.WinBioFree(sample_ptr)
-
-    return bytes(raw_data)
+    if identity.Type == WINBIO_ID_TYPE_SID:
+        sid_size = identity.Value.AccountSid.AccountSidSize
+        sid_bytes = bytes(identity.Value.AccountSid.AccountSid[:sid_size])
+        sid_b64 = base64.b64encode(sid_bytes).decode('utf-8')
+        print(f"[WBF] SID identificado: {sid_size} bytes")
+        return sid_b64
+    else:
+        raw_bytes = bytes(ctypes.string_at(ctypes.byref(identity.Value), ctypes.sizeof(identity.Value)))
+        return base64.b64encode(raw_bytes).decode('utf-8')
 
 
 def sdk_capture_base64():
@@ -308,8 +322,7 @@ def sdk_capture_base64():
         return base64.b64encode(bytes(fmd_data[:fmd_size.value])).decode('utf-8')
 
     if sdk_mode == 'winbio':
-        raw = _winbio_capture_raw()
-        return base64.b64encode(raw).decode('utf-8')
+        return _winbio_identify()
 
     raise Exception('SDK no disponible')
 
@@ -336,32 +349,8 @@ def sdk_compare_with_finger(stored_b64):
         return result == DPFPDD_SUCCESS
 
     if sdk_mode == 'winbio':
-        new_raw = _winbio_capture_raw()
-        stored_raw = base64.b64decode(stored_b64)
-        new_bir = WINBIO_BIR.from_buffer_copy(new_raw[:ctypes.sizeof(WINBIO_BIR)]) if len(new_raw) >= ctypes.sizeof(WINBIO_BIR) else None
-        stored_bir = WINBIO_BIR.from_buffer_copy(stored_raw[:ctypes.sizeof(WINBIO_BIR)]) if len(stored_raw) >= ctypes.sizeof(WINBIO_BIR) else None
-
-        if new_bir and stored_bir and new_bir.StandardDataBlock.Size > 0 and stored_bir.StandardDataBlock.Size > 0:
-            new_offset = new_bir.StandardDataBlock.Offset
-            new_size = new_bir.StandardDataBlock.Size
-            stored_offset = stored_bir.StandardDataBlock.Offset
-            stored_size = stored_bir.StandardDataBlock.Size
-            new_std = new_raw[new_offset:new_offset + new_size]
-            stored_std = stored_raw[stored_offset:stored_offset + stored_size]
-            if len(new_std) > 0 and len(stored_std) > 0:
-                min_len = min(len(new_std), len(stored_std))
-                matching = sum(1 for a, b in zip(new_std[:min_len], stored_std[:min_len]) if a == b)
-                score = matching / min_len
-                print(f"[WBF] Comparacion: score={score:.4f} ({matching}/{min_len})")
-                return score > 0.85
-
-        if len(new_raw) == len(stored_raw):
-            matching = sum(1 for a, b in zip(new_raw, stored_raw) if a == b)
-            score = matching / len(new_raw)
-            print(f"[WBF] Comparacion raw: score={score:.4f}")
-            return score > 0.85
-
-        return False
+        new_id = _winbio_identify()
+        return new_id == stored_b64
 
     raise Exception('SDK no disponible')
 
@@ -412,7 +401,7 @@ class BiometricHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps({
             'status': 'ok',
             'service': 'MySale Biometric Service',
-            'version': '3.0.0'
+            'version': '4.0.0'
         }).encode())
 
     def _handle_status(self):
@@ -445,6 +434,7 @@ class BiometricHandler(BaseHTTPRequestHandler):
                     'message': 'Huella capturada exitosamente'
                 }
             except Exception as e:
+                print(f"[ERROR] Captura fallida: {e}")
                 response = {
                     'success': False,
                     'error': str(e),
@@ -479,6 +469,7 @@ class BiometricHandler(BaseHTTPRequestHandler):
                     'message': 'Verificacion completada'
                 }
             except Exception as e:
+                print(f"[ERROR] Verificacion fallida: {e}")
                 response = {
                     'success': False,
                     'error': str(e),
@@ -512,6 +503,7 @@ class BiometricHandler(BaseHTTPRequestHandler):
                     'message': f'Enrolamiento completado con {num_captures} capturas'
                 }
             except Exception as e:
+                print(f"[ERROR] Enrolamiento fallido: {e}")
                 response = {
                     'success': False,
                     'error': str(e),
@@ -541,7 +533,7 @@ def run_server():
 
     print("")
     print("==========================================================")
-    print("  MySale Biometric Service v3.0.0")
+    print("  MySale Biometric Service v4.0.0")
     print("==========================================================")
     print(f"  Estado: {mode_text.get(sdk_mode, 'Desconocido')}")
     print(f"  Dispositivo: {reader_status['device_name'] or 'N/A'}")
@@ -556,8 +548,9 @@ def run_server():
         print("")
 
     if sdk_mode == 'winbio':
-        print("  NOTA: Usando Windows Biometric Framework.")
-        print("  Para mejor precision, instale el DigitalPersona One Touch SDK.")
+        print("  Usando Windows Biometric Framework (WinBioIdentify).")
+        print("  REQUISITO: Las huellas deben estar registradas en Windows Hello.")
+        print("  (Configuracion > Cuentas > Opciones de inicio de sesion > Huella)")
         print("")
 
     print("Presione Ctrl+C para detener el servicio.")
