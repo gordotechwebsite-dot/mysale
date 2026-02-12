@@ -6,15 +6,16 @@ Doble clic en este archivo (.pyw) para iniciar - no se abre ninguna ventana CMD.
 
 import os
 import sys
-import threading
+import subprocess
 import socket
+import time
+import json
+import urllib.request
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, script_dir)
-
-from http.server import HTTPServer
-from biometric_server import BiometricHandler, HOST, PORT, reader_status, sdk_mode
-
+HOST = 'localhost'
+PORT = 8765
+CREATE_NO_WINDOW = 0x08000000
 PID_FILE = os.path.join(script_dir, "biometric_service.pid")
 
 try:
@@ -25,9 +26,28 @@ except ImportError:
     HAS_PYSTRAY = False
 
 
+def find_python_exe():
+    exe = sys.executable
+    d = os.path.dirname(exe)
+    for name in ['python.exe', 'python3.exe']:
+        candidate = os.path.join(d, name)
+        if os.path.exists(candidate):
+            return candidate
+    return exe
+
+
 def is_port_in_use():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex((HOST, PORT)) == 0
+
+
+def get_service_status():
+    try:
+        req = urllib.request.Request(f'http://{HOST}:{PORT}/status', method='GET')
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            return json.loads(resp.read().decode())
+    except Exception:
+        return None
 
 
 def create_icon_image(running=True):
@@ -41,50 +61,55 @@ def create_icon_image(running=True):
     return img
 
 
-def write_pid():
-    with open(PID_FILE, 'w') as f:
-        f.write(str(os.getpid()))
-
-
-def remove_pid():
-    try:
-        os.remove(PID_FILE)
-    except OSError:
-        pass
-
-
 class TrayBiometricService:
     def __init__(self):
-        self.httpd = None
-        self.server_thread = None
+        self.proc = None
         self.tray_icon = None
 
     def start_server(self):
-        self.httpd = HTTPServer((HOST, PORT), BiometricHandler)
-        self.server_thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
-        self.server_thread.start()
-        write_pid()
+        python_exe = find_python_exe()
+        server_script = os.path.join(script_dir, 'biometric_server.py')
+        self.proc = subprocess.Popen(
+            [python_exe, server_script],
+            cwd=script_dir,
+            creationflags=CREATE_NO_WINDOW,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        with open(PID_FILE, 'w') as f:
+            f.write(str(self.proc.pid))
 
     def stop(self, icon=None, item=None):
-        if self.httpd:
-            threading.Thread(target=self.httpd.shutdown, daemon=True).start()
-        remove_pid()
+        if self.proc and self.proc.poll() is None:
+            self.proc.terminate()
+            try:
+                self.proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+        try:
+            os.remove(PID_FILE)
+        except OSError:
+            pass
         if self.tray_icon:
             self.tray_icon.stop()
 
     def run_with_tray(self):
         self.start_server()
+        time.sleep(2)
 
-        if sdk_mode == 'simulation':
-            status_text = 'Modo simulacion'
-        elif reader_status.get('connected'):
-            mode_names = {'wrapper': 'SDK', 'direct': 'SDK Directo', 'winbio': 'Windows Biometric'}
-            status_text = f"Conectado ({mode_names.get(sdk_mode, sdk_mode)})"
+        status = get_service_status()
+        if status and status.get('service_running'):
+            sdk = status.get('sdk_mode', 'unknown')
+            mode_names = {'wrapper': 'SDK', 'direct': 'SDK Directo', 'winbio': 'Windows Biometric', 'simulation': 'Simulacion'}
+            if status.get('reader_connected'):
+                status_text = f"Conectado ({mode_names.get(sdk, sdk)})"
+            else:
+                status_text = 'Lector no detectado'
         else:
-            status_text = 'Lector no detectado'
+            status_text = 'Error al iniciar servicio'
 
         menu = pystray.Menu(
-            pystray.MenuItem(f"MySale Biometric Service", None, enabled=False),
+            pystray.MenuItem("MySale Biometric Service", None, enabled=False),
             pystray.MenuItem(f"Puerto: {PORT}", None, enabled=False),
             pystray.MenuItem(f"Estado: {status_text}", None, enabled=False),
             pystray.Menu.SEPARATOR,
@@ -93,7 +118,7 @@ class TrayBiometricService:
 
         self.tray_icon = pystray.Icon(
             "mysale_biometric",
-            create_icon_image(),
+            create_icon_image(status is not None),
             f"MySale Biometric - {HOST}:{PORT}",
             menu
         )
@@ -103,7 +128,7 @@ class TrayBiometricService:
     def run_silent(self):
         self.start_server()
         try:
-            self.server_thread.join()
+            self.proc.wait()
         except KeyboardInterrupt:
             self.stop()
 
