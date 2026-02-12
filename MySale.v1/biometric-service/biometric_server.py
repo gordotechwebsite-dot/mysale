@@ -123,15 +123,23 @@ def _try_direct():
         print(f"[SDK] dpfj.dll no encontrado en {script_dir}")
         return False
 
+    os.environ['PATH'] = script_dir + os.pathsep + os.environ.get('PATH', '')
+    if hasattr(os, 'add_dll_directory'):
+        os.add_dll_directory(script_dir)
+
     try:
-        if hasattr(os, 'add_dll_directory'):
-            os.add_dll_directory(script_dir)
-        dpfpdd_lib = ctypes.WinDLL(dpfpdd_path)
-        dpfj_lib = ctypes.WinDLL(dpfj_path)
+        dpfpdd_lib = ctypes.WinDLL(dpfpdd_path, winmode=0)
+        dpfj_lib = ctypes.WinDLL(dpfj_path, winmode=0)
         print("[SDK] dpfpdd.dll y dpfj.dll cargados")
     except Exception as e:
         print(f"[SDK] Error al cargar dpfpdd/dpfj: {e}")
-        return False
+        try:
+            dpfpdd_lib = ctypes.CDLL(dpfpdd_path, winmode=0)
+            dpfj_lib = ctypes.CDLL(dpfj_path, winmode=0)
+            print("[SDK] dpfpdd.dll y dpfj.dll cargados (CDLL fallback)")
+        except Exception as e2:
+            print(f"[SDK] Error al cargar dpfpdd/dpfj (CDLL fallback): {e2}")
+            return False
 
     result = dpfpdd_lib.dpfpdd_init()
     if result != DPFPDD_SUCCESS:
