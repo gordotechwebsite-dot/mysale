@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { login as apiLogin } from '../api';
+import { login as apiLogin, checkBiometricServiceStatus, captureFingerprintFromService, biometricLogin } from '../api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Fingerprint, LogIn, Loader2 } from 'lucide-react';
+import { Fingerprint, LogIn, Loader2, AlertTriangle } from 'lucide-react';
+
+type BiometricStep = 'idle' | 'checking' | 'waiting_finger' | 'capturing' | 'verifying' | 'error';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [biometricStep, setBiometricStep] = useState<BiometricStep>('idle');
+  const [biometricError, setBiometricError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -28,6 +32,82 @@ const Login: React.FC = () => {
       setError(err.response?.data?.detail || 'Error al iniciar sesion');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    setError('');
+    setBiometricError('');
+    setBiometricStep('checking');
+
+    try {
+      const status = await checkBiometricServiceStatus();
+      if (status.status !== 'ok' && !status.reader_connected && !status.service_running) {
+        setBiometricStep('error');
+        setBiometricError('El servicio biométrico no está disponible. Ejecute el servicio MySale Biometric.');
+        return;
+      }
+    } catch {
+      setBiometricStep('error');
+      setBiometricError('No se puede conectar al servicio biométrico. Asegúrese de que el servicio esté ejecutándose.');
+      return;
+    }
+
+    setBiometricStep('waiting_finger');
+
+    try {
+      setBiometricStep('capturing');
+      const captureResult = await captureFingerprintFromService();
+
+      if (!captureResult.success || !captureResult.template) {
+        setBiometricStep('error');
+        setBiometricError(captureResult.error || 'Error al capturar la huella');
+        return;
+      }
+
+      setBiometricStep('verifying');
+      const response = await biometricLogin({ template: captureResult.template });
+      login(response.access_token, response.user);
+      navigate('/');
+    } catch (err: any) {
+      setBiometricStep('error');
+      setBiometricError(err.response?.data?.detail || 'Huella no reconocida');
+    }
+  };
+
+  const isBiometricBusy = biometricStep !== 'idle' && biometricStep !== 'error';
+
+  const getBiometricButtonContent = () => {
+    switch (biometricStep) {
+      case 'checking':
+        return (
+          <>
+            <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+            Conectando con el lector...
+          </>
+        );
+      case 'waiting_finger':
+      case 'capturing':
+        return (
+          <>
+            <Fingerprint className="w-6 h-6 mr-2 animate-pulse" />
+            Coloque su dedo en el lector...
+          </>
+        );
+      case 'verifying':
+        return (
+          <>
+            <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+            Verificando huella...
+          </>
+        );
+      default:
+        return (
+          <>
+            <Fingerprint className="w-6 h-6 mr-2" />
+            Acceso con Huella
+          </>
+        );
     }
   };
 
@@ -76,7 +156,7 @@ const Login: React.FC = () => {
             <Button
               type="submit"
               className="w-full h-14 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700"
-              disabled={isLoading}
+              disabled={isLoading || isBiometricBusy}
             >
               {isLoading ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
@@ -101,11 +181,27 @@ const Login: React.FC = () => {
               type="button"
               variant="outline"
               className="w-full h-14 text-lg font-semibold border-2"
-              disabled
+              onClick={handleBiometricLogin}
+              disabled={isLoading || isBiometricBusy}
             >
-              <Fingerprint className="w-6 h-6 mr-2" />
-              Acceso con Huella
+              {getBiometricButtonContent()}
             </Button>
+
+            {biometricError && (
+              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p>{biometricError}</p>
+                  <button
+                    type="button"
+                    onClick={handleBiometricLogin}
+                    className="text-yellow-900 underline font-medium mt-1"
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              </div>
+            )}
           </form>
 
           <p className="text-center text-xs text-gray-400 mt-8">

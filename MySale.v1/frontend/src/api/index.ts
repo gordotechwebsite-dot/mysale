@@ -4,7 +4,8 @@ import type {
   Shift, Sale, CashCut, CashDenomination, Loss, Transfer, Expense,
   ShiftAlert, DashboardData, CostEntry, CostConfig, CostCalculation, CostApplication,
   Zone, Table, ZoneWithTables, Ticket, Comanda, TicketPayment,
-  Module, Tenant, TenantListItem, TenantPayment, AdminDashboard
+  Module, Tenant, TenantListItem, TenantPayment, AdminDashboard,
+  LoginResponse
 } from '../types';
 
 export * from './auth';
@@ -868,16 +869,7 @@ export const verifyFingerprint = async (data: {
 export const biometricLogin = async (data: {
   template: string;
   tenant_id?: number;
-}): Promise<{
-  access_token: string;
-  token_type: string;
-  user: {
-    id: number;
-    username: string;
-    full_name: string;
-    role: string | null;
-  };
-}> => {
+}): Promise<LoginResponse> => {
   const response = await api.post('/api/biometric/login', data);
   return response.data;
 };

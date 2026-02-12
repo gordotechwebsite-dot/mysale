@@ -16,7 +16,11 @@ Servicio local para Windows que permite la integración del lector de huellas Di
    ```
    pip install -r requirements.txt
    ```
-3. Ejecutar el servicio:
+3. Ejecutar el servicio con ventana grafica (recomendado):
+   ```
+   python biometric_gui.py
+   ```
+   O desde linea de comandos:
    ```
    python biometric_server.py
    ```
