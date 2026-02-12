@@ -9,7 +9,8 @@ import base64
 
 from app.database import get_db
 from app.models import User, Fingerprint, BiometricLog, AttendanceRecord, BiometricEventType, Location
-from app.routers.auth import get_current_user
+from app.routers.auth import get_current_user, log_audit
+from app.schemas.user import UserResponse, RoleResponse
 
 router = APIRouter(prefix="/api/biometric", tags=["biometric"])
 
@@ -279,23 +280,63 @@ async def biometric_login(
                 db.add(log)
                 db.commit()
                 
-                from app.routers.auth import create_access_token
-                access_token = create_access_token(data={"sub": user.username})
+                from app.utils.auth import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+                access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+                access_token = create_access_token(
+                    data={"sub": user.username, "user_id": user.id},
+                    expires_delta=access_token_expires
+                )
+                
+                role_response = None
+                if user.role:
+                    role_response = RoleResponse(
+                        id=user.role.id,
+                        name=user.role.name,
+                        role_type=user.role.role_type,
+                        can_void_sales=user.role.can_void_sales,
+                        can_manage_inventory=user.role.can_manage_inventory,
+                        can_manage_users=user.role.can_manage_users,
+                        can_view_reports=user.role.can_view_reports,
+                        can_manage_locations=user.role.can_manage_locations,
+                        can_set_stock_thresholds=user.role.can_set_stock_thresholds,
+                        can_close_shifts=user.role.can_close_shifts,
+                        created_at=user.role.created_at
+                    )
+                
+                user_response = UserResponse(
+                    id=user.id,
+                    username=user.username,
+                    email=user.email,
+                    full_name=user.full_name,
+                    role_id=user.role_id,
+                    role=role_response,
+                    location_id=user.location_id,
+                    tenant_id=user.tenant_id,
+                    is_active=user.is_active,
+                    points=user.points,
+                    created_at=user.created_at
+                )
+                
+                log_audit(
+                    db=db,
+                    action="login",
+                    user_id=user.id,
+                    tenant_id=user.tenant_id,
+                    username=user.username,
+                    resource_type="session",
+                    details={"method": "biometric", "match_score": score},
+                    ip_address=http_request.client.host if http_request.client else None
+                )
                 
                 return {
                     "access_token": access_token,
                     "token_type": "bearer",
-                    "user": {
-                        "id": user.id,
-                        "username": user.username,
-                        "full_name": user.full_name,
-                        "role": user.role.name if user.role else None
-                    }
+                    "user": user_response
                 }
     
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Fingerprint not recognized"
+        detail="Huella no reconocida"
     )
 
 

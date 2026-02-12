@@ -4,7 +4,8 @@ import type {
   Shift, Sale, CashCut, CashDenomination, Loss, Transfer, Expense,
   ShiftAlert, DashboardData, CostEntry, CostConfig, CostCalculation, CostApplication,
   Zone, Table, ZoneWithTables, Ticket, Comanda, TicketPayment,
-  Module, Tenant, TenantListItem, TenantPayment, AdminDashboard
+  Module, Tenant, TenantListItem, TenantPayment, AdminDashboard,
+  LoginResponse
 } from '../types';
 
 export * from './auth';
@@ -868,18 +869,18 @@ export const verifyFingerprint = async (data: {
 export const biometricLogin = async (data: {
   template: string;
   tenant_id?: number;
-}): Promise<{
-  access_token: string;
-  token_type: string;
-  user: {
-    id: number;
-    username: string;
-    full_name: string;
-    role: string | null;
-  };
-}> => {
-  const response = await api.post('/api/biometric/login', data);
-  return response.data;
+}): Promise<LoginResponse> => {
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const response = await fetch(`${API_URL}/api/biometric/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw { response: { status: response.status, data: errorData } };
+  }
+  return response.json();
 };
 
 export const biometricClockInOut = async (data: {
