@@ -15,7 +15,7 @@ import urllib.request
 script_dir = os.path.dirname(os.path.abspath(__file__))
 HOST = 'localhost'
 PORT = 8765
-CREATE_NO_WINDOW = 0x08000000
+SW_HIDE = 0
 PID_FILE = os.path.join(script_dir, "biometric_service.pid")
 
 try:
@@ -69,10 +69,13 @@ class TrayBiometricService:
     def start_server(self):
         python_exe = find_python_exe()
         server_script = os.path.join(script_dir, 'biometric_server.py')
+        si = subprocess.STARTUPINFO()
+        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        si.wShowWindow = SW_HIDE
         self.proc = subprocess.Popen(
             [python_exe, server_script],
             cwd=script_dir,
-            creationflags=CREATE_NO_WINDOW,
+            startupinfo=si,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
