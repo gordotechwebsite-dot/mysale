@@ -602,7 +602,25 @@ def run_server():
         print("  (Configuracion > Cuentas > Opciones de inicio de sesion > Huella)")
         print("")
 
-    print("Presione Ctrl+C para detener el servicio.")
+    if '--hide' in sys.argv and sys.platform == 'win32':
+        try:
+            kernel32 = ctypes.windll.kernel32
+            user32 = ctypes.windll.user32
+            hwnd = kernel32.GetConsoleWindow()
+            if hwnd:
+                GWL_EXSTYLE = -20
+                WS_EX_TOOLWINDOW = 0x00000080
+                WS_EX_APPWINDOW = 0x00040000
+                style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+                style = (style | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW
+                user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
+                user32.ShowWindow(hwnd, 6)
+                user32.MoveWindow(hwnd, -32000, -32000, 100, 100, False)
+                print("[HIDE] Ventana oculta de la barra de tareas")
+        except Exception as e:
+            print(f"[HIDE] Error: {e}")
+    else:
+        print("Presione Ctrl+C para detener el servicio.")
     print("")
 
     try:
