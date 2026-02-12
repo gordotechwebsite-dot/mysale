@@ -13,7 +13,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, script_dir)
 
 from http.server import HTTPServer
-from biometric_server import BiometricHandler, HOST, PORT, reader_status, fingerprint_lib
+from biometric_server import BiometricHandler, HOST, PORT, reader_status, sdk_mode
 
 PID_FILE = os.path.join(script_dir, "biometric_service.pid")
 
@@ -75,7 +75,13 @@ class TrayBiometricService:
     def run_with_tray(self):
         self.start_server()
 
-        status_text = "Lector conectado" if fingerprint_lib else "Modo simulacion"
+        if sdk_mode == 'simulation':
+            status_text = 'Modo simulacion'
+        elif reader_status.get('connected'):
+            mode_names = {'wrapper': 'SDK', 'direct': 'SDK Directo', 'winbio': 'Windows Biometric'}
+            status_text = f"Conectado ({mode_names.get(sdk_mode, sdk_mode)})"
+        else:
+            status_text = 'Lector no detectado'
 
         menu = pystray.Menu(
             pystray.MenuItem(f"MySale Biometric Service", None, enabled=False),
