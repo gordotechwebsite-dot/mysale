@@ -767,3 +767,182 @@ export const createTenantPayment = async (tenantId: number, data: {
   });
   return response.data;
 };
+
+export interface BiometricFingerprint {
+  id: number;
+  user_id: number;
+  finger_index: number;
+  is_primary: boolean;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface BiometricAttendance {
+  id: number;
+  user_id: number;
+  user_name: string;
+  clock_in: string;
+  clock_out: string | null;
+  total_hours: number | null;
+  location_name: string | null;
+}
+
+export interface BiometricLog {
+  id: number;
+  user_id: number;
+  user_name: string;
+  event_type: string;
+  success: boolean;
+  match_score: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
+const BIOMETRIC_SERVICE_URL = 'http://localhost:8765';
+
+export const checkBiometricServiceStatus = async (): Promise<{
+  status: string;
+  reader_connected: boolean;
+  device_name: string | null;
+  simulation_mode: boolean;
+}> => {
+  const response = await fetch(`${BIOMETRIC_SERVICE_URL}/status`);
+  return response.json();
+};
+
+export const captureFingerprintFromService = async (): Promise<{
+  success: boolean;
+  template?: string;
+  quality_score?: number;
+  error?: string;
+}> => {
+  const response = await fetch(`${BIOMETRIC_SERVICE_URL}/capture`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  return response.json();
+};
+
+export const getBiometricStatus = async (): Promise<{
+  enabled: boolean;
+  service_url: string;
+  message: string;
+}> => {
+  const response = await api.get('/api/biometric/status');
+  return response.data;
+};
+
+export const enrollFingerprint = async (data: {
+  template: string;
+  finger_index?: number;
+  quality_score?: number;
+  is_primary?: boolean;
+}): Promise<BiometricFingerprint> => {
+  const response = await api.post('/api/biometric/enroll', data);
+  return response.data;
+};
+
+export const enrollUserFingerprint = async (userId: number, data: {
+  template: string;
+  finger_index?: number;
+  quality_score?: number;
+  is_primary?: boolean;
+}): Promise<BiometricFingerprint> => {
+  const response = await api.post(`/api/biometric/enroll-user/${userId}`, data);
+  return response.data;
+};
+
+export const verifyFingerprint = async (data: {
+  template: string;
+  user_id?: number;
+}): Promise<{
+  verified: boolean;
+  user_id: number;
+  match_score: number;
+  finger_index?: number;
+}> => {
+  const response = await api.post('/api/biometric/verify', data);
+  return response.data;
+};
+
+export const biometricLogin = async (data: {
+  template: string;
+  tenant_id?: number;
+}): Promise<{
+  access_token: string;
+  token_type: string;
+  user: {
+    id: number;
+    username: string;
+    full_name: string;
+    role: string | null;
+  };
+}> => {
+  const response = await api.post('/api/biometric/login', data);
+  return response.data;
+};
+
+export const biometricClockInOut = async (data: {
+  template: string;
+  location_id?: number;
+}): Promise<{
+  action: 'clock_in' | 'clock_out';
+  user: {
+    id: number;
+    full_name: string;
+  };
+  clock_in: string;
+  clock_out?: string;
+  total_time?: string;
+}> => {
+  const response = await api.post('/api/biometric/clock-in-out', data);
+  return response.data;
+};
+
+export const biometricAuthorize = async (data: {
+  template: string;
+  action_type: string;
+  reference_id?: number;
+  notes?: string;
+}): Promise<{
+  authorized: boolean;
+  user: {
+    id: number;
+    full_name: string;
+    role: string | null;
+  };
+  action_type: string;
+  match_score: number;
+}> => {
+  const response = await api.post('/api/biometric/authorize', data);
+  return response.data;
+};
+
+export const getUserFingerprints = async (userId?: number): Promise<BiometricFingerprint[]> => {
+  const params = userId ? { user_id: userId } : {};
+  const response = await api.get('/api/biometric/fingerprints', { params });
+  return response.data;
+};
+
+export const deleteFingerprint = async (fingerprintId: number): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/biometric/fingerprints/${fingerprintId}`);
+  return response.data;
+};
+
+export const getAttendanceRecords = async (params?: {
+  user_id?: number;
+  start_date?: string;
+  end_date?: string;
+}): Promise<BiometricAttendance[]> => {
+  const response = await api.get('/api/biometric/attendance', { params });
+  return response.data;
+};
+
+export const getBiometricLogs = async (params?: {
+  user_id?: number;
+  event_type?: string;
+  limit?: number;
+}): Promise<BiometricLog[]> => {
+  const response = await api.get('/api/biometric/logs', { params });
+  return response.data;
+};

@@ -13,6 +13,7 @@ from app.models.tenant import Module, Tenant, TenantModule, TenantPayment, Payme
 from app.models.audit import AuditLog, AuditAction
 from app.models.faq import FAQ
 from app.models.support import SupportConversation, SupportMessage
+from app.models.biometric import Fingerprint, BiometricLog, AttendanceRecord, BiometricEventType
 
 __all__ = [
     "User", "Role", "Location",
