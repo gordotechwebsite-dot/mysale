@@ -243,31 +243,13 @@ else:
     reader_status['last_error'] = 'Ningun SDK disponible'
 
 
-def _winbio_refresh_session():
-    global winbio_session
+def _winbio_identify():
     try:
-        winbio_lib.WinBioCloseSession(ctypes.c_size_t(winbio_session))
-        print("[WBF] Sesion cerrada para refrescar")
+        winbio_lib.WinBioCancel(ctypes.c_size_t(winbio_session))
+        time.sleep(0.3)
+        print("[WBF] Sesion reseteada (cancel)")
     except Exception:
         pass
-    session_handle = ctypes.c_size_t()
-    hr = winbio_lib.WinBioOpenSession(
-        ctypes.c_uint(WINBIO_TYPE_FINGERPRINT),
-        ctypes.c_uint(WINBIO_POOL_SYSTEM),
-        ctypes.c_uint(WINBIO_FLAG_DEFAULT),
-        None,
-        ctypes.c_size_t(0),
-        None,
-        ctypes.byref(session_handle)
-    )
-    if hr != S_OK:
-        raise Exception(f'WinBioOpenSession fallo al refrescar: 0x{hr & 0xFFFFFFFF:08X}')
-    winbio_session = session_handle.value
-    print(f"[WBF] Sesion refrescada (handle={winbio_session})")
-
-
-def _winbio_identify():
-    _winbio_refresh_session()
 
     unit_id = ctypes.c_uint(0)
     identity = WINBIO_IDENTITY()
