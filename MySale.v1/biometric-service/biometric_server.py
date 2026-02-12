@@ -11,6 +11,7 @@ import base64
 import ctypes
 import hashlib
 import time
+import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
 
@@ -242,21 +243,66 @@ else:
     reader_status['last_error'] = 'Ningun SDK disponible'
 
 
+def _winbio_refresh_session():
+    global winbio_session
+    try:
+        winbio_lib.WinBioCloseSession(ctypes.c_size_t(winbio_session))
+        print("[WBF] Sesion cerrada para refrescar")
+    except Exception:
+        pass
+    session_handle = ctypes.c_size_t()
+    hr = winbio_lib.WinBioOpenSession(
+        ctypes.c_uint(WINBIO_TYPE_FINGERPRINT),
+        ctypes.c_uint(WINBIO_POOL_SYSTEM),
+        ctypes.c_uint(WINBIO_FLAG_DEFAULT),
+        None,
+        ctypes.c_size_t(0),
+        None,
+        ctypes.byref(session_handle)
+    )
+    if hr != S_OK:
+        raise Exception(f'WinBioOpenSession fallo al refrescar: 0x{hr & 0xFFFFFFFF:08X}')
+    winbio_session = session_handle.value
+    print(f"[WBF] Sesion refrescada (handle={winbio_session})")
+
+
 def _winbio_identify():
+    _winbio_refresh_session()
+
     unit_id = ctypes.c_uint(0)
     identity = WINBIO_IDENTITY()
     sub_factor = ctypes.c_ubyte(0)
     reject_detail = ctypes.c_uint(0)
 
-    print("[WBF] Esperando huella en el lector...")
-    hr = winbio_lib.WinBioIdentify(
-        ctypes.c_size_t(winbio_session),
-        ctypes.byref(unit_id),
-        ctypes.byref(identity),
-        ctypes.byref(sub_factor),
-        ctypes.byref(reject_detail)
-    )
+    result_holder = {'hr': None, 'error': None}
 
+    def do_identify():
+        try:
+            result_holder['hr'] = winbio_lib.WinBioIdentify(
+                ctypes.c_size_t(winbio_session),
+                ctypes.byref(unit_id),
+                ctypes.byref(identity),
+                ctypes.byref(sub_factor),
+                ctypes.byref(reject_detail)
+            )
+        except Exception as e:
+            result_holder['error'] = str(e)
+
+    print("[WBF] Esperando huella en el lector (30s timeout)...")
+    t = threading.Thread(target=do_identify, daemon=True)
+    t.start()
+    t.join(timeout=30)
+
+    if t.is_alive():
+        print("[WBF] Timeout - cancelando operacion...")
+        winbio_lib.WinBioCancel(ctypes.c_size_t(winbio_session))
+        t.join(timeout=5)
+        raise Exception('Timeout: no se detecto huella en 30 segundos. Intente de nuevo.')
+
+    if result_holder['error']:
+        raise Exception(f'WinBioIdentify error: {result_holder["error"]}')
+
+    hr = result_holder['hr']
     error_code = hr & 0xFFFFFFFF
     if hr != S_OK:
         if error_code == WINBIO_E_UNKNOWN_ID:
