@@ -50,8 +50,8 @@ export function BiometricVerifyDialog({
     setStep('checking');
     try {
       const status = await checkBiometricServiceStatus();
-      if (status.status === 'ok') {
-        setSimulationMode(status.simulation_mode);
+      if (status.service_running && status.reader_connected) {
+        setSimulationMode(status.sdk_mode === 'simulation');
         setStep('ready');
       } else {
         setStep('service_unavailable');

@@ -802,10 +802,11 @@ export interface BiometricLog {
 const BIOMETRIC_SERVICE_URL = 'http://localhost:8765';
 
 export const checkBiometricServiceStatus = async (): Promise<{
-  status: string;
+  service_running: boolean;
   reader_connected: boolean;
   device_name: string | null;
-  simulation_mode: boolean;
+  sdk_mode: string;
+  last_error: string | null;
 }> => {
   const response = await fetch(`${BIOMETRIC_SERVICE_URL}/status`);
   return response.json();

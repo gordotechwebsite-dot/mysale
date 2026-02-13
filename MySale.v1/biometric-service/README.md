@@ -16,14 +16,27 @@ Servicio local para Windows que permite la integración del lector de huellas Di
    ```
    pip install -r requirements.txt
    ```
-3. Ejecutar el servicio con ventana grafica (recomendado):
+
+## Ejecución
+
+### Opcion 1: Bandeja del sistema (recomendado, sin ventana CMD)
+Doble clic en `biometric_tray.pyw` o en `iniciar_servicio.vbs`.
+El servicio se ejecuta en segundo plano con un icono en la bandeja del sistema.
+Clic derecho en el icono para detener el servicio.
+
+### Opcion 2: Ventana grafica
    ```
    python biometric_gui.py
    ```
-   O desde linea de comandos:
+
+### Opcion 3: Linea de comandos
    ```
    python biometric_server.py
    ```
+
+### Detener el servicio
+- Desde la bandeja: clic derecho en el icono > "Detener servicio"
+- Doble clic en `detener_servicio.vbs`
 
 ## API Endpoints
 

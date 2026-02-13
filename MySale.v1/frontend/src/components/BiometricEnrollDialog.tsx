@@ -55,9 +55,12 @@ export function BiometricEnrollDialog({ open, onOpenChange, userId, onSuccess }:
     setStep('checking');
     try {
       const status = await checkBiometricServiceStatus();
-      if (status.status === 'ok') {
-        setSimulationMode(status.simulation_mode);
+      if (status.service_running && status.reader_connected) {
+        setSimulationMode(status.sdk_mode === 'simulation');
         setStep('ready');
+      } else if (status.service_running) {
+        setStep('service_unavailable');
+        setErrorMessage('El lector de huellas no está conectado o no se detectó');
       } else {
         setStep('service_unavailable');
         setErrorMessage('El servicio biométrico no está disponible');
