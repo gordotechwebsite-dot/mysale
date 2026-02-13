@@ -243,12 +243,34 @@ else:
     reader_status['last_error'] = 'Ningun SDK disponible'
 
 
+def _ensure_console_visible():
+    if sys.platform != 'win32':
+        return None
+    hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+    if not hwnd:
+        return None
+    user32 = ctypes.windll.user32
+    if user32.IsIconic(hwnd):
+        user32.ShowWindow(hwnd, 9)
+        user32.SetForegroundWindow(hwnd)
+        time.sleep(0.3)
+        return hwnd
+    return None
+
+
+def _minimize_console(hwnd):
+    if hwnd:
+        ctypes.windll.user32.ShowWindow(hwnd, 6)
+
+
 def _winbio_identify():
     try:
         winbio_lib.WinBioCancel(ctypes.c_size_t(winbio_session))
         time.sleep(0.3)
     except Exception:
         pass
+
+    restored_hwnd = _ensure_console_visible()
 
     unit_id = ctypes.c_uint(0)
     identity = WINBIO_IDENTITY()
@@ -273,6 +295,8 @@ def _winbio_identify():
     t = threading.Thread(target=do_identify, daemon=True)
     t.start()
     t.join(timeout=30)
+
+    _minimize_console(restored_hwnd)
 
     if t.is_alive():
         print("[WBF] Timeout - cancelando operacion...")
