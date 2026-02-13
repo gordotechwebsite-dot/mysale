@@ -58,7 +58,10 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
     address: '',
     monthly_fee: '',
     primary_color: '#10b981',
-    notes: ''
+    notes: '',
+    access_url: '',
+    login_username: '',
+    login_password: ''
   });
 
   const [paymentForm, setPaymentForm] = useState({
@@ -111,7 +114,10 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
         address: '',
         monthly_fee: '',
         primary_color: '#10b981',
-        notes: ''
+        notes: '',
+        access_url: '',
+        login_username: '',
+        login_password: ''
       });
       loadData();
     } catch (err) {
@@ -234,7 +240,10 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
         address: tenant.address || '',
         monthly_fee: tenant.monthly_fee,
         primary_color: tenant.primary_color,
-        notes: tenant.notes || ''
+        notes: tenant.notes || '',
+        access_url: tenant.access_url || '',
+        login_username: tenant.login_username || '',
+        login_password: tenant.login_password || ''
       });
       setShowTenantModal(true);
     } catch (err) {
@@ -395,7 +404,10 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
                   address: '',
                   monthly_fee: '',
                   primary_color: '#10b981',
-                  notes: ''
+                  notes: '',
+                  access_url: '',
+                  login_username: '',
+                  login_password: ''
                 });
                 setShowTenantModal(true);
               }}
@@ -424,6 +436,9 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Mensualidad
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acceso
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
@@ -455,6 +470,16 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
                       <span className="text-sm font-medium text-gray-900">
                         ${tenant.monthly_fee.toLocaleString()}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {tenant.access_url ? (
+                        <div>
+                          <a href={tenant.access_url} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline break-all">{tenant.access_url}</a>
+                          <div className="text-xs text-gray-500 mt-1">{tenant.login_username || '-'} / {tenant.login_password || '-'}</div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
@@ -501,7 +526,7 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
                 ))}
                 {tenants.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                       No hay clientes POS registrados
                     </td>
                   </tr>
@@ -681,6 +706,36 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
                   value={tenantForm.address}
                   onChange={(e) => setTenantForm({ ...tenantForm, address: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Link de Acceso</label>
+                <input
+                  type="url"
+                  value={tenantForm.access_url}
+                  onChange={(e) => setTenantForm({ ...tenantForm, access_url: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  placeholder="https://ejemplo.devinapps.com/"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Usuario de Acceso</label>
+                <input
+                  type="text"
+                  value={tenantForm.login_username}
+                  onChange={(e) => setTenantForm({ ...tenantForm, login_username: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  placeholder="admin"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña de Acceso</label>
+                <input
+                  type="text"
+                  value={tenantForm.login_password}
+                  onChange={(e) => setTenantForm({ ...tenantForm, login_password: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  placeholder="contraseña"
                 />
               </div>
               <div className="col-span-2">
