@@ -243,27 +243,6 @@ else:
     reader_status['last_error'] = 'Ningun SDK disponible'
 
 
-_hide_mode = False
-_console_hwnd = None
-
-
-def _hide_console():
-    if not _hide_mode or not _console_hwnd:
-        return
-    user32 = ctypes.windll.user32
-    GWL_EXSTYLE = -20
-    WS_EX_TOOLWINDOW = 0x00000080
-    WS_EX_APPWINDOW = 0x00040000
-    WS_EX_LAYERED = 0x00080000
-    LWA_ALPHA = 0x02
-    style = user32.GetWindowLongW(_console_hwnd, GWL_EXSTYLE)
-    style = (style | WS_EX_TOOLWINDOW | WS_EX_LAYERED) & ~WS_EX_APPWINDOW
-    user32.SetWindowLongW(_console_hwnd, GWL_EXSTYLE, style)
-    user32.SetLayeredWindowAttributes(_console_hwnd, 0, 0, LWA_ALPHA)
-    user32.MoveWindow(_console_hwnd, 0, 0, 1, 1, True)
-    user32.ShowWindow(_console_hwnd, 1)
-
-
 def _winbio_identify():
     try:
         winbio_lib.WinBioCancel(ctypes.c_size_t(winbio_session))
@@ -271,7 +250,7 @@ def _winbio_identify():
     except Exception:
         pass
 
-    unit_id= ctypes.c_uint(0)
+    unit_id = ctypes.c_uint(0)
     identity = WINBIO_IDENTITY()
     sub_factor = ctypes.c_ubyte(0)
     reject_detail = ctypes.c_uint(0)
@@ -604,14 +583,7 @@ def run_server():
         print("  (Configuracion > Cuentas > Opciones de inicio de sesion > Huella)")
         print("")
 
-    global _hide_mode, _console_hwnd
-    if '--hide' in sys.argv and sys.platform == 'win32':
-        _hide_mode = True
-        _console_hwnd = ctypes.windll.kernel32.GetConsoleWindow()
-        _hide_console()
-        print("[HIDE] Modo oculto activado")
-    else:
-        print("Presione Ctrl+C para detener el servicio.")
+    print("Presione Ctrl+C para detener el servicio.")
     print("")
 
     try:
