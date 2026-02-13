@@ -102,7 +102,8 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
 
   const handleCreateTenant = async () => {
     try {
-      await createTenant(tenantForm);
+      const payload = { ...tenantForm, monthly_fee: parseFloat(tenantForm.monthly_fee as string) || 0 };
+      await createTenant(payload);
       setShowTenantModal(false);
       setTenantForm({
         name: '',
@@ -129,7 +130,8 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
   const handleUpdateTenant = async () => {
     if (!editingTenant?.id) return;
     try {
-      await updateTenant(editingTenant.id, tenantForm);
+      const payload = { ...tenantForm, monthly_fee: parseFloat(tenantForm.monthly_fee as string) || 0 };
+      await updateTenant(editingTenant.id, payload);
       setShowTenantModal(false);
       setEditingTenant(null);
       loadData();
