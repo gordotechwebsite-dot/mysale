@@ -56,7 +56,7 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
     contact_email: '',
     contact_phone: '',
     address: '',
-    monthly_fee: 0,
+    monthly_fee: '',
     primary_color: '#10b981',
     notes: ''
   });
@@ -109,7 +109,7 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
         contact_email: '',
         contact_phone: '',
         address: '',
-        monthly_fee: 0,
+        monthly_fee: '',
         primary_color: '#10b981',
         notes: ''
       });
@@ -393,7 +393,7 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
                   contact_email: '',
                   contact_phone: '',
                   address: '',
-                  monthly_fee: 0,
+                  monthly_fee: '',
                   primary_color: '#10b981',
                   notes: ''
                 });
@@ -627,10 +627,15 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mensualidad</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={tenantForm.monthly_fee}
-                  onChange={(e) => setTenantForm({ ...tenantForm, monthly_fee: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                    setTenantForm({ ...tenantForm, monthly_fee: val });
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  placeholder="0"
                 />
               </div>
               <div>
