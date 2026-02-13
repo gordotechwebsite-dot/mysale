@@ -622,6 +622,11 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
                     if (!editingTenant) {
                       updates.code = code + randomNum;
                       updates.subdomain = subdomain;
+                      if (!tenantForm.login_username) updates.login_username = 'admin';
+                      if (!tenantForm.login_password) {
+                        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                        updates.login_password = Array.from({length: 8}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                      }
                     }
                     setTenantForm(prev => ({ ...prev, ...updates }));
                   }}

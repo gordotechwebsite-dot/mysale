@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
+import random
+import string
 
 from app.database import get_db
 from app.models.tenant import Module, Tenant, TenantModule, TenantPayment, PaymentStatus
@@ -196,6 +198,9 @@ async def create_tenant(
         if existing_subdomain:
             raise HTTPException(status_code=400, detail="Subdomain already in use")
     
+    generated_username = data.login_username or "admin"
+    generated_password = data.login_password or ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    
     tenant = Tenant(
         name=data.name,
         code=data.code,
@@ -207,7 +212,10 @@ async def create_tenant(
         contact_phone=data.contact_phone,
         address=data.address,
         monthly_fee=data.monthly_fee or 0,
-        notes=data.notes
+        notes=data.notes,
+        access_url=data.access_url,
+        login_username=generated_username,
+        login_password=generated_password
     )
     db.add(tenant)
     db.commit()
