@@ -189,12 +189,12 @@ async def create_tenant(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("superuser"))
 ):
-    existing = db.query(Tenant).filter(Tenant.code == data.code).first()
+    existing = db.query(Tenant).filter(Tenant.code == data.code, Tenant.is_active == True).first()
     if existing:
         raise HTTPException(status_code=400, detail="Tenant code already exists")
     
     if data.subdomain:
-        existing_subdomain = db.query(Tenant).filter(Tenant.subdomain == data.subdomain).first()
+        existing_subdomain = db.query(Tenant).filter(Tenant.subdomain == data.subdomain, Tenant.is_active == True).first()
         if existing_subdomain:
             raise HTTPException(status_code=400, detail="Subdomain already in use")
     
