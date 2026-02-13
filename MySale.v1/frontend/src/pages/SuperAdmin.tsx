@@ -588,7 +588,18 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
                 <input
                   type="text"
                   value={tenantForm.name}
-                  onChange={(e) => setTenantForm({ ...tenantForm, name: e.target.value })}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    const code = name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                    const subdomain = name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                    const randomNum = Math.floor(Math.random() * 900) + 100;
+                    const updates: Partial<typeof tenantForm> = { name };
+                    if (!editingTenant) {
+                      updates.code = code + randomNum;
+                      updates.subdomain = subdomain;
+                    }
+                    setTenantForm(prev => ({ ...prev, ...updates }));
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   placeholder="Restaurante El Buen Sabor"
                 />
@@ -598,9 +609,9 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
                 <input
                   type="text"
                   value={tenantForm.code}
-                  onChange={(e) => setTenantForm({ ...tenantForm, code: e.target.value.toUpperCase() })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                  placeholder="BUENSABOR"
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                  placeholder="Se genera automáticamente"
                 />
               </div>
               <div>
