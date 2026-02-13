@@ -122,6 +122,9 @@ async def get_tenants(
             payment_status=tenant.payment_status.value,
             payment_due_date=tenant.payment_due_date,
             monthly_fee=tenant.monthly_fee,
+            access_url=tenant.access_url,
+            login_username=tenant.login_username,
+            login_password=tenant.login_password,
             is_active=tenant.is_active,
             created_at=tenant.created_at,
             enabled_modules_count=enabled_count
@@ -282,6 +285,12 @@ async def update_tenant(
         tenant.monthly_fee = data.monthly_fee
     if data.notes is not None:
         tenant.notes = data.notes
+    if data.access_url is not None:
+        tenant.access_url = data.access_url
+    if data.login_username is not None:
+        tenant.login_username = data.login_username
+    if data.login_password is not None:
+        tenant.login_password = data.login_password
     if data.is_active is not None:
         tenant.is_active = data.is_active
     
