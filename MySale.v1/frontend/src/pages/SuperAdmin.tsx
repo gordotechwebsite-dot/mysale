@@ -27,8 +27,13 @@ const paymentStatusLabels: Record<string, string> = {
   suspended: 'Suspendido'
 };
 
-export default function SuperAdmin() {
-  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+interface SuperAdminProps {
+  externalTab?: TabType;
+  hideTabBar?: boolean;
+}
+
+export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps = {}) {
+  const [activeTab, setActiveTab] = useState<TabType>(externalTab || 'dashboard');
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
   const [tenants, setTenants] = useState<TenantListItem[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
@@ -64,6 +69,10 @@ export default function SuperAdmin() {
     reference: '',
     notes: ''
   });
+
+  useEffect(() => {
+    if (externalTab) setActiveTab(externalTab);
+  }, [externalTab]);
 
   useEffect(() => {
     loadData();
@@ -253,7 +262,7 @@ export default function SuperAdmin() {
         </div>
       )}
 
-      <div className="border-b border-gray-200">
+      {!hideTabBar && <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('dashboard')}
@@ -286,7 +295,7 @@ export default function SuperAdmin() {
             Módulos
           </button>
         </nav>
-      </div>
+      </div>}
 
       {activeTab === 'dashboard' && dashboard && (
         <div className="space-y-6">
