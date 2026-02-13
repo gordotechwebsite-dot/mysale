@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
+import random
+import string
 
 from app.database import get_db
 from app.models.tenant import Module, Tenant, TenantModule, TenantPayment, PaymentStatus
@@ -122,6 +124,9 @@ async def get_tenants(
             payment_status=tenant.payment_status.value,
             payment_due_date=tenant.payment_due_date,
             monthly_fee=tenant.monthly_fee,
+            access_url=tenant.access_url,
+            login_username=tenant.login_username,
+            login_password=tenant.login_password,
             is_active=tenant.is_active,
             created_at=tenant.created_at,
             enabled_modules_count=enabled_count
@@ -184,14 +189,17 @@ async def create_tenant(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("superuser"))
 ):
-    existing = db.query(Tenant).filter(Tenant.code == data.code).first()
+    existing = db.query(Tenant).filter(Tenant.code == data.code, Tenant.is_active == True).first()
     if existing:
         raise HTTPException(status_code=400, detail="Tenant code already exists")
     
     if data.subdomain:
-        existing_subdomain = db.query(Tenant).filter(Tenant.subdomain == data.subdomain).first()
+        existing_subdomain = db.query(Tenant).filter(Tenant.subdomain == data.subdomain, Tenant.is_active == True).first()
         if existing_subdomain:
             raise HTTPException(status_code=400, detail="Subdomain already in use")
+    
+    generated_username = data.login_username or "admin"
+    generated_password = data.login_password or ''.join(random.choices(string.ascii_letters + string.digits, k=8))
     
     tenant = Tenant(
         name=data.name,
@@ -204,7 +212,10 @@ async def create_tenant(
         contact_phone=data.contact_phone,
         address=data.address,
         monthly_fee=data.monthly_fee or 0,
-        notes=data.notes
+        notes=data.notes,
+        access_url=data.access_url,
+        login_username=generated_username,
+        login_password=generated_password
     )
     db.add(tenant)
     db.commit()
@@ -282,6 +293,12 @@ async def update_tenant(
         tenant.monthly_fee = data.monthly_fee
     if data.notes is not None:
         tenant.notes = data.notes
+    if data.access_url is not None:
+        tenant.access_url = data.access_url
+    if data.login_username is not None:
+        tenant.login_username = data.login_username
+    if data.login_password is not None:
+        tenant.login_password = data.login_password
     if data.is_active is not None:
         tenant.is_active = data.is_active
     

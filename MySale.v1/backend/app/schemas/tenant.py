@@ -49,6 +49,9 @@ class TenantBase(BaseModel):
     address: Optional[str] = None
     monthly_fee: Optional[float] = 0
     notes: Optional[str] = None
+    access_url: Optional[str] = None
+    login_username: Optional[str] = None
+    login_password: Optional[str] = None
 
 
 class TenantCreate(TenantBase):
@@ -69,6 +72,9 @@ class TenantUpdate(BaseModel):
     payment_due_date: Optional[datetime] = None
     monthly_fee: Optional[float] = None
     notes: Optional[str] = None
+    access_url: Optional[str] = None
+    login_username: Optional[str] = None
+    login_password: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -112,6 +118,9 @@ class TenantListResponse(BaseModel):
     is_active: bool
     created_at: datetime
     enabled_modules_count: int
+    access_url: Optional[str] = None
+    login_username: Optional[str] = None
+    login_password: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -23,6 +23,14 @@ def run_migrations():
             db.commit()
             print("Migration: Added image_url column to locations table")
         
+        result = db.execute(text("PRAGMA table_info(tenants)"))
+        tenant_columns = [row[1] for row in result.fetchall()]
+        for col_name, col_type in [("access_url", "VARCHAR(500)"), ("login_username", "VARCHAR(100)"), ("login_password", "VARCHAR(100)")]:
+            if col_name not in tenant_columns:
+                db.execute(text(f"ALTER TABLE tenants ADD COLUMN {col_name} {col_type}"))
+                db.commit()
+                print(f"Migration: Added {col_name} column to tenants table")
+        
         # Ensure all modules exist in the database
         all_modules = [
             {"code": "dashboard", "name": "Dashboard", "description": "Panel principal con resumen de ventas y métricas", "icon": "LayoutDashboard", "route": "/dashboard", "display_order": 1, "is_core": True},

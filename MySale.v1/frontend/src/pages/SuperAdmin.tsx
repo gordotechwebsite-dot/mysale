@@ -27,8 +27,13 @@ const paymentStatusLabels: Record<string, string> = {
   suspended: 'Suspendido'
 };
 
-export default function SuperAdmin() {
-  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+interface SuperAdminProps {
+  externalTab?: TabType;
+  hideTabBar?: boolean;
+}
+
+export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps = {}) {
+  const [activeTab, setActiveTab] = useState<TabType>(externalTab || 'dashboard');
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
   const [tenants, setTenants] = useState<TenantListItem[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
@@ -51,9 +56,12 @@ export default function SuperAdmin() {
     contact_email: '',
     contact_phone: '',
     address: '',
-    monthly_fee: 0,
+    monthly_fee: '',
     primary_color: '#10b981',
-    notes: ''
+    notes: '',
+    access_url: '',
+    login_username: '',
+    login_password: ''
   });
 
   const [paymentForm, setPaymentForm] = useState({
@@ -64,6 +72,10 @@ export default function SuperAdmin() {
     reference: '',
     notes: ''
   });
+
+  useEffect(() => {
+    if (externalTab) setActiveTab(externalTab);
+  }, [externalTab]);
 
   useEffect(() => {
     loadData();
@@ -90,7 +102,8 @@ export default function SuperAdmin() {
 
   const handleCreateTenant = async () => {
     try {
-      await createTenant(tenantForm);
+      const payload = { ...tenantForm, monthly_fee: parseFloat(tenantForm.monthly_fee as string) || 0 };
+      await createTenant(payload);
       setShowTenantModal(false);
       setTenantForm({
         name: '',
@@ -100,9 +113,12 @@ export default function SuperAdmin() {
         contact_email: '',
         contact_phone: '',
         address: '',
-        monthly_fee: 0,
+        monthly_fee: '',
         primary_color: '#10b981',
-        notes: ''
+        notes: '',
+        access_url: '',
+        login_username: '',
+        login_password: ''
       });
       loadData();
     } catch (err) {
@@ -114,7 +130,8 @@ export default function SuperAdmin() {
   const handleUpdateTenant = async () => {
     if (!editingTenant?.id) return;
     try {
-      await updateTenant(editingTenant.id, tenantForm);
+      const payload = { ...tenantForm, monthly_fee: parseFloat(tenantForm.monthly_fee as string) || 0 };
+      await updateTenant(editingTenant.id, payload);
       setShowTenantModal(false);
       setEditingTenant(null);
       loadData();
@@ -225,7 +242,10 @@ export default function SuperAdmin() {
         address: tenant.address || '',
         monthly_fee: tenant.monthly_fee,
         primary_color: tenant.primary_color,
-        notes: tenant.notes || ''
+        notes: tenant.notes || '',
+        access_url: tenant.access_url || '',
+        login_username: tenant.login_username || '',
+        login_password: tenant.login_password || ''
       });
       setShowTenantModal(true);
     } catch (err) {
@@ -253,7 +273,7 @@ export default function SuperAdmin() {
         </div>
       )}
 
-      <div className="border-b border-gray-200">
+      {!hideTabBar && <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('dashboard')}
@@ -286,7 +306,7 @@ export default function SuperAdmin() {
             Módulos
           </button>
         </nav>
-      </div>
+      </div>}
 
       {activeTab === 'dashboard' && dashboard && (
         <div className="space-y-6">
@@ -384,9 +404,12 @@ export default function SuperAdmin() {
                   contact_email: '',
                   contact_phone: '',
                   address: '',
-                  monthly_fee: 0,
+                  monthly_fee: '',
                   primary_color: '#10b981',
-                  notes: ''
+                  notes: '',
+                  access_url: '',
+                  login_username: '',
+                  login_password: ''
                 });
                 setShowTenantModal(true);
               }}
@@ -415,6 +438,9 @@ export default function SuperAdmin() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Mensualidad
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acceso
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
@@ -446,6 +472,16 @@ export default function SuperAdmin() {
                       <span className="text-sm font-medium text-gray-900">
                         ${tenant.monthly_fee.toLocaleString()}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {tenant.access_url ? (
+                        <div>
+                          <a href={tenant.access_url} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline break-all">{tenant.access_url}</a>
+                          <div className="text-xs text-gray-500 mt-1">{tenant.login_username || '-'} / {tenant.login_password || '-'}</div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
@@ -492,7 +528,7 @@ export default function SuperAdmin() {
                 ))}
                 {tenants.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                       No hay clientes POS registrados
                     </td>
                   </tr>
@@ -579,7 +615,23 @@ export default function SuperAdmin() {
                 <input
                   type="text"
                   value={tenantForm.name}
-                  onChange={(e) => setTenantForm({ ...tenantForm, name: e.target.value })}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    const code = name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                    const subdomain = name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                    const randomNum = Math.floor(Math.random() * 900) + 100;
+                    const updates: Partial<typeof tenantForm> = { name };
+                    if (!editingTenant) {
+                      updates.code = code + randomNum;
+                      updates.subdomain = subdomain;
+                      if (!tenantForm.login_username) updates.login_username = 'admin';
+                      if (!tenantForm.login_password) {
+                        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                        updates.login_password = Array.from({length: 8}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+                      }
+                    }
+                    setTenantForm(prev => ({ ...prev, ...updates }));
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   placeholder="Restaurante El Buen Sabor"
                 />
@@ -589,9 +641,9 @@ export default function SuperAdmin() {
                 <input
                   type="text"
                   value={tenantForm.code}
-                  onChange={(e) => setTenantForm({ ...tenantForm, code: e.target.value.toUpperCase() })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                  placeholder="BUENSABOR"
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                  placeholder="Se genera automáticamente"
                 />
               </div>
               <div>
@@ -607,10 +659,15 @@ export default function SuperAdmin() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mensualidad</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={tenantForm.monthly_fee}
-                  onChange={(e) => setTenantForm({ ...tenantForm, monthly_fee: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                    setTenantForm({ ...tenantForm, monthly_fee: val });
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  placeholder="0"
                 />
               </div>
               <div>
@@ -656,6 +713,36 @@ export default function SuperAdmin() {
                   value={tenantForm.address}
                   onChange={(e) => setTenantForm({ ...tenantForm, address: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Link de Acceso</label>
+                <input
+                  type="url"
+                  value={tenantForm.access_url}
+                  onChange={(e) => setTenantForm({ ...tenantForm, access_url: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  placeholder="https://ejemplo.devinapps.com/"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Usuario de Acceso</label>
+                <input
+                  type="text"
+                  value={tenantForm.login_username}
+                  onChange={(e) => setTenantForm({ ...tenantForm, login_username: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  placeholder="admin"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña de Acceso</label>
+                <input
+                  type="text"
+                  value={tenantForm.login_password}
+                  onChange={(e) => setTenantForm({ ...tenantForm, login_password: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  placeholder="contraseña"
                 />
               </div>
               <div className="col-span-2">

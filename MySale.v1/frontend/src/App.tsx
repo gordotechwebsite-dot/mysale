@@ -23,6 +23,9 @@ import CostControl from './pages/CostControl';
 import TableManagement from './pages/TableManagement';
 import SuperAdmin from './pages/SuperAdmin';
 import Cash from './pages/Cash';
+import PosAdminApp from './pages/PosAdminApp';
+
+const IS_POS_ADMIN = import.meta.env.VITE_APP_MODE === 'pos-admin';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,6 +56,22 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 function AppRoutes() {
   const { user } = useAuth();
+
+  if (IS_POS_ADMIN) {
+    return (
+      <Routes>
+        <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+        <Route
+          path="/*"
+          element={
+            <ProtectedRoute>
+              <PosAdminApp />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    );
+  }
 
   return (
     <Routes>

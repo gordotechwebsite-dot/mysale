@@ -7,6 +7,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000,
 });
 
 api.interceptors.request.use((config) => {
@@ -17,13 +18,30 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+const MAX_RETRIES = 2;
+const RETRY_DELAY = 2000;
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config;
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
+      return Promise.reject(error);
+    }
+    if (
+      !config._retryCount &&
+      !error.response &&
+      (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK')
+    ) {
+      config._retryCount = 0;
+    }
+    if (config._retryCount !== undefined && config._retryCount < MAX_RETRIES) {
+      config._retryCount += 1;
+      await new Promise(r => setTimeout(r, RETRY_DELAY));
+      return api(config);
     }
     return Promise.reject(error);
   }

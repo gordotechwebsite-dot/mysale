@@ -445,6 +445,9 @@ export interface Tenant {
   payment_due_date: string | null;
   monthly_fee: number;
   notes: string | null;
+  access_url: string | null;
+  login_username: string | null;
+  login_password: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -464,6 +467,9 @@ export interface TenantListItem {
   is_active: boolean;
   created_at: string;
   enabled_modules_count: number;
+  access_url: string | null;
+  login_username: string | null;
+  login_password: string | null;
 }
 
 export interface TenantPayment {

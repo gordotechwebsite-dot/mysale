@@ -5,7 +5,9 @@ import { login as apiLogin } from '../api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Fingerprint, LogIn, Loader2 } from 'lucide-react';
+import { Fingerprint, LogIn, Loader2, Building2 } from 'lucide-react';
+
+const IS_POS_ADMIN = import.meta.env.VITE_APP_MODE === 'pos-admin';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -36,10 +38,10 @@ const Login: React.FC = () => {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto w-20 h-20 bg-emerald-600 rounded-full flex items-center justify-center mb-4">
-            <span className="text-3xl font-bold text-white">MS</span>
+            {IS_POS_ADMIN ? <Building2 className="w-10 h-10 text-white" /> : <span className="text-3xl font-bold text-white">MS</span>}
           </div>
-          <CardTitle className="text-3xl font-bold text-gray-800">MySale.v1</CardTitle>
-          <p className="text-gray-500 mt-2">Sistema de Punto de Venta</p>
+          <CardTitle className="text-3xl font-bold text-gray-800">{IS_POS_ADMIN ? 'POS Admin' : 'MySale.v1'}</CardTitle>
+          <p className="text-gray-500 mt-2">{IS_POS_ADMIN ? 'Plataforma de Gestión de Clientes POS' : 'Sistema de Punto de Venta'}</p>
         </CardHeader>
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -109,7 +111,7 @@ const Login: React.FC = () => {
           </form>
 
           <p className="text-center text-xs text-gray-400 mt-8">
-            GALIA 1539 - Sistema POS v1.0
+            {IS_POS_ADMIN ? 'POS Admin - Plataforma de Gestión' : 'GALIA 1539 - Sistema POS v1.0'}
           </p>
         </CardContent>
       </Card>
