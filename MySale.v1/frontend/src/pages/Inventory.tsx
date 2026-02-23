@@ -432,6 +432,7 @@ const Inventory: React.FC = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-16">Imagen</TableHead>
                       <TableHead>Codigo</TableHead>
                       <TableHead>Nombre</TableHead>
                       <TableHead>Precio Venta</TableHead>
@@ -443,6 +444,19 @@ const Inventory: React.FC = () => {
                   <TableBody>
                     {products.map((product) => (
                       <TableRow key={product.id}>
+                        <TableCell>
+                          {(product as any).image_url ? (
+                            <img
+                              src={`${import.meta.env.VITE_API_URL}${(product as any).image_url}`}
+                              alt={product.name}
+                              className="w-12 h-12 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
+                              <Package className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="font-mono">{product.code}</TableCell>
                         <TableCell className="font-medium">{product.name}</TableCell>
                         <TableCell>{formatCurrency(product.sale_price)}</TableCell>
