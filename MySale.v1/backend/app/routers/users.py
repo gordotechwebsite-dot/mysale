@@ -24,8 +24,13 @@ async def get_roles(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    from sqlalchemy import or_
     query = db.query(Role)
-    query = filter_by_tenant(query, Role, current_user.tenant_id)
+    if current_user.tenant_id:
+        # Show global roles (tenant_id=null) AND tenant-specific roles
+        query = query.filter(
+            or_(Role.tenant_id == None, Role.tenant_id == current_user.tenant_id)
+        )
     return query.all()
 
 
