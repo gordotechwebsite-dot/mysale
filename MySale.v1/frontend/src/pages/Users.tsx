@@ -257,9 +257,13 @@ const Users: React.FC = () => {
                 <SelectValue placeholder="Seleccione rol *" />
               </SelectTrigger>
               <SelectContent>
-                {roles.map(r => (
-                  <SelectItem key={r.id} value={r.id.toString()}>{r.name}</SelectItem>
-                ))}
+                {roles
+                  .filter((role, index, self) => 
+                    index === self.findIndex(r => r.role_type === role.role_type)
+                  )
+                  .map(r => (
+                    <SelectItem key={r.id} value={r.id.toString()}>{r.name}</SelectItem>
+                  ))}
               </SelectContent>
             </Select>
                                   <Select value={newUser.location_id || "none"} onValueChange={(v) => setNewUser({ ...newUser, location_id: v === "none" ? "" : v })}>
