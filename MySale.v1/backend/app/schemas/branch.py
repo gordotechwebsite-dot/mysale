@@ -22,7 +22,7 @@ class BranchUpdate(BaseModel):
 
 class BranchResponse(BaseModel):
     id: int
-    tenant_id: int
+    tenant_id: Optional[int] = None
     name: str
     code: str
     city: Optional[str]
@@ -46,7 +46,7 @@ class WorkSessionClockOut(BaseModel):
 
 class WorkSessionResponse(BaseModel):
     id: int
-    tenant_id: int
+    tenant_id: Optional[int] = None
     user_id: int
     branch_id: int
     branch_name: Optional[str] = None
