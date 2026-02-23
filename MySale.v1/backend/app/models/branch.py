@@ -8,7 +8,7 @@ class Branch(Base):
     __tablename__ = "branches"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     name = Column(String(200), nullable=False)
     code = Column(String(50), nullable=False)
     city = Column(String(100), nullable=True)
@@ -28,7 +28,7 @@ class WorkSession(Base):
     __tablename__ = "work_sessions"
 
     id = Column(Integer, primary_key=True, index=True)
-    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     branch_id = Column(Integer, ForeignKey("branches.id"), nullable=False)
     clock_in = Column(DateTime, nullable=False, default=datetime.utcnow)
