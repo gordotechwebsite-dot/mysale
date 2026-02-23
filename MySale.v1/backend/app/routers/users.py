@@ -5,7 +5,7 @@ from app.database import get_db
 from app.models.user import User, Role, RoleType
 from app.schemas.user import (
     UserCreate, UserUpdate, UserResponse,
-    RoleCreate, RoleResponse
+    RoleCreate, RoleResponse, SetPinRequest
 )
 from app.utils.auth import get_password_hash, get_current_user, require_role
 
@@ -236,3 +236,77 @@ async def delete_user(
     db.commit()
     
     return {"message": "Usuario desactivado exitosamente"}
+
+
+@router.post("/me/pin")
+async def set_my_pin(
+    request: SetPinRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Set or update the current user's PIN for shift operations"""
+    if len(request.pin) < 4 or len(request.pin) > 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El PIN debe tener entre 4 y 6 digitos"
+        )
+    
+    if not request.pin.isdigit():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El PIN debe contener solo numeros"
+        )
+    
+    current_user.pin_hash = get_password_hash(request.pin)
+    db.commit()
+    
+    return {"message": "PIN configurado exitosamente"}
+
+
+@router.get("/me/has-pin")
+async def check_has_pin(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Check if the current user has a PIN configured"""
+    return {"has_pin": current_user.pin_hash is not None}
+
+
+@router.post("/{user_id}/pin")
+async def set_user_pin(
+    user_id: int,
+    request: SetPinRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Set or update a user's PIN (admin only)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    
+    # Check tenant access
+    if current_user.tenant_id and user.tenant_id != current_user.tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tiene acceso a este usuario"
+        )
+    
+    if len(request.pin) < 4 or len(request.pin) > 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El PIN debe tener entre 4 y 6 digitos"
+        )
+    
+    if not request.pin.isdigit():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El PIN debe contener solo numeros"
+        )
+    
+    user.pin_hash = get_password_hash(request.pin)
+    db.commit()
+    
+    return {"message": f"PIN configurado para {user.full_name}"}

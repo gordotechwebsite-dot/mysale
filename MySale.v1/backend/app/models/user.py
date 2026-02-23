@@ -40,6 +40,7 @@ class User(Base):
     email = Column(String(100), nullable=True)
     full_name = Column(String(100), nullable=False)
     hashed_password = Column(String(255), nullable=False)
+    pin_hash = Column(String(255), nullable=True)  # PIN hash for shift operations (4-6 digits)
     fingerprint_hash = Column(String(255), nullable=True)
     role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)

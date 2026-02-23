@@ -1073,3 +1073,100 @@ export const getWorkReport = async (params?: {
   const response = await api.get('/api/branches/work-report', { params });
   return response.data;
 };
+
+// ==================== SHIFTS (TURNOS) WITH PIN ====================
+
+export interface ShiftResponse {
+  id: number;
+  tenant_id: number | null;
+  branch_id: number | null;
+  branch_name: string | null;
+  user_id: number;
+  user_name: string | null;
+  location_id: number | null;
+  location_name: string | null;
+  start_at: string;
+  end_at: string | null;
+  status: 'open' | 'closed' | 'force_closed';
+  opened_by: number | null;
+  opened_by_name: string | null;
+  closed_by: number | null;
+  closed_by_name: string | null;
+  initial_cash: number;
+  final_cash: number | null;
+  total_sales: number;
+  total_cash_sales: number;
+  total_card_sales: number;
+  total_transfer_sales: number;
+  notes: string | null;
+  biometric_verified: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface MyShiftResponse {
+  has_open_shift: boolean;
+  shift: ShiftResponse | null;
+}
+
+export const startShiftWithPin = async (data: {
+  branch_id: number;
+  pin: string;
+}): Promise<ShiftResponse> => {
+  const response = await api.post('/api/shifts/start', data);
+  return response.data;
+};
+
+export const endShiftWithPin = async (data: {
+  branch_id: number;
+  pin: string;
+}): Promise<ShiftResponse> => {
+  const response = await api.post('/api/shifts/end', data);
+  return response.data;
+};
+
+export const forceCloseShift = async (data: {
+  shift_id: number;
+  reason: string;
+}): Promise<ShiftResponse> => {
+  const response = await api.post('/api/shifts/force-close', data);
+  return response.data;
+};
+
+export const getMyShift = async (branchId?: number): Promise<MyShiftResponse> => {
+  const params = branchId ? { branch_id: branchId } : {};
+  const response = await api.get('/api/shifts/me', { params });
+  return response.data;
+};
+
+export const getShiftsByBranch = async (params: {
+  branch_id: number;
+  from_date?: string;
+  to_date?: string;
+  user_id?: number;
+  shift_status?: string;
+}): Promise<ShiftResponse[]> => {
+  const response = await api.get('/api/shifts/by-branch', { params });
+  return response.data;
+};
+
+export const getLongOpenShifts = async (hours?: number): Promise<ShiftResponse[]> => {
+  const params = hours ? { hours } : {};
+  const response = await api.get('/api/shifts/open-long', { params });
+  return response.data;
+};
+
+export const setMyPin = async (pin: string): Promise<{ message: string }> => {
+  const response = await api.post('/api/users/me/pin', { pin });
+  return response.data;
+};
+
+export const checkHasPin = async (): Promise<{ has_pin: boolean }> => {
+  const response = await api.get('/api/users/me/has-pin');
+  return response.data;
+};
+
+export const setUserPin = async (userId: number, pin: string): Promise<{ message: string }> => {
+  const response = await api.post(`/api/users/${userId}/pin`, { pin });
+  return response.data;
+};
