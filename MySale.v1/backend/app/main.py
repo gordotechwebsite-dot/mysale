@@ -68,6 +68,11 @@ def run_migrations():
             db.commit()
             print("Migration: Added default_branch_id column to users table")
         
+        if 'pin_hash' not in user_columns:
+            db.execute(text("ALTER TABLE users ADD COLUMN pin_hash VARCHAR(255)"))
+            db.commit()
+            print("Migration: Added pin_hash column to users table")
+        
         # Fix branches table tenant_id constraint (must allow NULL)
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='branches'"))
         if result.fetchone():
