@@ -192,7 +192,12 @@ const Inventory: React.FC = () => {
       }
       const createdProduct = await createProduct(productData);
       if (newProductImage) {
-        await uploadProductImage(createdProduct.id, newProductImage);
+        try {
+          await uploadProductImage(createdProduct.id, newProductImage);
+        } catch (uploadError: any) {
+          console.error('Error uploading image:', uploadError);
+          alert('Producto creado pero error al subir imagen: ' + (uploadError.response?.data?.detail || uploadError.message));
+        }
       }
       await loadProducts();
       setShowAddProduct(false);
