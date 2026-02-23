@@ -109,15 +109,15 @@ class TenantListResponse(BaseModel):
     id: int
     name: str
     code: str
-    subdomain: Optional[str]
-    contact_name: Optional[str]
-    contact_email: Optional[str]
+    subdomain: Optional[str] = None
+    contact_name: Optional[str] = None
+    contact_email: Optional[str] = None
     payment_status: str
-    payment_due_date: Optional[datetime]
+    payment_due_date: Optional[datetime] = None
     monthly_fee: float
-    pos_url: Optional[str]
-    pos_username: Optional[str]
-    pos_password: Optional[str]
+    pos_url: Optional[str] = None
+    pos_username: Optional[str] = None
+    pos_password: Optional[str] = None
     is_active: bool
     created_at: datetime
     enabled_modules_count: int
