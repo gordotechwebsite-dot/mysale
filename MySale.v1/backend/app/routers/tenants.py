@@ -285,6 +285,12 @@ async def update_tenant(
         tenant.monthly_fee = data.monthly_fee
     if data.notes is not None:
         tenant.notes = data.notes
+    if data.pos_url is not None:
+        tenant.pos_url = data.pos_url
+    if data.pos_username is not None:
+        tenant.pos_username = data.pos_username
+    if data.pos_password is not None:
+        tenant.pos_password = data.pos_password
     if data.is_active is not None:
         tenant.is_active = data.is_active
     
