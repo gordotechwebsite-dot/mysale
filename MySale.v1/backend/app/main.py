@@ -73,6 +73,27 @@ def run_migrations():
             db.commit()
             print("Migration: Added pin_hash column to users table")
         
+        # Add pos_url, pos_username, pos_password columns to tenants table BEFORE querying tenants
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='tenants'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(tenants)"))
+            tenant_cols = [row[1] for row in result.fetchall()]
+            
+            if 'pos_url' not in tenant_cols:
+                db.execute(text("ALTER TABLE tenants ADD COLUMN pos_url VARCHAR(500)"))
+                db.commit()
+                print("Migration: Added pos_url column to tenants table")
+            
+            if 'pos_username' not in tenant_cols:
+                db.execute(text("ALTER TABLE tenants ADD COLUMN pos_username VARCHAR(100)"))
+                db.commit()
+                print("Migration: Added pos_username column to tenants table")
+            
+            if 'pos_password' not in tenant_cols:
+                db.execute(text("ALTER TABLE tenants ADD COLUMN pos_password VARCHAR(100)"))
+                db.commit()
+                print("Migration: Added pos_password column to tenants table")
+        
         # Ensure all tenants have access to all modules (assign missing modules)
         from app.models.tenant import Tenant, TenantModule
         tenants = db.query(Tenant).all()
@@ -101,25 +122,6 @@ def run_migrations():
                 mod.is_active = False
                 print(f"Migration: Deactivated module {code}")
         db.commit()
-        
-        # Add pos_url, pos_username, pos_password columns to tenants table
-        result = db.execute(text("PRAGMA table_info(tenants)"))
-        tenant_columns = [row[1] for row in result.fetchall()]
-        
-        if 'pos_url' not in tenant_columns:
-            db.execute(text("ALTER TABLE tenants ADD COLUMN pos_url VARCHAR(500)"))
-            db.commit()
-            print("Migration: Added pos_url column to tenants table")
-        
-        if 'pos_username' not in tenant_columns:
-            db.execute(text("ALTER TABLE tenants ADD COLUMN pos_username VARCHAR(100)"))
-            db.commit()
-            print("Migration: Added pos_username column to tenants table")
-        
-        if 'pos_password' not in tenant_columns:
-            db.execute(text("ALTER TABLE tenants ADD COLUMN pos_password VARCHAR(100)"))
-            db.commit()
-            print("Migration: Added pos_password column to tenants table")
         
         # Fix branches table tenant_id constraint (must allow NULL)
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='branches'"))
