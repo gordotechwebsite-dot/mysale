@@ -122,9 +122,9 @@ async def get_tenants(
             payment_status=tenant.payment_status.value,
             payment_due_date=tenant.payment_due_date,
             monthly_fee=tenant.monthly_fee,
-            pos_url=tenant.pos_url,
-            pos_username=tenant.pos_username,
-            pos_password=tenant.pos_password,
+            pos_url=getattr(tenant, 'pos_url', None),
+            pos_username=getattr(tenant, 'pos_username', None),
+            pos_password=getattr(tenant, 'pos_password', None),
             is_active=tenant.is_active,
             created_at=tenant.created_at,
             enabled_modules_count=enabled_count
