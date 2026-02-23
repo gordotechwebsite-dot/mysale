@@ -155,16 +155,21 @@ const Inventory: React.FC = () => {
     }
   };
 
+  const parseColombianNumber = (value: string): number => {
+    const cleaned = value.replace(/\./g, '').replace(',', '.');
+    return parseFloat(cleaned) || 0;
+  };
+
   const handleAddProduct = async () => {
     setIsProcessing(true);
     try {
       const productData: any = {
         ...newProduct,
-        sale_price: parseFloat(newProduct.sale_price),
+        sale_price: parseColombianNumber(newProduct.sale_price),
         min_stock: parseInt(newProduct.min_stock),
         max_stock: parseInt(newProduct.max_stock),
         is_weighted: newProduct.is_weighted,
-        price_per_kg: newProduct.is_weighted && newProduct.price_per_kg ? parseFloat(newProduct.price_per_kg) : null,
+        price_per_kg: newProduct.is_weighted && newProduct.price_per_kg ? parseColombianNumber(newProduct.price_per_kg) : null,
         plu_code: newProduct.is_weighted && newProduct.plu_code ? newProduct.plu_code : null
       };
       if (newProduct.subfamily_id && newProduct.subfamily_id !== 'none') {
