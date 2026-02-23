@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getUsers, createUser, deleteUser, getRoles, getLocations } from '../api';
+import { getUsers, createUser, deleteUser, getRoles, getLocations, getBranches, Branch } from '../api';
 import type { User, Role, Location } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,25 +31,28 @@ import { Users as UsersIcon, Plus, Loader2, Trash2, Fingerprint } from 'lucide-r
 import { BiometricEnrollDialog } from '@/components/BiometricEnrollDialog';
 
 const Users: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showAddUser, setShowAddUser] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-    const [userToDelete, setUserToDelete] = useState<User | null>(null);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [showBiometricEnroll, setShowBiometricEnroll] = useState(false);
-    const [selectedUserForBiometric, setSelectedUserForBiometric] = useState<User | null>(null);
+    const [users, setUsers] = useState<User[]>([]);
+    const [roles, setRoles] = useState<Role[]>([]);
+    const [locations, setLocations] = useState<Location[]>([]);
+    const [branches, setBranches] = useState<Branch[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [showAddUser, setShowAddUser] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+      const [userToDelete, setUserToDelete] = useState<User | null>(null);
+      const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+      const [showBiometricEnroll, setShowBiometricEnroll] = useState(false);
+      const [selectedUserForBiometric, setSelectedUserForBiometric] = useState<User | null>(null);
 
-  const [newUser, setNewUser] = useState({
-    username: '',
-    password: '',
-    full_name: '',
-    email: '',
-    role_id: '',
-    location_id: ''
-  });
+    const [newUser, setNewUser] = useState({
+      username: '',
+      password: '',
+      full_name: '',
+      email: '',
+      role_id: '',
+      location_id: '',
+      employee_code: '',
+      default_branch_id: ''
+    });
 
   useEffect(() => {
     loadData();
@@ -57,14 +60,16 @@ const Users: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [usersData, rolesData, locationsData] = await Promise.all([
-        getUsers(),
-        getRoles(),
-        getLocations()
-      ]);
-      setUsers(usersData);
-      setRoles(rolesData);
-      setLocations(locationsData);
+            const [usersData, rolesData, locationsData, branchesData] = await Promise.all([
+              getUsers(),
+              getRoles(),
+              getLocations(),
+              getBranches()
+            ]);
+            setUsers(usersData);
+            setRoles(rolesData);
+            setLocations(locationsData);
+            setBranches(branchesData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -75,17 +80,19 @@ const Users: React.FC = () => {
     const handleAddUser = async () => {
       setIsProcessing(true);
       try {
-        await createUser({
-          username: newUser.username,
-          password: newUser.password,
-          full_name: newUser.full_name,
-          email: newUser.email || undefined,
-          role_id: parseInt(newUser.role_id),
-          location_id: newUser.location_id ? parseInt(newUser.location_id) : undefined
-        });
-        await loadData();
-        setShowAddUser(false);
-        setNewUser({ username: '', password: '', full_name: '', email: '', role_id: '', location_id: '' });
+                await createUser({
+                  username: newUser.username,
+                  password: newUser.password,
+                  full_name: newUser.full_name,
+                  email: newUser.email || undefined,
+                  role_id: parseInt(newUser.role_id),
+                  location_id: newUser.location_id ? parseInt(newUser.location_id) : undefined,
+                  employee_code: newUser.employee_code || undefined,
+                  default_branch_id: newUser.default_branch_id ? parseInt(newUser.default_branch_id) : undefined
+                });
+                await loadData();
+                setShowAddUser(false);
+                setNewUser({ username: '', password: '', full_name: '', email: '', role_id: '', location_id: '', employee_code: '', default_branch_id: '' });
       } catch (error: any) {
         alert(error.response?.data?.detail || 'Error al crear usuario');
       } finally {
@@ -255,18 +262,34 @@ const Users: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
-                        <Select value={newUser.location_id || "none"} onValueChange={(v) => setNewUser({ ...newUser, location_id: v === "none" ? "" : v })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Ubicacion (opcional)" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Sin asignar</SelectItem>
-                            {locations.map(l => (
-                              <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-          </div>
+                                  <Select value={newUser.location_id || "none"} onValueChange={(v) => setNewUser({ ...newUser, location_id: v === "none" ? "" : v })}>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Ubicacion (opcional)" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">Sin asignar</SelectItem>
+                                      {locations.map(l => (
+                                        <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                      <Input
+                        placeholder="Codigo de empleado (opcional)"
+                        value={newUser.employee_code}
+                        onChange={(e) => setNewUser({ ...newUser, employee_code: e.target.value.toUpperCase() })}
+                      />
+                      <Select value={newUser.default_branch_id || "none"} onValueChange={(v) => setNewUser({ ...newUser, default_branch_id: v === "none" ? "" : v })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sede por defecto (opcional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Sin asignar</SelectItem>
+                          {branches.map(b => (
+                            <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddUser(false)}>Cancelar</Button>
             <Button

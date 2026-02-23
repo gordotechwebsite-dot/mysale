@@ -23,6 +23,8 @@ import CostControl from './pages/CostControl';
 import TableManagement from './pages/TableManagement';
 import SuperAdmin from './pages/SuperAdmin';
 import Cash from './pages/Cash';
+import Branches from './pages/Branches';
+import WorkReport from './pages/WorkReport';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -83,8 +85,10 @@ function AppRoutes() {
         <Route path="locations-dashboard" element={<LocationsDashboard />} />
         <Route path="cost-control" element={<CostControl />} />
         <Route path="tables" element={<TableManagement />} />
-        <Route path="cash" element={<Cash />} />
-        <Route path="super-admin" element={<SuperAdmin />} />
+                <Route path="cash" element={<Cash />} />
+                <Route path="branches" element={<Branches />} />
+                <Route path="work-report" element={<WorkReport />} />
+                <Route path="super-admin" element={<SuperAdmin />} />
       </Route>
     </Routes>
   );

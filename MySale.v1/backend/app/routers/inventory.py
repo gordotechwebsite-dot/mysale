@@ -496,7 +496,7 @@ async def delete_product(
     return {"message": "Producto eliminado exitosamente"}
 
 
-UPLOAD_DIR = "/data/product_images"
+UPLOAD_DIR = "/data/product_images" if os.path.exists("/data") else "/tmp/product_images"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 

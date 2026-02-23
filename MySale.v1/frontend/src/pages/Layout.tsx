@@ -23,7 +23,9 @@ import {
   UtensilsCrossed,
   Shield,
   Zap,
-  Banknote
+  Banknote,
+  Building2,
+  ClipboardList
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
@@ -61,9 +63,11 @@ const Layout: React.FC = () => {
       { path: '/cash', icon: Banknote, label: 'Caja', show: isModuleEnabled('cash') },
       { path: '/shifts', icon: Clock, label: 'Turnos', show: isModuleEnabled('shifts') },
       { path: '/reports', icon: FileText, label: 'Reportes', show: isAdmin && isModuleEnabled('reports') },
-      { path: '/users', icon: Users, label: 'Usuarios', show: isAdmin && isModuleEnabled('users') },
-      { path: '/locations', icon: MapPin, label: 'Ubicaciones', show: isSuperuser && isModuleEnabled('locations') },
-      { path: '/super-admin', icon: Shield, label: 'Super Admin', show: isSuperuser && isModuleEnabled('super_admin') },
+            { path: '/users', icon: Users, label: 'Usuarios', show: isAdmin && isModuleEnabled('users') },
+            { path: '/branches', icon: Building2, label: 'Sedes', show: isAdmin && isModuleEnabled('branches') },
+            { path: '/work-report', icon: ClipboardList, label: 'Horas Trabajadas', show: isAdmin && isModuleEnabled('work_report') },
+            { path: '/locations', icon: MapPin, label: 'Ubicaciones', show: isSuperuser && isModuleEnabled('locations') },
+            { path: '/super-admin', icon: Shield, label: 'Super Admin', show: isSuperuser && isModuleEnabled('super_admin') },
     ];
 
   return (
