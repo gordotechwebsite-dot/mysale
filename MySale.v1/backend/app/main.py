@@ -73,6 +73,26 @@ def run_migrations():
             db.commit()
             print("Migration: Added pin_hash column to users table")
         
+        # Ensure all tenants have access to all modules (assign missing modules)
+        from app.models.tenant import Tenant, TenantModule
+        tenants = db.query(Tenant).all()
+        all_modules = db.query(Module).filter(Module.is_active == True).all()
+        for tenant in tenants:
+            for module in all_modules:
+                existing = db.query(TenantModule).filter(
+                    TenantModule.tenant_id == tenant.id,
+                    TenantModule.module_id == module.id
+                ).first()
+                if not existing:
+                    new_tm = TenantModule(
+                        tenant_id=tenant.id,
+                        module_id=module.id,
+                        is_enabled=module.is_core  # Enable core modules by default
+                    )
+                    db.add(new_tm)
+                    print(f"Migration: Added module {module.code} to tenant {tenant.name}")
+        db.commit()
+        
         # Fix branches table tenant_id constraint (must allow NULL)
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='branches'"))
         if result.fetchone():
