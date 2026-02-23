@@ -35,6 +35,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    employee_code = Column(String(20), nullable=True, index=True)  # Unique code within tenant
     username = Column(String(50), nullable=False, index=True)
     email = Column(String(100), nullable=True)
     full_name = Column(String(100), nullable=False)
@@ -42,6 +43,7 @@ class User(Base):
     fingerprint_hash = Column(String(255), nullable=True)
     role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
+    default_branch_id = Column(Integer, ForeignKey("branches.id"), nullable=True)  # Default branch for employee
     is_active = Column(Boolean, default=True)
     points = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -49,6 +51,8 @@ class User(Base):
 
     role = relationship("Role", back_populates="users")
     location = relationship("Location", back_populates="users")
+    default_branch = relationship("Branch", back_populates="employees", foreign_keys=[default_branch_id])
+    work_sessions = relationship("WorkSession", back_populates="user")
     shifts = relationship("Shift", foreign_keys="[Shift.user_id]", back_populates="user")
     sales = relationship("Sale", back_populates="cashier")
     losses_reported = relationship("Loss", back_populates="reported_by_user")

@@ -68,6 +68,9 @@ async def get_users(
             role_id=u.role_id,
             role=u.role,
             location_id=u.location_id,
+            tenant_id=u.tenant_id,
+            employee_code=u.employee_code,
+            default_branch_id=u.default_branch_id,
             is_active=u.is_active,
             points=u.points,
             created_at=u.created_at
@@ -101,6 +104,18 @@ async def create_user(
             detail="Solo un superusuario puede crear otro superusuario"
         )
     
+    # Check if employee_code already exists for this tenant
+    if user.employee_code:
+        existing_code = db.query(User).filter(
+            User.employee_code == user.employee_code,
+            User.tenant_id == current_user.tenant_id
+        ).first()
+        if existing_code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ya existe un empleado con ese codigo"
+            )
+    
     hashed_password = get_password_hash(user.password)
     db_user = User(
         tenant_id=current_user.tenant_id,
@@ -109,7 +124,9 @@ async def create_user(
         full_name=user.full_name,
         hashed_password=hashed_password,
         role_id=user.role_id,
-        location_id=user.location_id
+        location_id=user.location_id,
+        employee_code=user.employee_code,
+        default_branch_id=user.default_branch_id
     )
     db.add(db_user)
     db.commit()
@@ -122,6 +139,9 @@ async def create_user(
         full_name=db_user.full_name,
         role_id=db_user.role_id,
         location_id=db_user.location_id,
+        tenant_id=db_user.tenant_id,
+        employee_code=db_user.employee_code,
+        default_branch_id=db_user.default_branch_id,
         is_active=db_user.is_active,
         points=db_user.points,
         created_at=db_user.created_at

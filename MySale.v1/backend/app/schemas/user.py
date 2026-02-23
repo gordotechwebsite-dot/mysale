@@ -40,6 +40,8 @@ class UserCreate(BaseModel):
     password: str
     role_id: int
     location_id: Optional[int] = None
+    employee_code: Optional[str] = None
+    default_branch_id: Optional[int] = None
 
 
 class UserUpdate(BaseModel):
@@ -49,6 +51,8 @@ class UserUpdate(BaseModel):
     location_id: Optional[int] = None
     is_active: Optional[bool] = None
     fingerprint_hash: Optional[str] = None
+    employee_code: Optional[str] = None
+    default_branch_id: Optional[int] = None
 
 
 class UserResponse(BaseModel):
@@ -60,6 +64,8 @@ class UserResponse(BaseModel):
     role: Optional[RoleResponse] = None
     location_id: Optional[int]
     tenant_id: Optional[int] = None
+    employee_code: Optional[str] = None
+    default_branch_id: Optional[int] = None
     is_active: bool
     points: int
     created_at: datetime

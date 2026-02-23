@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import engine, Base, SessionLocal
 from app.models import *
-from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants, integration, faq, biometric
+from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants, integration, faq, biometric, branches
 
 
 def run_migrations():
@@ -53,6 +53,26 @@ def run_migrations():
                 db.execute(text("ALTER TABLE products ADD COLUMN image_url VARCHAR(500)"))
                 db.commit()
                 print("Migration: Added image_url column to products table")
+        
+        # Check if users table needs new columns
+        result = db.execute(text("PRAGMA table_info(users)"))
+        user_columns = [row[1] for row in result.fetchall()]
+        
+        if 'employee_code' not in user_columns:
+            db.execute(text("ALTER TABLE users ADD COLUMN employee_code VARCHAR(20)"))
+            db.commit()
+            print("Migration: Added employee_code column to users table")
+        
+        if 'default_branch_id' not in user_columns:
+            db.execute(text("ALTER TABLE users ADD COLUMN default_branch_id INTEGER REFERENCES branches(id)"))
+            db.commit()
+            print("Migration: Added default_branch_id column to users table")
+        
+        # Check if products table exists and fix subfamily_id constraint
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='products'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(products)"))
+            product_columns = {row[1]: row for row in result.fetchall()}
             
             # Check if subfamily_id has NOT NULL constraint and fix it
             if 'subfamily_id' in product_columns:
@@ -111,8 +131,11 @@ def run_migrations():
             {"code": "shifts", "name": "Turnos", "description": "Gestión de turnos de trabajo y horarios", "icon": "Clock", "route": "/shifts", "display_order": 10, "is_core": False},
             {"code": "reports", "name": "Reportes", "description": "Reportes de ventas, inventario y empleados", "icon": "BarChart3", "route": "/reports", "display_order": 11, "is_core": False},
             {"code": "users", "name": "Usuarios", "description": "Gestión de usuarios y roles", "icon": "Users", "route": "/users", "display_order": 12, "is_core": False},
-            {"code": "locations", "name": "Sucursales", "description": "Gestión de puntos de venta y almacenes", "icon": "MapPin", "route": "/locations", "display_order": 13, "is_core": False},
-        ]
+                    {"code": "locations", "name": "Sucursales", "description": "Gestión de puntos de venta y almacenes", "icon": "MapPin", "route": "/locations", "display_order": 13, "is_core": False},
+                    {"code": "branches", "name": "Sedes", "description": "Gestión de sedes y sucursales del negocio", "icon": "Building2", "route": "/branches", "display_order": 14, "is_core": False},
+                    {"code": "work_report", "name": "Horas Trabajadas", "description": "Reporte de horas trabajadas por empleado", "icon": "ClipboardList", "route": "/work-report", "display_order": 15, "is_core": False},
+                    {"code": "super_admin", "name": "Super Admin", "description": "Panel de administración de tenants", "icon": "Shield", "route": "/super-admin", "display_order": 16, "is_core": False},
+                ]
         
         for module_data in all_modules:
             existing = db.query(Module).filter(Module.code == module_data["code"]).first()
@@ -166,6 +189,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(locations.router)
+app.include_router(branches.router)
 app.include_router(inventory.router)
 app.include_router(shifts.router)
 app.include_router(sales.router)
@@ -218,8 +242,11 @@ def init_default_modules():
             Module(code="shifts", name="Turnos", description="Gestión de turnos de trabajo y horarios", icon="Clock", route="/shifts", display_order=10, is_core=False),
             Module(code="reports", name="Reportes", description="Reportes de ventas, inventario y empleados", icon="BarChart3", route="/reports", display_order=11, is_core=False),
             Module(code="users", name="Usuarios", description="Gestión de usuarios y roles", icon="Users", route="/users", display_order=12, is_core=False),
-            Module(code="locations", name="Sucursales", description="Gestión de puntos de venta y almacenes", icon="MapPin", route="/locations", display_order=13, is_core=False),
-        ]
+                    Module(code="locations", name="Sucursales", description="Gestión de puntos de venta y almacenes", icon="MapPin", route="/locations", display_order=13, is_core=False),
+                    Module(code="branches", name="Sedes", description="Gestión de sedes y sucursales del negocio", icon="Building2", route="/branches", display_order=14, is_core=False),
+                    Module(code="work_report", name="Horas Trabajadas", description="Reporte de horas trabajadas por empleado", icon="ClipboardList", route="/work-report", display_order=15, is_core=False),
+                    Module(code="super_admin", name="Super Admin", description="Panel de administración de tenants", icon="Shield", route="/super-admin", display_order=16, is_core=False),
+                ]
         
         for module in modules:
             db.add(module)
