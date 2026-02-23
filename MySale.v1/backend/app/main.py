@@ -93,6 +93,15 @@ def run_migrations():
                     print(f"Migration: Added module {module.code} to tenant {tenant.name}")
         db.commit()
         
+        # Deactivate duplicate/redundant modules
+        modules_to_deactivate = ['branches', 'work_report', 'super_admin', 'cost_control']
+        for code in modules_to_deactivate:
+            mod = db.query(Module).filter(Module.code == code).first()
+            if mod and mod.is_active:
+                mod.is_active = False
+                print(f"Migration: Deactivated module {code}")
+        db.commit()
+        
         # Fix branches table tenant_id constraint (must allow NULL)
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='branches'"))
         if result.fetchone():
