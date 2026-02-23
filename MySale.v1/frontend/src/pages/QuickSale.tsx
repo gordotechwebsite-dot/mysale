@@ -297,24 +297,26 @@ const QuickSale: React.FC = () => {
                   <button
                     key={product.id}
                     onClick={() => handleProductClick(product)}
-                    className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-orange-50 transition-all text-left border-2 border-transparent hover:border-orange-500 active:scale-95"
+                    className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-orange-50 transition-all text-left border-2 border-transparent hover:border-orange-500 active:scale-95 flex items-center justify-between gap-3"
                   >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-800 truncate">{product.name}</p>
+                      <p className="text-xs text-gray-500">{product.code}</p>
+                      <p className="text-lg font-bold text-orange-600 mt-1">
+                        {formatCurrency(product.sale_price)}
+                      </p>
+                    </div>
                     {(product as any).image_url ? (
                       <img
                         src={`${import.meta.env.VITE_API_URL}${(product as any).image_url}`}
                         alt={product.name}
-                        className="w-full h-24 object-cover rounded-lg mb-2"
+                        className="w-16 h-16 object-contain rounded-lg flex-shrink-0"
                       />
                     ) : (
-                      <div className="w-full h-24 bg-gray-100 rounded-lg mb-2 flex items-center justify-center">
-                        <Package className="w-10 h-10 text-gray-300" />
+                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Package className="w-8 h-8 text-gray-300" />
                       </div>
                     )}
-                    <p className="font-semibold text-gray-800 truncate">{product.name}</p>
-                    <p className="text-xs text-gray-500">{product.code}</p>
-                    <p className="text-lg font-bold text-orange-600 mt-2">
-                      {formatCurrency(product.sale_price)}
-                    </p>
                   </button>
                 ))}
               </div>
