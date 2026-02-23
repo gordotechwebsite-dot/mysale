@@ -68,6 +68,72 @@ def run_migrations():
             db.commit()
             print("Migration: Added default_branch_id column to users table")
         
+        # Fix branches table tenant_id constraint (must allow NULL)
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='branches'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(branches)"))
+            branch_columns = {row[1]: row for row in result.fetchall()}
+            if 'tenant_id' in branch_columns:
+                col_info = branch_columns['tenant_id']
+                notnull = col_info[3]  # notnull flag is at index 3
+                if notnull:
+                    print("Migration: Fixing branches.tenant_id NOT NULL constraint...")
+                    db.execute(text("PRAGMA foreign_keys=OFF"))
+                    db.execute(text("""
+                        CREATE TABLE branches_new (
+                            id INTEGER PRIMARY KEY,
+                            tenant_id INTEGER REFERENCES tenants(id),
+                            name VARCHAR(200) NOT NULL,
+                            code VARCHAR(50) NOT NULL,
+                            city VARCHAR(100),
+                            address TEXT,
+                            phone VARCHAR(50),
+                            is_active BOOLEAN DEFAULT 1,
+                            created_at DATETIME,
+                            updated_at DATETIME
+                        )
+                    """))
+                    db.execute(text("INSERT INTO branches_new SELECT * FROM branches"))
+                    db.execute(text("DROP TABLE branches"))
+                    db.execute(text("ALTER TABLE branches_new RENAME TO branches"))
+                    db.execute(text("CREATE INDEX ix_branches_id ON branches(id)"))
+                    db.execute(text("PRAGMA foreign_keys=ON"))
+                    db.commit()
+                    print("Migration: Fixed branches.tenant_id to allow NULL")
+        
+        # Fix work_sessions table tenant_id constraint (must allow NULL)
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='work_sessions'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(work_sessions)"))
+            ws_columns = {row[1]: row for row in result.fetchall()}
+            if 'tenant_id' in ws_columns:
+                col_info = ws_columns['tenant_id']
+                notnull = col_info[3]  # notnull flag is at index 3
+                if notnull:
+                    print("Migration: Fixing work_sessions.tenant_id NOT NULL constraint...")
+                    db.execute(text("PRAGMA foreign_keys=OFF"))
+                    db.execute(text("""
+                        CREATE TABLE work_sessions_new (
+                            id INTEGER PRIMARY KEY,
+                            tenant_id INTEGER REFERENCES tenants(id),
+                            user_id INTEGER NOT NULL REFERENCES users(id),
+                            branch_id INTEGER NOT NULL REFERENCES branches(id),
+                            clock_in DATETIME NOT NULL,
+                            clock_out DATETIME,
+                            total_minutes INTEGER,
+                            notes TEXT,
+                            created_at DATETIME,
+                            updated_at DATETIME
+                        )
+                    """))
+                    db.execute(text("INSERT INTO work_sessions_new SELECT * FROM work_sessions"))
+                    db.execute(text("DROP TABLE work_sessions"))
+                    db.execute(text("ALTER TABLE work_sessions_new RENAME TO work_sessions"))
+                    db.execute(text("CREATE INDEX ix_work_sessions_id ON work_sessions(id)"))
+                    db.execute(text("PRAGMA foreign_keys=ON"))
+                    db.commit()
+                    print("Migration: Fixed work_sessions.tenant_id to allow NULL")
+        
         # Check if products table exists and fix subfamily_id constraint
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='products'"))
         if result.fetchone():
