@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, Users, Calendar, Fingerprint, Download } from 'lucide-react';
+import { Clock, Users, Calendar, Fingerprint } from 'lucide-react';
 import { BiometricClockInOut } from '@/components/BiometricClockInOut';
 import { getAttendanceRecords, getUsers, type BiometricAttendance } from '@/api';
 import type { User } from '@/types';

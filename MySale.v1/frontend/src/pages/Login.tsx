@@ -28,8 +28,9 @@ const Login: React.FC = () => {
       const response = await apiLogin(username, password);
       login(response.access_token, response.user);
       navigate('/');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al iniciar sesion');
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { detail?: string } } };
+      setError(axiosError.response?.data?.detail || 'Error al iniciar sesion');
     } finally {
       setIsLoading(false);
     }

@@ -105,6 +105,8 @@ export function BiometricEnrollDialog({ open, onOpenChange, userId, onSuccess }:
         is_primary: selectedFinger === 2
       };
 
+      console.log('Saving fingerprint for user:', userId, 'data:', data);
+
       if (userId) {
         await enrollUserFingerprint(userId, data);
       } else {
@@ -115,9 +117,12 @@ export function BiometricEnrollDialog({ open, onOpenChange, userId, onSuccess }:
       if (onSuccess) {
         onSuccess();
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      console.error('Error saving fingerprint:', err);
       setStep('error');
-      setErrorMessage('Error al guardar la huella en el servidor');
+      const axiosError = err as { response?: { data?: { detail?: string } } };
+      const errorDetail = axiosError.response?.data?.detail || 'Error al guardar la huella en el servidor';
+      setErrorMessage(errorDetail);
     }
   };
 

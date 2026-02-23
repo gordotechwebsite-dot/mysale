@@ -64,7 +64,7 @@ const Inventory: React.FC = () => {
   const [newSubFamily, setNewSubFamily] = useState({ name: '', family_id: '', description: '' });
   const [newProduct, setNewProduct] = useState({
     code: '', barcode: '', name: '', description: '',
-    subfamily_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100',
+    subfamily_id: '', group_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100',
     is_weighted: false, price_per_kg: '', plu_code: ''
   });
   const [purchase, setPurchase] = useState({
@@ -172,12 +172,17 @@ const Inventory: React.FC = () => {
       } else {
         delete productData.subfamily_id;
       }
+      if (newProduct.group_id && newProduct.group_id !== 'none') {
+        productData.group_id = parseInt(newProduct.group_id);
+      } else {
+        delete productData.group_id;
+      }
       await createProduct(productData);
       await loadProducts();
       setShowAddProduct(false);
       setNewProduct({
         code: '', barcode: '', name: '', description: '',
-        subfamily_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100',
+        subfamily_id: '', group_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100',
         is_weighted: false, price_per_kg: '', plu_code: ''
       });
     } catch (error: any) {
@@ -218,7 +223,7 @@ const Inventory: React.FC = () => {
       const { code } = await getNextProductCode();
       setNewProduct({
         code, barcode: '', name: '', description: '',
-        subfamily_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100',
+        subfamily_id: '', group_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100',
         is_weighted: false, price_per_kg: '', plu_code: ''
       });
       setShowAddProduct(true);
@@ -226,7 +231,7 @@ const Inventory: React.FC = () => {
       console.error('Error getting next code:', error);
       setNewProduct({
         code: '', barcode: '', name: '', description: '',
-        subfamily_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100',
+        subfamily_id: '', group_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100',
         is_weighted: false, price_per_kg: '', plu_code: ''
       });
       setShowAddProduct(true);
@@ -548,17 +553,30 @@ const Inventory: React.FC = () => {
                 onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
               />
             </div>
-            <Select value={newProduct.subfamily_id} onValueChange={(v) => setNewProduct({ ...newProduct, subfamily_id: v })}>
+            <Select value={newProduct.group_id} onValueChange={(v) => setNewProduct({ ...newProduct, group_id: v, subfamily_id: '' })}>
               <SelectTrigger>
                 <SelectValue placeholder="Categoria (opcional)" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Sin categoria</SelectItem>
-                {subFamilies.map(sf => (
-                  <SelectItem key={sf.id} value={sf.id.toString()}>{sf.name}</SelectItem>
+                {groups.map(g => (
+                  <SelectItem key={g.id} value={g.id.toString()}>{g.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {subFamilies.length > 0 && (
+              <Select value={newProduct.subfamily_id} onValueChange={(v) => setNewProduct({ ...newProduct, subfamily_id: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Subcategoria (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin subcategoria</SelectItem>
+                  {subFamilies.map(sf => (
+                    <SelectItem key={sf.id} value={sf.id.toString()}>{sf.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <Input
                 type="number"
