@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
+import os
+import uuid
 from app.database import get_db
 from app.models.user import User, RoleType
 from app.models.inventory import Group, Family, SubFamily, Product, ProductStock, StockMovement, MovementType
@@ -273,6 +276,7 @@ async def get_products(
             is_weighted=getattr(product, 'is_weighted', False),
             price_per_kg=getattr(product, 'price_per_kg', None),
             plu_code=getattr(product, 'plu_code', None),
+            image_url=getattr(product, 'image_url', None),
             created_at=product.created_at,
             stocks=stocks
         ))
@@ -325,6 +329,7 @@ async def create_product(
             is_weighted=product_data.get('is_weighted', False),
             price_per_kg=product_data.get('price_per_kg'),
             plu_code=product_data.get('plu_code'),
+            image_url=product_data.get('image_url'),
             tenant_id=current_user.tenant_id
         )
         db.add(db_product)
@@ -366,6 +371,7 @@ async def create_product(
         is_weighted=getattr(db_product, 'is_weighted', False),
         price_per_kg=getattr(db_product, 'price_per_kg', None),
         plu_code=getattr(db_product, 'plu_code', None),
+        image_url=getattr(db_product, 'image_url', None),
         created_at=db_product.created_at,
         stocks=[]
     )
@@ -411,6 +417,7 @@ async def get_product(
         is_weighted=getattr(product, 'is_weighted', False),
         price_per_kg=getattr(product, 'price_per_kg', None),
         plu_code=getattr(product, 'plu_code', None),
+        image_url=getattr(product, 'image_url', None),
         created_at=product.created_at,
         stocks=stocks
     )
@@ -462,9 +469,75 @@ async def update_product(
         is_weighted=getattr(product, 'is_weighted', False),
         price_per_kg=getattr(product, 'price_per_kg', None),
         plu_code=getattr(product, 'plu_code', None),
+        image_url=getattr(product, 'image_url', None),
         created_at=product.created_at,
         stocks=[]
     )
+
+
+@router.delete("/products/{product_id}")
+async def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    query = db.query(Product).filter(Product.id == product_id)
+    if current_user.tenant_id:
+        query = query.filter(Product.tenant_id == current_user.tenant_id)
+    product = query.first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    db.query(ProductStock).filter(ProductStock.product_id == product_id).delete()
+    db.query(StockMovement).filter(StockMovement.product_id == product_id).delete()
+    db.delete(product)
+    db.commit()
+    
+    return {"message": "Producto eliminado exitosamente"}
+
+
+UPLOAD_DIR = "/data/product_images"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+@router.post("/products/{product_id}/upload-image")
+async def upload_product_image(
+    product_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    query = db.query(Product).filter(Product.id == product_id)
+    if current_user.tenant_id:
+        query = query.filter(Product.tenant_id == current_user.tenant_id)
+    product = query.first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="El archivo debe ser una imagen")
+    
+    ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else "jpg"
+    filename = f"{uuid.uuid4()}.{ext}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    
+    content = await file.read()
+    with open(filepath, "wb") as f:
+        f.write(content)
+    
+    image_url = f"/api/inventory/images/{filename}"
+    product.image_url = image_url
+    db.commit()
+    
+    return {"image_url": image_url}
+
+
+@router.get("/images/{filename}")
+async def get_product_image(filename: str):
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Imagen no encontrada")
+    return FileResponse(filepath)
 
 
 @router.post("/purchase")

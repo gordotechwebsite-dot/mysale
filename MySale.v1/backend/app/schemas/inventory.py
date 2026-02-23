@@ -69,6 +69,7 @@ class ProductCreate(BaseModel):
     is_weighted: bool = False
     price_per_kg: Optional[float] = None
     plu_code: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class ProductUpdate(BaseModel):
@@ -85,6 +86,7 @@ class ProductUpdate(BaseModel):
     is_weighted: Optional[bool] = None
     price_per_kg: Optional[float] = None
     plu_code: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class ProductStockResponse(BaseModel):
@@ -111,6 +113,7 @@ class ProductResponse(BaseModel):
     is_weighted: bool = False
     price_per_kg: Optional[float] = None
     plu_code: Optional[str] = None
+    image_url: Optional[str] = None
     created_at: datetime
     stocks: Optional[List[ProductStockResponse]] = None
 

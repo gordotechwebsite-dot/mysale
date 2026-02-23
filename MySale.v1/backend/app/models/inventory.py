@@ -68,6 +68,7 @@ class Product(Base):
     is_weighted = Column(Boolean, default=False)
     price_per_kg = Column(Float, nullable=True)
     plu_code = Column(String(10), nullable=True, index=True)
+    image_url = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

@@ -136,6 +136,22 @@ export const updateProduct = async (id: number, data: Partial<Product>): Promise
   return response.data;
 };
 
+export const deleteProduct = async (id: number): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/inventory/products/${id}`);
+  return response.data;
+};
+
+export const uploadProductImage = async (productId: number, file: File): Promise<{ image_url: string }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(`/api/inventory/products/${productId}/upload-image`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
 export const registerPurchase = async (data: {
   product_id: number;
   location_id: number;

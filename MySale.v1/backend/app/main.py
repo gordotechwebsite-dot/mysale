@@ -49,6 +49,11 @@ def run_migrations():
                 db.commit()
                 print("Migration: Added plu_code column to products table")
             
+            if 'image_url' not in product_columns:
+                db.execute(text("ALTER TABLE products ADD COLUMN image_url VARCHAR(500)"))
+                db.commit()
+                print("Migration: Added image_url column to products table")
+            
             # Check if subfamily_id has NOT NULL constraint and fix it
             if 'subfamily_id' in product_columns:
                 col_info = product_columns['subfamily_id']
