@@ -15,7 +15,8 @@ class Role(Base):
     __tablename__ = "roles"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(50), unique=True, nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    name = Column(String(50), nullable=False)
     role_type = Column(SQLEnum(RoleType), nullable=False)
     can_void_sales = Column(Boolean, default=False)
     can_manage_inventory = Column(Boolean, default=False)
@@ -33,8 +34,9 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(50), unique=True, nullable=False, index=True)
-    email = Column(String(100), unique=True, nullable=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    username = Column(String(50), nullable=False, index=True)
+    email = Column(String(100), nullable=True)
     full_name = Column(String(100), nullable=False)
     hashed_password = Column(String(255), nullable=False)
     fingerprint_hash = Column(String(255), nullable=True)

@@ -27,7 +27,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users as UsersIcon, Plus, Loader2, Trash2 } from 'lucide-react';
+import { Users as UsersIcon, Plus, Loader2, Trash2, Fingerprint } from 'lucide-react';
+import { BiometricEnrollDialog } from '@/components/BiometricEnrollDialog';
 
 const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -36,8 +37,10 @@ const Users: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showAddUser, setShowAddUser] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<User | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showBiometricEnroll, setShowBiometricEnroll] = useState(false);
+    const [selectedUserForBiometric, setSelectedUserForBiometric] = useState<User | null>(null);
 
   const [newUser, setNewUser] = useState({
     username: '',
@@ -105,10 +108,15 @@ const Users: React.FC = () => {
       }
     };
 
-    const confirmDelete = (user: User) => {
-      setUserToDelete(user);
-      setShowDeleteConfirm(true);
-    };
+        const confirmDelete = (user: User) => {
+          setUserToDelete(user);
+          setShowDeleteConfirm(true);
+        };
+
+        const openBiometricEnroll = (user: User) => {
+          setSelectedUserForBiometric(user);
+          setShowBiometricEnroll(true);
+        };
 
   const getRoleBadge = (roleType: string) => {
     switch (roleType) {
@@ -179,16 +187,28 @@ const Users: React.FC = () => {
                       )}
                     </TableCell>
                                   <TableCell>{user.points}</TableCell>
-                                  <TableCell>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => confirmDelete(user)}
-                                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </TableCell>
+                                                                    <TableCell>
+                                                                      <div className="flex gap-1">
+                                                                        <Button
+                                                                          variant="ghost"
+                                                                          size="sm"
+                                                                          onClick={() => openBiometricEnroll(user)}
+                                                                          className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                                                          title="Registrar huella"
+                                                                        >
+                                                                          <Fingerprint className="w-4 h-4" />
+                                                                        </Button>
+                                                                        <Button
+                                                                          variant="ghost"
+                                                                          size="sm"
+                                                                          onClick={() => confirmDelete(user)}
+                                                                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                                          title="Eliminar usuario"
+                                                                        >
+                                                                          <Trash2 className="w-4 h-4" />
+                                                                        </Button>
+                                                                      </div>
+                                                                    </TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
@@ -280,6 +300,16 @@ const Users: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BiometricEnrollDialog
+        open={showBiometricEnroll}
+        onOpenChange={setShowBiometricEnroll}
+        userId={selectedUserForBiometric?.id}
+        onSuccess={() => {
+          setShowBiometricEnroll(false);
+          setSelectedUserForBiometric(null);
+        }}
+      />
     </div>
   );
 };
