@@ -23,6 +23,32 @@ def run_migrations():
             db.commit()
             print("Migration: Added image_url column to locations table")
         
+        # Check if products table exists and add missing columns
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='products'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(products)"))
+            product_columns = [row[1] for row in result.fetchall()]
+            
+            if 'group_id' not in product_columns:
+                db.execute(text("ALTER TABLE products ADD COLUMN group_id INTEGER REFERENCES groups(id)"))
+                db.commit()
+                print("Migration: Added group_id column to products table")
+            
+            if 'is_weighted' not in product_columns:
+                db.execute(text("ALTER TABLE products ADD COLUMN is_weighted BOOLEAN DEFAULT 0"))
+                db.commit()
+                print("Migration: Added is_weighted column to products table")
+            
+            if 'price_per_kg' not in product_columns:
+                db.execute(text("ALTER TABLE products ADD COLUMN price_per_kg FLOAT"))
+                db.commit()
+                print("Migration: Added price_per_kg column to products table")
+            
+            if 'plu_code' not in product_columns:
+                db.execute(text("ALTER TABLE products ADD COLUMN plu_code VARCHAR(10)"))
+                db.commit()
+                print("Migration: Added plu_code column to products table")
+        
         # Ensure all modules exist in the database
         all_modules = [
             {"code": "dashboard", "name": "Dashboard", "description": "Panel principal con resumen de ventas y métricas", "icon": "LayoutDashboard", "route": "/dashboard", "display_order": 1, "is_core": True},
