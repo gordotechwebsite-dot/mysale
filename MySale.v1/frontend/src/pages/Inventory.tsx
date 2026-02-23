@@ -186,13 +186,20 @@ const Inventory: React.FC = () => {
         is_weighted: false, price_per_kg: '', plu_code: ''
       });
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al crear producto');
+      const detail = error.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        alert(detail.map((d: any) => d.msg || d.message || JSON.stringify(d)).join(', '));
+      } else if (typeof detail === 'string') {
+        alert(detail);
+      } else {
+        alert('Error al crear producto');
+      }
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handlePurchase = async () => {
+  const handlePurchase= async () => {
     setIsProcessing(true);
     try {
       await registerPurchase({

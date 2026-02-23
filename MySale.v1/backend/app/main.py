@@ -23,11 +23,11 @@ def run_migrations():
             db.commit()
             print("Migration: Added image_url column to locations table")
         
-        # Check if products table exists and add missing columns
+        # Check if products table exists and fix subfamily_id constraint
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='products'"))
         if result.fetchone():
             result = db.execute(text("PRAGMA table_info(products)"))
-            product_columns = [row[1] for row in result.fetchall()]
+            product_columns = {row[1]: row for row in result.fetchall()}
             
             if 'group_id' not in product_columns:
                 db.execute(text("ALTER TABLE products ADD COLUMN group_id INTEGER REFERENCES groups(id)"))
@@ -48,6 +48,49 @@ def run_migrations():
                 db.execute(text("ALTER TABLE products ADD COLUMN plu_code VARCHAR(10)"))
                 db.commit()
                 print("Migration: Added plu_code column to products table")
+            
+            # Check if subfamily_id has NOT NULL constraint and fix it
+            if 'subfamily_id' in product_columns:
+                col_info = product_columns['subfamily_id']
+                notnull = col_info[3]  # notnull flag is at index 3
+                if notnull:
+                    print("Migration: Fixing subfamily_id NOT NULL constraint...")
+                    db.execute(text("PRAGMA foreign_keys=OFF"))
+                    db.execute(text("""
+                        CREATE TABLE products_new (
+                            id INTEGER PRIMARY KEY,
+                            tenant_id INTEGER REFERENCES tenants(id),
+                            code VARCHAR(50) NOT NULL,
+                            barcode VARCHAR(50),
+                            name VARCHAR(200) NOT NULL,
+                            description TEXT,
+                            subfamily_id INTEGER REFERENCES subfamilies(id),
+                            group_id INTEGER REFERENCES groups(id),
+                            unit VARCHAR(20) DEFAULT 'unidad',
+                            sale_price FLOAT NOT NULL,
+                            weighted_cost FLOAT DEFAULT 0.0,
+                            min_stock INTEGER DEFAULT 0,
+                            max_stock INTEGER DEFAULT 1000,
+                            is_active BOOLEAN DEFAULT 1,
+                            is_weighted BOOLEAN DEFAULT 0,
+                            price_per_kg FLOAT,
+                            plu_code VARCHAR(10),
+                            created_at DATETIME,
+                            updated_at DATETIME
+                        )
+                    """))
+                    db.execute(text("""
+                        INSERT INTO products_new SELECT * FROM products
+                    """))
+                    db.execute(text("DROP TABLE products"))
+                    db.execute(text("ALTER TABLE products_new RENAME TO products"))
+                    db.execute(text("CREATE INDEX ix_products_id ON products(id)"))
+                    db.execute(text("CREATE INDEX ix_products_code ON products(code)"))
+                    db.execute(text("CREATE INDEX ix_products_barcode ON products(barcode)"))
+                    db.execute(text("CREATE INDEX ix_products_plu_code ON products(plu_code)"))
+                    db.execute(text("PRAGMA foreign_keys=ON"))
+                    db.commit()
+                    print("Migration: Fixed subfamily_id to allow NULL")
         
         # Ensure all modules exist in the database
         all_modules = [

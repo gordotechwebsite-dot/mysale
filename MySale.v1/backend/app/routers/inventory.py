@@ -286,33 +286,55 @@ async def create_product(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
-    code_query = db.query(Product).filter(Product.code == product.code)
-    if current_user.tenant_id:
-        code_query = code_query.filter(Product.tenant_id == current_user.tenant_id)
-    existing = code_query.first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Ya existe un producto con ese codigo")
-    
-    if product.barcode:
-        barcode_query = db.query(Product).filter(Product.barcode == product.barcode)
+    try:
+        code_query = db.query(Product).filter(Product.code == product.code)
         if current_user.tenant_id:
-            barcode_query = barcode_query.filter(Product.tenant_id == current_user.tenant_id)
-        existing_barcode = barcode_query.first()
-        if existing_barcode:
-            raise HTTPException(status_code=400, detail="Ya existe un producto con ese codigo de barras")
-    
-    if product.subfamily_id:
-        subfamily_query = db.query(SubFamily).filter(SubFamily.id == product.subfamily_id)
-        if current_user.tenant_id:
-            subfamily_query = subfamily_query.filter(SubFamily.tenant_id == current_user.tenant_id)
-        subfamily = subfamily_query.first()
-        if not subfamily:
-            raise HTTPException(status_code=404, detail="Subfamilia no encontrada")
-    
-    db_product = Product(**product.model_dump(), tenant_id=current_user.tenant_id)
-    db.add(db_product)
-    db.commit()
-    db.refresh(db_product)
+            code_query = code_query.filter(Product.tenant_id == current_user.tenant_id)
+        existing = code_query.first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Ya existe un producto con ese codigo")
+        
+        if product.barcode:
+            barcode_query = db.query(Product).filter(Product.barcode == product.barcode)
+            if current_user.tenant_id:
+                barcode_query = barcode_query.filter(Product.tenant_id == current_user.tenant_id)
+            existing_barcode = barcode_query.first()
+            if existing_barcode:
+                raise HTTPException(status_code=400, detail="Ya existe un producto con ese codigo de barras")
+        
+        if product.subfamily_id:
+            subfamily_query = db.query(SubFamily).filter(SubFamily.id == product.subfamily_id)
+            if current_user.tenant_id:
+                subfamily_query = subfamily_query.filter(SubFamily.tenant_id == current_user.tenant_id)
+            subfamily = subfamily_query.first()
+            if not subfamily:
+                raise HTTPException(status_code=404, detail="Subfamilia no encontrada")
+        
+        product_data = product.model_dump()
+        db_product = Product(
+            code=product_data['code'],
+            barcode=product_data.get('barcode'),
+            name=product_data['name'],
+            description=product_data.get('description'),
+            subfamily_id=product_data.get('subfamily_id'),
+            group_id=product_data.get('group_id'),
+            unit=product_data.get('unit', 'unidad'),
+            sale_price=product_data['sale_price'],
+            min_stock=product_data.get('min_stock', 0),
+            max_stock=product_data.get('max_stock', 1000),
+            is_weighted=product_data.get('is_weighted', False),
+            price_per_kg=product_data.get('price_per_kg'),
+            plu_code=product_data.get('plu_code'),
+            tenant_id=current_user.tenant_id
+        )
+        db.add(db_product)
+        db.commit()
+        db.refresh(db_product)
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al crear producto: {str(e)}")
     
     loc_query = db.query(Location)
     if current_user.tenant_id:
