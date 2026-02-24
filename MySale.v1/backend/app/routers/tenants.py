@@ -2,6 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
+import secrets
+import string
+import unicodedata
+import re
 
 from app.database import get_db
 from app.models.tenant import Module, Tenant, TenantModule, TenantPayment, PaymentStatus
@@ -16,6 +20,22 @@ from app.schemas.tenant import (
 from app.utils.auth import get_current_user, require_role
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+
+def generate_pos_username(name: str) -> str:
+    """Generate a POS username from the tenant name"""
+    normalized = unicodedata.normalize('NFD', name.lower())
+    ascii_name = normalized.encode('ascii', 'ignore').decode('ascii')
+    clean_name = re.sub(r'[^a-z0-9]', '', ascii_name)
+    if len(clean_name) < 3:
+        clean_name = "user"
+    return f"{clean_name[:10]}_admin"
+
+
+def generate_pos_password(length: int = 8) -> str:
+    """Generate a random password for POS access"""
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
 @router.get("/modules", response_model=List[ModuleResponse])
@@ -196,6 +216,9 @@ async def create_tenant(
         if existing_subdomain:
             raise HTTPException(status_code=400, detail="Subdomain already in use")
     
+    pos_username = data.pos_username if data.pos_username else generate_pos_username(data.name)
+    pos_password = data.pos_password if data.pos_password else generate_pos_password()
+    
     tenant = Tenant(
         name=data.name,
         code=data.code,
@@ -207,7 +230,10 @@ async def create_tenant(
         contact_phone=data.contact_phone,
         address=data.address,
         monthly_fee=data.monthly_fee or 0,
-        notes=data.notes
+        notes=data.notes,
+        pos_url=data.pos_url,
+        pos_username=pos_username,
+        pos_password=pos_password
     )
     db.add(tenant)
     db.commit()
