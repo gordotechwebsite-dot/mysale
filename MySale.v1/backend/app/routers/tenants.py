@@ -107,7 +107,7 @@ async def update_module(
 
 @router.get("/tenants", response_model=List[TenantListResponse])
 async def get_tenants(
-    is_active: Optional[bool] = None,
+    is_active: Optional[bool] = True,
     payment_status: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("superuser"))
