@@ -9,7 +9,8 @@ import re
 
 from app.database import get_db
 from app.models.tenant import Module, Tenant, TenantModule, TenantPayment, PaymentStatus
-from app.models.user import User
+from app.models.user import User, Role, RoleType
+from app.utils.auth import get_password_hash
 from app.schemas.tenant import (
     ModuleCreate, ModuleUpdate, ModuleResponse,
     TenantCreate, TenantUpdate, TenantResponse, TenantListResponse,
@@ -219,10 +220,15 @@ async def create_tenant(
     pos_username = data.pos_username if data.pos_username else generate_pos_username(data.name)
     pos_password = data.pos_password if data.pos_password else generate_pos_password()
     
+    # Generate POS URL automatically if not provided
+    pos_url = data.pos_url
+    if not pos_url:
+        pos_url = "https://galia-address-app-hhgq2rtr.devinapps.com"
+    
     tenant = Tenant(
         name=data.name,
         code=data.code,
-        subdomain=data.subdomain,
+        subdomain=data.subdomain if data.subdomain else None,
         logo_url=data.logo_url,
         primary_color=data.primary_color or "#10b981",
         contact_name=data.contact_name,
@@ -231,13 +237,43 @@ async def create_tenant(
         address=data.address,
         monthly_fee=data.monthly_fee or 0,
         notes=data.notes,
-        pos_url=data.pos_url,
+        pos_url=pos_url,
         pos_username=pos_username,
         pos_password=pos_password
     )
     db.add(tenant)
     db.commit()
     db.refresh(tenant)
+    
+    # Create admin role for this tenant
+    admin_role = Role(
+        tenant_id=tenant.id,
+        name="Administrador",
+        role_type=RoleType.ADMIN,
+        can_void_sales=True,
+        can_manage_inventory=True,
+        can_manage_users=True,
+        can_view_reports=True,
+        can_manage_locations=True,
+        can_set_stock_thresholds=True,
+        can_close_shifts=True
+    )
+    db.add(admin_role)
+    db.commit()
+    db.refresh(admin_role)
+    
+    # Create admin user for this tenant with the generated credentials
+    admin_user = User(
+        tenant_id=tenant.id,
+        username=pos_username,
+        full_name=data.contact_name or data.name,
+        email=data.contact_email,
+        hashed_password=get_password_hash(pos_password),
+        role_id=admin_role.id,
+        is_active=True
+    )
+    db.add(admin_user)
+    db.commit()
     
     core_modules = db.query(Module).filter(Module.is_core == True, Module.is_active == True).all()
     for module in core_modules:
