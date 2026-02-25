@@ -8,7 +8,6 @@ import {
   ShoppingCart,
   Package,
   Users,
-  MapPin,
   FileText,
   LogOut,
   Bell,
@@ -92,14 +91,6 @@ const Layout: React.FC = () => {
 
   const isAdmin = user?.role?.role_type === 'superuser' || user?.role?.role_type === 'admin';
   const isSuperuser = user?.role?.role_type === 'superuser';
-
-  // Check if a module is enabled for this tenant
-  const isModuleEnabled = (moduleCode: string) => {
-    // System admin (no tenant_id) sees all modules
-    if (isSuperuser && !user?.tenant_id) return true;
-    // Tenant users only see their enabled modules
-    return enabledModules.some(m => m.code === moduleCode);
-  };
 
   // Build menu items dynamically from enabled modules
   const menuItems = enabledModules.length > 0 

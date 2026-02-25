@@ -6,6 +6,7 @@ export interface User {
   role_id: number;
   role?: Role;
   location_id: number | null;
+  tenant_id: number | null;
   is_active: boolean;
   points: number;
   created_at: string;
