@@ -245,11 +245,11 @@ async def create_tenant(
     db.commit()
     db.refresh(tenant)
     
-    # Create admin role for this tenant
+    # Create superuser role for this tenant
     admin_role = Role(
         tenant_id=tenant.id,
-        name="Administrador",
-        role_type=RoleType.ADMIN,
+        name="Superusuario",
+        role_type=RoleType.SUPERUSER,
         can_void_sales=True,
         can_manage_inventory=True,
         can_manage_users=True,
