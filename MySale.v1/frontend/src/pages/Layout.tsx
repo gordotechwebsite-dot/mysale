@@ -462,12 +462,11 @@ const Layout: React.FC = () => {
         {/* Logo */}
         <div className="p-5" style={{ borderBottom: '1px solid #e5e7eb' }}>
           <div className="flex items-center gap-3">
-            <div 
-              className="w-10 h-10 flex items-center justify-center"
-              style={{ backgroundColor: '#00a86b', borderRadius: '50%' }}
-            >
-              <span className="text-lg font-bold text-white">M</span>
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="MySale Logo" 
+              style={{ width: '40px', height: '40px', objectFit: 'contain' }}
+            />
             <div>
               <h1 className="font-semibold text-base" style={{ color: '#111827' }}>MySale</h1>
               <p className="text-xs" style={{ color: '#6b7280' }}>Sistema POS</p>

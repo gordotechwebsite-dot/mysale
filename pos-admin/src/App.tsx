@@ -301,10 +301,13 @@ function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-4">
-            <Building2 className="w-8 h-8 text-emerald-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">POS Admin</h1>
+          <img 
+            src="/logo.png" 
+            alt="MySale Logo" 
+            className="mx-auto mb-4"
+            style={{ width: '64px', height: '64px', objectFit: 'contain' }}
+          />
+          <h1 className="text-2xl font-bold text-gray-900">MySale Factory</h1>
           <p className="text-gray-500 mt-2">Plataforma de Gestión de Clientes POS</p>
         </div>
 
@@ -1590,8 +1593,8 @@ function MainApp() {
         <div className="p-4 border-b flex items-center justify-between">
           {sidebarOpen && (
             <div className="flex items-center gap-2">
-              <Building2 className="w-8 h-8 text-emerald-600" />
-              <span className="font-bold text-gray-900">POS Admin</span>
+              <img src="/logo.png" alt="MySale Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+              <span className="font-bold text-gray-900">MySale Factory</span>
             </div>
           )}
           <button

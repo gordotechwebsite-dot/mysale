@@ -168,15 +168,12 @@ const Login: React.FC = () => {
             >
               {/* Header */}
               <div className="text-center mb-8">
-                <div 
-                  className="mx-auto w-16 h-16 flex items-center justify-center mb-4"
-                  style={{ 
-                    backgroundColor: '#00a86b',
-                    borderRadius: '50%'
-                  }}
-                >
-                  <span className="text-2xl font-bold text-white">M</span>
-                </div>
+                <img 
+                  src="/logo.png" 
+                  alt="MySale Logo" 
+                  className="mx-auto mb-4"
+                  style={{ width: '64px', height: '64px', objectFit: 'contain' }}
+                />
                 <h2 className="font-semibold" style={{ color: '#111827', fontSize: '20px' }}>
                   MySale
                 </h2>
