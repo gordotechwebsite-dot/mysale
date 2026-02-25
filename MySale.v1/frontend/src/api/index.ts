@@ -202,6 +202,17 @@ export const getShifts = async (params?: {
   return response.data;
 };
 
+// Work sessions (asistencia)
+export const getWorkSessions = async (params?: {
+  branch_id?: number;
+  user_id?: number;
+  start_date?: string;
+  end_date?: string;
+}): Promise<import('../types').WorkSession[]> => {
+  const response = await api.get('/api/branches/work-sessions', { params });
+  return response.data;
+};
+
 export const getSales = async (params?: {
   location_id?: number;
   cashier_id?: number;

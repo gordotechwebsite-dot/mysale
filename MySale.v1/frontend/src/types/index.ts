@@ -122,6 +122,22 @@ export interface Shift {
   biometric_verified: boolean;
 }
 
+// Work session (asistencia) registrada por PIN o por acciones en /api/branches
+export interface WorkSession {
+  id: number;
+  tenant_id: number;
+  user_id: number;
+  user_name?: string | null;
+  employee_code?: string | null;
+  branch_id: number;
+  branch_name?: string | null;
+  clock_in: string;
+  clock_out: string | null;
+  total_minutes: number | null;
+  notes?: string | null;
+  created_at: string;
+}
+
 export interface SaleItem {
   id?: number;
   product_id: number;

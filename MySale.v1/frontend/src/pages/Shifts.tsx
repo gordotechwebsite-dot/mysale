@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getShifts, getLocations, getUsers } from '../api';
-import type { Shift, Location, User } from '../types';
+import { getWorkSessions, getLocations, getUsers } from '../api';
+import type { WorkSession, Location, User } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -23,7 +23,7 @@ import { Clock, Loader2 } from 'lucide-react';
 
 const Shifts: React.FC = () => {
   const { user } = useAuth();
-  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [sessions, setSessions] = useState<WorkSession[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,13 +60,12 @@ const Shifts: React.FC = () => {
   const loadShifts = async () => {
     try {
       const params: any = {};
-      if (filterLocation) params.location_id = parseInt(filterLocation);
+      if (filterLocation) params.branch_id = parseInt(filterLocation);
       if (filterUser) params.user_id = parseInt(filterUser);
-      if (filterStatus) params.status = filterStatus;
-      const data = await getShifts(params);
-      setShifts(data);
+      const data = await getWorkSessions(params);
+      setSessions(data);
     } catch (error) {
-      console.error('Error loading shifts:', error);
+      console.error('Error loading sessions:', error);
     }
   };
 
@@ -117,72 +116,59 @@ const Shifts: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4 mb-6">
-                        <Select value={filterLocation || "all"} onValueChange={(v) => setFilterLocation(v === "all" ? "" : v)}>
-                          <SelectTrigger className="w-48">
-                            <SelectValue placeholder="Todas las ubicaciones" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Todas</SelectItem>
-                            {locations.map(l => (
-                              <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+            <Select value={filterLocation || "all"} onValueChange={(v) => setFilterLocation(v === "all" ? "" : v)}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Todas las sucursales" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {locations.map(l => (
+                  <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-                        {isAdmin && (
-                          <Select value={filterUser || "all"} onValueChange={(v) => setFilterUser(v === "all" ? "" : v)}>
-                            <SelectTrigger className="w-48">
-                              <SelectValue placeholder="Todos los usuarios" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">Todos</SelectItem>
-                              {users.map(u => (
-                                <SelectItem key={u.id} value={u.id.toString()}>{u.full_name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-
-                        <Select value={filterStatus || "all"} onValueChange={(v) => setFilterStatus(v === "all" ? "" : v)}>
-                          <SelectTrigger className="w-40">
-                            <SelectValue placeholder="Estado" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Todos</SelectItem>
-                            <SelectItem value="open">Abierto</SelectItem>
-                            <SelectItem value="closed">Cerrado</SelectItem>
-                            <SelectItem value="closed_by_admin">Cerrado por Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
+            {isAdmin && (
+              <Select value={filterUser || "all"} onValueChange={(v) => setFilterUser(v === "all" ? "" : v)}>
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="Todos los usuarios" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {users.map(u => (
+                    <SelectItem key={u.id} value={u.id.toString()}>{u.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Usuario</TableHead>
-                  <TableHead>Ubicacion</TableHead>
-                  <TableHead>Inicio</TableHead>
-                  <TableHead>Fin</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Ventas</TableHead>
-                  <TableHead>Efectivo</TableHead>
-                  <TableHead>Tarjeta</TableHead>
+                  <TableHead>Empleado</TableHead>
+                  <TableHead>Sucursal</TableHead>
+                  <TableHead>Llegada</TableHead>
+                  <TableHead>Salida</TableHead>
+                  <TableHead>Tiempo</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {shifts.map((shift) => (
-                  <TableRow key={shift.id}>
-                    <TableCell className="font-medium">{shift.user_name}</TableCell>
-                    <TableCell>{shift.location_name}</TableCell>
-                    <TableCell>{formatDateTime(shift.start_time)}</TableCell>
-                    <TableCell>{shift.end_time ? formatDateTime(shift.end_time) : '-'}</TableCell>
-                    <TableCell>{getStatusBadge(shift.status)}</TableCell>
-                    <TableCell className="font-semibold">{formatCurrency(shift.total_sales)}</TableCell>
-                    <TableCell>{formatCurrency(shift.total_cash_sales)}</TableCell>
-                    <TableCell>{formatCurrency(shift.total_card_sales)}</TableCell>
-                  </TableRow>
-                ))}
+                {sessions.map((s) => {
+                  const minutes = s.total_minutes ?? (s.clock_out ? Math.floor((new Date(s.clock_out).getTime() - new Date(s.clock_in).getTime())/60000) : Math.floor((Date.now() - new Date(s.clock_in).getTime())/60000));
+                  const h = Math.floor(minutes/60);
+                  const m = minutes%60;
+                  return (
+                    <TableRow key={s.id}>
+                      <TableCell className="font-medium">{s.user_name ?? s.employee_code}</TableCell>
+                      <TableCell>{s.branch_name ?? '-'}</TableCell>
+                      <TableCell>{formatDateTime(s.clock_in)}</TableCell>
+                      <TableCell>{s.clock_out ? formatDateTime(s.clock_out) : '-'}</TableCell>
+                      <TableCell>{h}h {m}m</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

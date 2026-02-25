@@ -308,9 +308,6 @@ const PinModal: React.FC<PinModalProps> = ({ isOpen, onClose }) => {
             <p className="text-lg font-medium" style={{ color: '#111827' }}>
               {result.message}
             </p>
-            <p className="text-sm mt-3" style={{ color: '#6b7280' }}>
-              Este mensaje se cerrara automaticamente...
-            </p>
           </div>
         </div>
       </div>
