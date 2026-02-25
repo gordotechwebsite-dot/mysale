@@ -240,7 +240,7 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
         contact_email: tenant.contact_email || '',
         contact_phone: tenant.contact_phone || '',
         address: tenant.address || '',
-        monthly_fee: tenant.monthly_fee,
+        monthly_fee: String(tenant.monthly_fee),
         primary_color: tenant.primary_color,
         notes: tenant.notes || '',
         access_url: tenant.access_url || '',
