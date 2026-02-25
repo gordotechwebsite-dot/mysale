@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import Layout from './pages/Layout';
 import Dashboard from './pages/Dashboard';
 import POS from './pages/POS';
+import QuickSale from './pages/QuickSale';
 import Inventory from './pages/Inventory';
 import Shifts from './pages/Shifts';
 import Reports from './pages/Reports';
@@ -18,6 +19,12 @@ import Losses from './pages/Losses';
 import Transfers from './pages/Transfers';
 import Expenses from './pages/Expenses';
 import LocationsDashboard from './pages/LocationsDashboard';
+import CostControl from './pages/CostControl';
+import TableManagement from './pages/TableManagement';
+import SuperAdmin from './pages/SuperAdmin';
+import Cash from './pages/Cash';
+import Branches from './pages/Branches';
+import WorkReport from './pages/WorkReport';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -66,16 +73,23 @@ function AppRoutes() {
       >
         <Route index element={<Dashboard />} />
         <Route path="pos" element={<POS />} />
+        <Route path="quick-sale" element={<QuickSale />} />
         <Route path="inventory" element={<Inventory />} />
         <Route path="shifts" element={<Shifts />} />
         <Route path="reports" element={<Reports />} />
         <Route path="users" element={<Users />} />
         <Route path="locations" element={<Locations />} />
-              <Route path="losses" element={<Losses />} />
-              <Route path="transfers" element={<Transfers />} />
-              <Route path="expenses" element={<Expenses />} />
-              <Route path="locations-dashboard" element={<LocationsDashboard />} />
-            </Route>
+        <Route path="losses" element={<Losses />} />
+        <Route path="transfers" element={<Transfers />} />
+        <Route path="expenses" element={<Expenses />} />
+        <Route path="locations-dashboard" element={<LocationsDashboard />} />
+        <Route path="cost-control" element={<CostControl />} />
+        <Route path="tables" element={<TableManagement />} />
+        <Route path="cash" element={<Cash />} />
+        <Route path="branches" element={<Branches />} />
+        <Route path="work-report" element={<WorkReport />} />
+        <Route path="super-admin" element={<SuperAdmin />} />
+      </Route>
     </Routes>
   );
 }
