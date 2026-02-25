@@ -285,6 +285,38 @@ const PinModal: React.FC<PinModalProps> = ({ isOpen, onClose }) => {
     );
   }
 
+  // Success confirmation view (after successful clock in/out)
+  if (result && result.success && result.action !== 'select_branch') {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
+        <div 
+          className="bg-white w-full max-w-sm mx-4 overflow-hidden animate-fade-in"
+          style={{ 
+            borderRadius: '18px',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.12)'
+          }}
+        >
+          {/* Header */}
+          <div className="p-6 text-center" style={{ backgroundColor: '#00a86b' }}>
+            <CheckCircle size={48} className="mx-auto mb-3 text-white" />
+            <h2 className="text-xl font-semibold text-white">
+              {result.action === 'clock_in' ? 'Entrada Registrada' : 'Salida Registrada'}
+            </h2>
+          </div>
+
+          <div className="p-6 text-center">
+            <p className="text-lg font-medium" style={{ color: '#111827' }}>
+              {result.message}
+            </p>
+            <p className="text-sm mt-3" style={{ color: '#6b7280' }}>
+              Este mensaje se cerrara automaticamente...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // PIN entry view
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
@@ -302,24 +334,15 @@ const PinModal: React.FC<PinModalProps> = ({ isOpen, onClose }) => {
           <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.8)' }}>Ingresa tu PIN de 6 digitos</p>
         </div>
 
-        {/* Result message */}
-        {result && (
+        {/* Error message only */}
+        {result && !result.success && (
           <div 
             className="p-4"
-            style={{ 
-              backgroundColor: result.success ? 'rgba(0, 168, 107, 0.1)' : 'rgba(239, 68, 68, 0.1)'
-            }}
+            style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
           >
             <div className="flex items-center gap-3">
-              {result.success ? (
-                <CheckCircle size={24} style={{ color: '#00a86b' }} />
-              ) : (
-                <XCircle size={24} style={{ color: '#ef4444' }} />
-              )}
-              <p 
-                className="text-sm font-medium"
-                style={{ color: result.success ? '#00a86b' : '#ef4444' }}
-              >
+              <XCircle size={24} style={{ color: '#ef4444' }} />
+              <p className="text-sm font-medium" style={{ color: '#ef4444' }}>
                 {result.message}
               </p>
             </div>
