@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
+import json
 from app.database import get_db
 from app.models.user import User, Role, RoleType
+from app.models.audit import AuditLog
 from app.schemas.user import Token, UserResponse, UserLogin
 from app.utils.auth import (
     verify_password, get_password_hash, create_access_token,
@@ -11,6 +13,25 @@ from app.utils.auth import (
 )
 
 router = APIRouter(prefix="/api/auth", tags=["Autenticacion"])
+
+
+def log_audit(db: Session, action: str, user_id: int = None, tenant_id: int = None, 
+              username: str = None, resource_type: str = None, resource_id: int = None,
+              details: dict = None, ip_address: str = None, user_agent: str = None):
+    """Helper function to create audit log entries."""
+    audit_log = AuditLog(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        username=username,
+        action=action,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        details=json.dumps(details) if details else None,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
+    db.add(audit_log)
+    db.commit()
 
 
 @router.post("/login", response_model=Token)
