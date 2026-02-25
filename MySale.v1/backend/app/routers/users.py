@@ -4,6 +4,7 @@ from typing import List
 from app.database import get_db
 from app.models.user import User, Role, RoleType
 from app.models.tenant import Module, TenantModule
+from app.models.branch import WorkSession
 from app.schemas.user import (
     UserCreate, UserUpdate, UserResponse,
     RoleCreate, RoleResponse
@@ -231,6 +232,9 @@ async def delete_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No puede eliminar su propio usuario"
         )
+    
+    # Delete related work sessions first to avoid foreign key constraint errors
+    db.query(WorkSession).filter(WorkSession.user_id == user_id).delete()
     
     db.delete(user)
     db.commit()
