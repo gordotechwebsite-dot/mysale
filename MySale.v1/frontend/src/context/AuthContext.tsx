@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { User } from '../types';
-import { getMe, getMyModules, EnabledModule } from '../api';
+import { getMe, getMyModules, EnabledModule, autoClockIn, autoClockOut } from '../api';
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   enabledModules: EnabledModule[];
   login: (token: string, user: User) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
   refreshModules: () => Promise<void>;
 }
@@ -62,16 +62,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
-    // Load modules after login
+    // Load modules and auto clock-in after login
     try {
-      const modules = await getMyModules();
+      const [modules] = await Promise.all([
+        getMyModules(),
+        autoClockIn().catch(e => console.error('Auto clock-in error:', e))
+      ]);
       setEnabledModules(modules);
     } catch (e) {
       console.error('Error loading modules:', e);
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Auto clock-out before clearing session
+    try {
+      await autoClockOut();
+    } catch (e) {
+      console.error('Auto clock-out error:', e);
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);

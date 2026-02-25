@@ -28,6 +28,8 @@ const Shifts: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [filterLocation, setFilterLocation] = useState<string>('');
   const [filterUser, setFilterUser] = useState<string>('');
+  const [filterStartDate, setFilterStartDate] = useState<string>('');
+  const [filterEndDate, setFilterEndDate] = useState<string>('');
 
   const isAdmin = user?.role?.role_type === 'superuser' || user?.role?.role_type === 'admin';
 
@@ -37,7 +39,7 @@ const Shifts: React.FC = () => {
 
   useEffect(() => {
     loadShifts();
-  }, [filterLocation, filterUser]);
+  }, [filterLocation, filterUser, filterStartDate, filterEndDate]);
 
   const loadData = async () => {
     try {
@@ -60,6 +62,8 @@ const Shifts: React.FC = () => {
       const params: any = {};
       if (filterLocation) params.branch_id = parseInt(filterLocation);
       if (filterUser) params.user_id = parseInt(filterUser);
+      if (filterStartDate) params.start_date = filterStartDate + 'T00:00:00';
+      if (filterEndDate) params.end_date = filterEndDate + 'T23:59:59';
       const data = await getWorkSessions(params);
       setSessions(data);
     } catch (error) {
@@ -118,6 +122,27 @@ const Shifts: React.FC = () => {
                 </SelectContent>
               </Select>
             )}
+
+            <div className="flex items-center gap-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Desde</label>
+                <input
+                  type="date"
+                  value={filterStartDate}
+                  onChange={(e) => setFilterStartDate(e.target.value)}
+                  className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Hasta</label>
+                <input
+                  type="date"
+                  value={filterEndDate}
+                  onChange={(e) => setFilterEndDate(e.target.value)}
+                  className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="overflow-x-auto">

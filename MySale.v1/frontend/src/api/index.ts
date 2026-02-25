@@ -1119,3 +1119,15 @@ export const clockWithPin = async (pin: string, branchId?: number): Promise<PinC
   });
   return response.data;
 };
+
+// ==================== AUTO CLOCK IN/OUT ====================
+
+export const autoClockIn = async (): Promise<WorkSession | null> => {
+  const response = await api.post('/api/branches/auto-clock-in');
+  return response.data;
+};
+
+export const autoClockOut = async (): Promise<{ message: string; total_minutes?: number }> => {
+  const response = await api.post('/api/branches/auto-clock-out');
+  return response.data;
+};

@@ -24,123 +24,8 @@ def filter_by_tenant(query, model, tenant_id):
     return query
 
 
-# ==================== BRANCH CRUD ====================
-
-@router.get("/", response_model=List[BranchResponse])
-async def get_branches(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Get all branches for the current tenant"""
-    query = db.query(Branch)
-    query = filter_by_tenant(query, Branch, current_user.tenant_id)
-    return query.order_by(Branch.name).all()
-
-
-@router.post("/", response_model=BranchResponse)
-async def create_branch(
-    branch: BranchCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
-):
-    """Create a new branch (sede)"""
-    # Check if code already exists for this tenant
-    query = db.query(Branch).filter(Branch.code == branch.code)
-    query = filter_by_tenant(query, Branch, current_user.tenant_id)
-    existing = query.first()
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ya existe una sede con ese codigo"
-        )
-    
-    db_branch = Branch(**branch.model_dump(), tenant_id=current_user.tenant_id)
-    db.add(db_branch)
-    db.commit()
-    db.refresh(db_branch)
-    return db_branch
-
-
-@router.get("/{branch_id}", response_model=BranchResponse)
-async def get_branch(
-    branch_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Get a specific branch by ID"""
-    query = db.query(Branch).filter(Branch.id == branch_id)
-    query = filter_by_tenant(query, Branch, current_user.tenant_id)
-    branch = query.first()
-    if not branch:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Sede no encontrada"
-        )
-    return branch
-
-
-@router.put("/{branch_id}", response_model=BranchResponse)
-async def update_branch(
-    branch_id: int,
-    branch_update: BranchUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
-):
-    """Update a branch"""
-    query = db.query(Branch).filter(Branch.id == branch_id)
-    query = filter_by_tenant(query, Branch, current_user.tenant_id)
-    branch = query.first()
-    if not branch:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Sede no encontrada"
-        )
-    
-    # Check if new code already exists
-    if branch_update.code and branch_update.code != branch.code:
-        existing = db.query(Branch).filter(
-            Branch.code == branch_update.code,
-            Branch.tenant_id == current_user.tenant_id,
-            Branch.id != branch_id
-        ).first()
-        if existing:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Ya existe otra sede con ese codigo"
-            )
-    
-    update_data = branch_update.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(branch, field, value)
-    
-    db.commit()
-    db.refresh(branch)
-    return branch
-
-
-@router.delete("/{branch_id}")
-async def delete_branch(
-    branch_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(RoleType.SUPERUSER))
-):
-    """Deactivate a branch (soft delete)"""
-    query = db.query(Branch).filter(Branch.id == branch_id)
-    query = filter_by_tenant(query, Branch, current_user.tenant_id)
-    branch = query.first()
-    if not branch:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Sede no encontrada"
-        )
-    
-    branch.is_active = False
-    db.commit()
-    
-    return {"message": "Sede desactivada exitosamente"}
-
-
 # ==================== WORK SESSIONS (Clock In/Out) ====================
+# NOTE: These specific routes MUST be defined BEFORE /{branch_id} to avoid route conflicts
 
 @router.post("/clock-in", response_model=WorkSessionResponse)
 async def clock_in(
@@ -251,6 +136,106 @@ async def clock_out(
         notes=work_session.notes,
         created_at=work_session.created_at
     )
+
+
+@router.post("/auto-clock-in", response_model=Optional[WorkSessionResponse])
+async def auto_clock_in(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Auto clock-in on login. Uses the user's default_branch_id or first available branch."""
+    # Check if user already has an open session
+    open_session = db.query(WorkSession).filter(
+        WorkSession.user_id == current_user.id,
+        WorkSession.clock_out.is_(None)
+    ).first()
+    if open_session:
+        # Already clocked in, return existing session
+        branch = db.query(Branch).filter(Branch.id == open_session.branch_id).first()
+        return WorkSessionResponse(
+            id=open_session.id,
+            tenant_id=open_session.tenant_id,
+            user_id=open_session.user_id,
+            branch_id=open_session.branch_id,
+            branch_name=branch.name if branch else None,
+            user_name=current_user.full_name,
+            employee_code=current_user.employee_code,
+            clock_in=open_session.clock_in,
+            clock_out=open_session.clock_out,
+            total_minutes=open_session.total_minutes,
+            notes=open_session.notes,
+            created_at=open_session.created_at
+        )
+    
+    # Find branch to clock into
+    branch = None
+    if current_user.default_branch_id:
+        branch = db.query(Branch).filter(
+            Branch.id == current_user.default_branch_id,
+            Branch.is_active == True
+        ).first()
+    
+    # If no default branch, try first active branch for the tenant
+    if not branch:
+        query = db.query(Branch).filter(Branch.is_active == True)
+        query = filter_by_tenant(query, Branch, current_user.tenant_id)
+        branch = query.first()
+    
+    if not branch:
+        return None  # No branch available
+    
+    # Create work session
+    work_session = WorkSession(
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.id,
+        branch_id=branch.id,
+        clock_in=datetime.utcnow(),
+        notes="Auto registro al iniciar sesion"
+    )
+    db.add(work_session)
+    db.commit()
+    db.refresh(work_session)
+    
+    return WorkSessionResponse(
+        id=work_session.id,
+        tenant_id=work_session.tenant_id,
+        user_id=work_session.user_id,
+        branch_id=work_session.branch_id,
+        branch_name=branch.name,
+        user_name=current_user.full_name,
+        employee_code=current_user.employee_code,
+        clock_in=work_session.clock_in,
+        clock_out=work_session.clock_out,
+        total_minutes=work_session.total_minutes,
+        notes=work_session.notes,
+        created_at=work_session.created_at
+    )
+
+
+@router.post("/auto-clock-out")
+async def auto_clock_out(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Auto clock-out on logout. Closes any open work session for the user."""
+    work_session = db.query(WorkSession).filter(
+        WorkSession.user_id == current_user.id,
+        WorkSession.clock_out.is_(None)
+    ).first()
+    
+    if not work_session:
+        return {"message": "No hay sesion abierta"}
+    
+    clock_out_time = datetime.utcnow()
+    total_minutes = int((clock_out_time - work_session.clock_in).total_seconds() / 60)
+    
+    work_session.clock_out = clock_out_time
+    work_session.total_minutes = total_minutes
+    work_session.notes = (work_session.notes or "") + " | Auto registro al cerrar sesion"
+    
+    db.commit()
+    
+    return {"message": "Sesion cerrada exitosamente", "total_minutes": total_minutes}
 
 
 @router.get("/current-session", response_model=Optional[WorkSessionResponse])
@@ -394,6 +379,122 @@ async def get_work_report(
         ))
     
     return sorted(result, key=lambda x: x.total_hours, reverse=True)
+
+
+# ==================== BRANCH CRUD ====================
+
+@router.get("/", response_model=List[BranchResponse])
+async def get_branches(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all branches for the current tenant"""
+    query = db.query(Branch)
+    query = filter_by_tenant(query, Branch, current_user.tenant_id)
+    return query.order_by(Branch.name).all()
+
+
+@router.post("/", response_model=BranchResponse)
+async def create_branch(
+    branch: BranchCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Create a new branch (sede)"""
+    # Check if code already exists for this tenant
+    query = db.query(Branch).filter(Branch.code == branch.code)
+    query = filter_by_tenant(query, Branch, current_user.tenant_id)
+    existing = query.first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ya existe una sede con ese codigo"
+        )
+    
+    db_branch = Branch(**branch.model_dump(), tenant_id=current_user.tenant_id)
+    db.add(db_branch)
+    db.commit()
+    db.refresh(db_branch)
+    return db_branch
+
+
+@router.get("/{branch_id}", response_model=BranchResponse)
+async def get_branch(
+    branch_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get a specific branch by ID"""
+    query = db.query(Branch).filter(Branch.id == branch_id)
+    query = filter_by_tenant(query, Branch, current_user.tenant_id)
+    branch = query.first()
+    if not branch:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sede no encontrada"
+        )
+    return branch
+
+
+@router.put("/{branch_id}", response_model=BranchResponse)
+async def update_branch(
+    branch_id: int,
+    branch_update: BranchUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Update a branch"""
+    query = db.query(Branch).filter(Branch.id == branch_id)
+    query = filter_by_tenant(query, Branch, current_user.tenant_id)
+    branch = query.first()
+    if not branch:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sede no encontrada"
+        )
+    
+    # Check if new code already exists
+    if branch_update.code and branch_update.code != branch.code:
+        existing = db.query(Branch).filter(
+            Branch.code == branch_update.code,
+            Branch.tenant_id == current_user.tenant_id,
+            Branch.id != branch_id
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ya existe otra sede con ese codigo"
+            )
+    
+    update_data = branch_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(branch, field, value)
+    
+    db.commit()
+    db.refresh(branch)
+    return branch
+
+
+@router.delete("/{branch_id}")
+async def delete_branch(
+    branch_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER))
+):
+    """Deactivate a branch (soft delete)"""
+    query = db.query(Branch).filter(Branch.id == branch_id)
+    query = filter_by_tenant(query, Branch, current_user.tenant_id)
+    branch = query.first()
+    if not branch:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sede no encontrada"
+        )
+    
+    branch.is_active = False
+    db.commit()
+    
+    return {"message": "Sede desactivada exitosamente"}
 
 
 # ==================== PIN-BASED CLOCK IN/OUT ====================
