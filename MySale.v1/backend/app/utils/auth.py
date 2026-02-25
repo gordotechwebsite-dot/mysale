@@ -7,6 +7,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
+from app.models.tenant import Module, TenantModule
 import os
 
 SECRET_KEY = os.getenv("SECRET_KEY", "mysale-v1-secret-key-change-in-production")
@@ -99,3 +100,52 @@ def require_role(*allowed_roles):
             )
         return current_user
     return role_checker
+
+
+def require_module(module_code: str):
+    """
+    Dependency that requires a specific module to be enabled for the user's tenant.
+    Superusers without tenant_id bypass this check.
+    """
+    async def module_checker(
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+    ) -> User:
+        # Superuser without tenant can access all modules
+        if current_user.role and current_user.role.role_type == "superuser" and not current_user.tenant_id:
+            return current_user
+        
+        # User must have a tenant
+        if not current_user.tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Módulo '{module_code}' no disponible"
+            )
+        
+        # Check if module exists and is active
+        module = db.query(Module).filter(
+            Module.code == module_code,
+            Module.is_active == True
+        ).first()
+        
+        if not module:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Módulo '{module_code}' no existe"
+            )
+        
+        # Check if tenant has this module enabled
+        tenant_module = db.query(TenantModule).filter(
+            TenantModule.tenant_id == current_user.tenant_id,
+            TenantModule.module_id == module.id,
+            TenantModule.is_enabled == True
+        ).first()
+        
+        if not tenant_module:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Módulo '{module_code}' no habilitado para este tenant"
+            )
+        
+        return current_user
+    return module_checker

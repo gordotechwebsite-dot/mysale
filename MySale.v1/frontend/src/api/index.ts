@@ -360,3 +360,18 @@ export const updateLocation = async (id: number, data: {
   const response = await api.put(`/api/locations/${id}`, data);
   return response.data;
 };
+
+// ==================== TENANT MODULES ====================
+
+export interface EnabledModule {
+  code: string;
+  name: string;
+  icon: string | null;
+  route: string | null;
+  display_order: number;
+}
+
+export const getMyModules = async (): Promise<EnabledModule[]> => {
+  const response = await api.get('/api/users/me/modules');
+  return response.data;
+};

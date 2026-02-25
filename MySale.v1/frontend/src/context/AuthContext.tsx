@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { User } from '../types';
-import { getMe } from '../api';
+import { getMe, getMyModules, EnabledModule } from '../api';
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
+  enabledModules: EnabledModule[];
   login: (token: string, user: User) => void;
   logout: () => void;
   isLoading: boolean;
+  refreshModules: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -15,7 +17,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [enabledModules, setEnabledModules] = useState<EnabledModule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const loadModules = async () => {
+    try {
+      const modules = await getMyModules();
+      setEnabledModules(modules);
+    } catch (e) {
+      console.error('Error loading modules:', e);
+      setEnabledModules([]);
+    }
+  };
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
@@ -25,9 +38,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
       
-      getMe()
-        .then((userData) => {
+      Promise.all([getMe(), getMyModules()])
+        .then(([userData, modules]) => {
           setUser(userData);
+          setEnabledModules(modules);
           localStorage.setItem('user', JSON.stringify(userData));
         })
         .catch(() => {
@@ -35,6 +49,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           localStorage.removeItem('user');
           setToken(null);
           setUser(null);
+          setEnabledModules([]);
         })
         .finally(() => setIsLoading(false));
     } else {
@@ -42,11 +57,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const login = (newToken: string, newUser: User) => {
+  const login = async (newToken: string, newUser: User) => {
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
+    // Load modules after login
+    try {
+      const modules = await getMyModules();
+      setEnabledModules(modules);
+    } catch (e) {
+      console.error('Error loading modules:', e);
+    }
   };
 
   const logout = () => {
@@ -54,10 +76,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
+    setEnabledModules([]);
+  };
+
+  const refreshModules = async () => {
+    await loadModules();
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, enabledModules, login, logout, isLoading, refreshModules }}>
       {children}
     </AuthContext.Provider>
   );

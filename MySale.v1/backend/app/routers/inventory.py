@@ -12,7 +12,7 @@ from app.schemas.inventory import (
     ProductCreate, ProductUpdate, ProductResponse, ProductStockResponse,
     StockAdjustment, PurchaseCreate
 )
-from app.utils.auth import get_current_user, require_role
+from app.utils.auth import get_current_user, require_role, require_module
 
 router = APIRouter(prefix="/api/inventory", tags=["Inventario"])
 
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/inventory", tags=["Inventario"])
 @router.get("/groups", response_model=List[GroupResponse])
 async def get_groups(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_module("inventory"))
 ):
     return db.query(Group).filter(Group.is_active == True).all()
 
@@ -29,7 +29,8 @@ async def get_groups(
 async def create_group(
     group: GroupCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN)),
+    _module_check: User = Depends(require_module("inventory"))
 ):
     existing = db.query(Group).filter(Group.name == group.name).first()
     if existing:
@@ -46,7 +47,7 @@ async def create_group(
 async def get_families(
     group_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_module("inventory"))
 ):
     query = db.query(Family).filter(Family.is_active == True)
     if group_id:
@@ -58,7 +59,8 @@ async def get_families(
 async def create_family(
     family: FamilyCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN)),
+    _module_check: User = Depends(require_module("inventory"))
 ):
     group = db.query(Group).filter(Group.id == family.group_id).first()
     if not group:
@@ -75,7 +77,7 @@ async def create_family(
 async def get_subfamilies(
     family_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_module("inventory"))
 ):
     query = db.query(SubFamily).filter(SubFamily.is_active == True)
     if family_id:
@@ -87,7 +89,8 @@ async def get_subfamilies(
 async def create_subfamily(
     subfamily: SubFamilyCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN)),
+    _module_check: User = Depends(require_module("inventory"))
 ):
     family = db.query(Family).filter(Family.id == subfamily.family_id).first()
     if not family:
@@ -108,7 +111,7 @@ async def get_products(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_module("inventory"))
 ):
     query = db.query(Product).filter(Product.is_active == True)
     
@@ -174,7 +177,8 @@ async def get_products(
 async def create_product(
     product: ProductCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN)),
+    _module_check: User = Depends(require_module("inventory"))
 ):
     existing = db.query(Product).filter(Product.code == product.code).first()
     if existing:
@@ -226,7 +230,7 @@ async def create_product(
 async def get_product(
     product_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_module("inventory"))
 ):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
@@ -265,7 +269,8 @@ async def update_product(
     product_id: int,
     product_update: ProductUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN)),
+    _module_check: User = Depends(require_module("inventory"))
 ):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
@@ -308,7 +313,8 @@ async def update_product(
 async def register_purchase(
     purchase: PurchaseCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN)),
+    _module_check: User = Depends(require_module("inventory"))
 ):
     product = db.query(Product).filter(Product.id == purchase.product_id).first()
     if not product:
@@ -367,7 +373,8 @@ async def register_purchase(
 async def adjust_stock(
     adjustment: StockAdjustment,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN)),
+    _module_check: User = Depends(require_module("inventory"))
 ):
     product = db.query(Product).filter(Product.id == adjustment.product_id).first()
     if not product:
@@ -413,7 +420,7 @@ async def blind_inventory(
     location_id: int,
     items: List[StockAdjustment],
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_module("inventory"))
 ):
     from datetime import datetime
     
@@ -474,7 +481,8 @@ async def blind_inventory(
 async def get_stock_alerts(
     location_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN)),
+    _module_check: User = Depends(require_module("inventory"))
 ):
     query = db.query(ProductStock).join(Product)
     
