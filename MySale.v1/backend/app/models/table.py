@@ -10,13 +10,45 @@ class TableStatus(str, enum.Enum):
     OCCUPIED = "occupied"
     RESERVED = "reserved"
     CLEANING = "cleaning"
+    BILL_OPEN = "bill_open"
+
+
+class TableShape(str, enum.Enum):
+    SQUARE = "square"
+    ROUND = "round"
+    RECTANGLE = "rectangle"
 
 
 class TicketStatus(str, enum.Enum):
     OPEN = "open"
+    TO_PAY = "to_pay"
     CLOSED = "closed"
     CANCELLED = "cancelled"
     PAID = "paid"
+
+
+class TicketItemStatus(str, enum.Enum):
+    PENDING = "pending"
+    SENT = "sent"
+    PREPARING = "preparing"
+    READY = "ready"
+    DELIVERED = "delivered"
+    CANCELLED = "cancelled"
+
+
+class ComandaArea(str, enum.Enum):
+    KITCHEN = "kitchen"
+    BAR = "bar"
+    GRILL = "grill"
+    DESSERTS = "desserts"
+
+
+class ComandaStatus(str, enum.Enum):
+    PENDING = "pending"
+    IN_PREPARATION = "in_preparation"
+    READY = "ready"
+    DELIVERED = "delivered"
+    CANCELLED = "cancelled"
 
 
 class Zone(Base):
@@ -27,6 +59,8 @@ class Zone(Base):
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
     name = Column(String(100), nullable=False)
     description = Column(Text)
+    color = Column(String(20), default="#4ade80")
+    display_order = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -39,9 +73,14 @@ class Table(Base):
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     zone_id = Column(Integer, ForeignKey("zones.id"), nullable=True)
-    number = Column(String(20), nullable=False)
+    name = Column(String(50), nullable=False)
     capacity = Column(Integer, default=4)
+    shape = Column(Enum(TableShape), default=TableShape.SQUARE)
     status = Column(Enum(TableStatus), default=TableStatus.AVAILABLE)
+    position_x = Column(Integer, default=0)
+    position_y = Column(Integer, default=0)
+    width = Column(Integer, default=100)
+    height = Column(Integer, default=100)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -56,14 +95,17 @@ class Ticket(Base):
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     table_id = Column(Integer, ForeignKey("tables.id"), nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    folio = Column(String(50), nullable=False)
+    location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
+    waiter_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    customer_name = Column(String(100))
+    num_people = Column(Integer, default=1)
     status = Column(Enum(TicketStatus), default=TicketStatus.OPEN)
     subtotal = Column(Float, default=0)
     tax = Column(Float, default=0)
+    tip = Column(Float, default=0)
+    service_charge = Column(Float, default=0)
     discount = Column(Float, default=0)
     total = Column(Float, default=0)
-    guests = Column(Integer, default=1)
     notes = Column(Text)
     opened_at = Column(DateTime, default=datetime.utcnow)
     closed_at = Column(DateTime, nullable=True)
@@ -82,11 +124,13 @@ class TicketItem(Base):
     id = Column(Integer, primary_key=True, index=True)
     ticket_id = Column(Integer, ForeignKey("tickets.id"), nullable=False)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    comanda_id = Column(Integer, ForeignKey("comandas.id"), nullable=True)
     quantity = Column(Float, nullable=False)
     unit_price = Column(Float, nullable=False)
+    discount = Column(Float, default=0)
     subtotal = Column(Float, nullable=False)
     notes = Column(Text)
-    is_sent = Column(Boolean, default=False)
+    status = Column(Enum(TicketItemStatus), default=TicketItemStatus.PENDING)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     ticket = relationship("Ticket", back_populates="items")
@@ -98,10 +142,12 @@ class Comanda(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     ticket_id = Column(Integer, ForeignKey("tickets.id"), nullable=False)
-    folio = Column(String(50), nullable=False)
+    area = Column(Enum(ComandaArea), default=ComandaArea.KITCHEN)
+    status = Column(Enum(ComandaStatus), default=ComandaStatus.PENDING)
     notes = Column(Text)
     is_printed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     ticket = relationship("Ticket", back_populates="comandas")
 
