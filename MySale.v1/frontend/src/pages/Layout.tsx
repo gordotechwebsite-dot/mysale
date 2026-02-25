@@ -528,26 +528,6 @@ const Layout: React.FC = () => {
           })}
         </nav>
 
-        {/* Logout */}
-        <div className="p-4" style={{ borderTop: '1px solid #e5e7eb' }}>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 transition-colors"
-            style={{ 
-              borderRadius: '10px',
-              color: '#ef4444'
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(239, 68, 68, 0.08)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
-            }}
-          >
-            <LogOut size={20} />
-            <span className="font-medium text-sm">Cerrar Sesion</span>
-          </button>
-        </div>
       </aside>
 
       {/* Mobile overlay */}
@@ -600,6 +580,26 @@ const Layout: React.FC = () => {
           <Outlet />
         </div>
       </main>
+
+      {/* Fixed Logout Button - Bottom Right */}
+      <button
+        onClick={handleLogout}
+        className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-3 bg-white shadow-lg transition-all duration-200 hover:shadow-xl z-50"
+        style={{ 
+          borderRadius: '12px',
+          color: '#ef4444',
+          border: '1px solid #fee2e2'
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.backgroundColor = '#fef2f2';
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.backgroundColor = 'white';
+        }}
+      >
+        <LogOut size={18} />
+        <span className="font-medium text-sm">Cerrar Sesion</span>
+      </button>
     </div>
   );
 };

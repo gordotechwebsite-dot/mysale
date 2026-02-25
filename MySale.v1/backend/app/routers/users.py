@@ -18,7 +18,12 @@ async def get_roles(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    roles = db.query(Role).all()
+    # Filter roles by tenant_id
+    if current_user.tenant_id:
+        roles = db.query(Role).filter(Role.tenant_id == current_user.tenant_id).all()
+    else:
+        # System admin sees all roles
+        roles = db.query(Role).all()
     return roles
 
 
@@ -49,7 +54,12 @@ async def get_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    users = db.query(User).offset(skip).limit(limit).all()
+    # Filter users by tenant_id - each client only sees their own users
+    query = db.query(User)
+    if current_user.tenant_id:
+        query = query.filter(User.tenant_id == current_user.tenant_id)
+    
+    users = query.offset(skip).limit(limit).all()
     return [
         UserResponse(
             id=u.id,
@@ -99,7 +109,8 @@ async def create_user(
         full_name=user.full_name,
         hashed_password=hashed_password,
         role_id=user.role_id,
-        location_id=user.location_id
+        location_id=user.location_id,
+        tenant_id=current_user.tenant_id  # Assign same tenant as creator
     )
     db.add(db_user)
     db.commit()
@@ -124,7 +135,10 @@ async def get_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    user = db.query(User).filter(User.id == user_id).first()
+    query = db.query(User).filter(User.id == user_id)
+    if current_user.tenant_id:
+        query = query.filter(User.tenant_id == current_user.tenant_id)
+    user = query.first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -151,7 +165,10 @@ async def update_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
-    user = db.query(User).filter(User.id == user_id).first()
+    query = db.query(User).filter(User.id == user_id)
+    if current_user.tenant_id:
+        query = query.filter(User.tenant_id == current_user.tenant_id)
+    user = query.first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -184,7 +201,10 @@ async def delete_user(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER))
 ):
-    user = db.query(User).filter(User.id == user_id).first()
+    query = db.query(User).filter(User.id == user_id)
+    if current_user.tenant_id:
+        query = query.filter(User.tenant_id == current_user.tenant_id)
+    user = query.first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

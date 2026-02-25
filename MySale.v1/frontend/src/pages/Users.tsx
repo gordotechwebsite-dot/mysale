@@ -72,13 +72,21 @@ const Users: React.FC = () => {
     const handleAddUser = async () => {
       setIsProcessing(true);
       try {
+        // Handle location_id: empty = undefined, "-1" = -1 (rotativo), otherwise parse as int
+        let locationId: number | undefined = undefined;
+        if (newUser.location_id === "-1") {
+          locationId = -1; // Rotativo
+        } else if (newUser.location_id) {
+          locationId = parseInt(newUser.location_id);
+        }
+        
         await createUser({
           username: newUser.username,
           password: newUser.password,
           full_name: newUser.full_name,
           email: newUser.email || undefined,
           role_id: parseInt(newUser.role_id),
-          location_id: newUser.location_id ? parseInt(newUser.location_id) : undefined
+          location_id: locationId
         });
         await loadData();
         setShowAddUser(false);
@@ -169,7 +177,9 @@ const Users: React.FC = () => {
                     <TableCell>{user.email || '-'}</TableCell>
                     <TableCell>{user.role ? getRoleBadge(user.role.role_type) : '-'}</TableCell>
                     <TableCell>
-                      {locations.find(l => l.id === user.location_id)?.name || 'Sin asignar'}
+                      {user.location_id === -1 
+                        ? <Badge className="bg-orange-500">Rotativo</Badge>
+                        : (locations.find(l => l.id === user.location_id)?.name || 'Sin asignar')}
                     </TableCell>
                     <TableCell>
                       {user.is_active ? (
@@ -237,10 +247,11 @@ const Users: React.FC = () => {
             </Select>
                         <Select value={newUser.location_id || "none"} onValueChange={(v) => setNewUser({ ...newUser, location_id: v === "none" ? "" : v })}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Ubicacion (opcional)" />
+                            <SelectValue placeholder="Sucursal asignada" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">Sin asignar</SelectItem>
+                            <SelectItem value="-1">Rotativo (todas las sucursales)</SelectItem>
                             {locations.map(l => (
                               <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
                             ))}
