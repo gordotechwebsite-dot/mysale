@@ -5,7 +5,7 @@ from app.database import get_db
 from app.models.user import User, Role, RoleType
 from app.schemas.user import (
     UserCreate, UserUpdate, UserResponse,
-    RoleCreate, RoleResponse
+    RoleCreate, RoleResponse, SetPinRequest
 )
 from app.utils.auth import get_password_hash, get_current_user, require_role
 
@@ -24,8 +24,13 @@ async def get_roles(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    from sqlalchemy import or_
     query = db.query(Role)
-    query = filter_by_tenant(query, Role, current_user.tenant_id)
+    if current_user.tenant_id:
+        # Show global roles (tenant_id=null) AND tenant-specific roles
+        query = query.filter(
+            or_(Role.tenant_id == None, Role.tenant_id == current_user.tenant_id)
+        )
     return query.all()
 
 
@@ -68,6 +73,9 @@ async def get_users(
             role_id=u.role_id,
             role=u.role,
             location_id=u.location_id,
+            tenant_id=u.tenant_id,
+            employee_code=u.employee_code,
+            default_branch_id=u.default_branch_id,
             is_active=u.is_active,
             points=u.points,
             created_at=u.created_at
@@ -101,6 +109,18 @@ async def create_user(
             detail="Solo un superusuario puede crear otro superusuario"
         )
     
+    # Check if employee_code already exists for this tenant
+    if user.employee_code:
+        existing_code = db.query(User).filter(
+            User.employee_code == user.employee_code,
+            User.tenant_id == current_user.tenant_id
+        ).first()
+        if existing_code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ya existe un empleado con ese codigo"
+            )
+    
     hashed_password = get_password_hash(user.password)
     db_user = User(
         tenant_id=current_user.tenant_id,
@@ -109,7 +129,9 @@ async def create_user(
         full_name=user.full_name,
         hashed_password=hashed_password,
         role_id=user.role_id,
-        location_id=user.location_id
+        location_id=user.location_id,
+        employee_code=user.employee_code,
+        default_branch_id=user.default_branch_id
     )
     db.add(db_user)
     db.commit()
@@ -122,6 +144,9 @@ async def create_user(
         full_name=db_user.full_name,
         role_id=db_user.role_id,
         location_id=db_user.location_id,
+        tenant_id=db_user.tenant_id,
+        employee_code=db_user.employee_code,
+        default_branch_id=db_user.default_branch_id,
         is_active=db_user.is_active,
         points=db_user.points,
         created_at=db_user.created_at
@@ -211,3 +236,77 @@ async def delete_user(
     db.commit()
     
     return {"message": "Usuario desactivado exitosamente"}
+
+
+@router.post("/me/pin")
+async def set_my_pin(
+    request: SetPinRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Set or update the current user's PIN for shift operations"""
+    if len(request.pin) < 4 or len(request.pin) > 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El PIN debe tener entre 4 y 6 digitos"
+        )
+    
+    if not request.pin.isdigit():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El PIN debe contener solo numeros"
+        )
+    
+    current_user.pin_hash = get_password_hash(request.pin)
+    db.commit()
+    
+    return {"message": "PIN configurado exitosamente"}
+
+
+@router.get("/me/has-pin")
+async def check_has_pin(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Check if the current user has a PIN configured"""
+    return {"has_pin": current_user.pin_hash is not None}
+
+
+@router.post("/{user_id}/pin")
+async def set_user_pin(
+    user_id: int,
+    request: SetPinRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Set or update a user's PIN (admin only)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    
+    # Check tenant access
+    if current_user.tenant_id and user.tenant_id != current_user.tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tiene acceso a este usuario"
+        )
+    
+    if len(request.pin) < 4 or len(request.pin) > 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El PIN debe tener entre 4 y 6 digitos"
+        )
+    
+    if not request.pin.isdigit():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El PIN debe contener solo numeros"
+        )
+    
+    user.pin_hash = get_password_hash(request.pin)
+    db.commit()
+    
+    return {"message": f"PIN configurado para {user.full_name}"}

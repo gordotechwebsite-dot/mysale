@@ -23,8 +23,52 @@ import {
   UtensilsCrossed,
   Shield,
   Zap,
-  Banknote
+  Banknote,
+  Building2,
+  ClipboardList
 } from 'lucide-react';
+
+// Colombia Clock Component - Real-time clock synchronized to Colombia timezone (UTC-5)
+const ColombiaClockDisplay: React.FC = () => {
+  const [time, setTime] = React.useState(new Date());
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Format date and time for Colombia timezone (America/Bogota)
+  const colombiaOptions: Intl.DateTimeFormatOptions = {
+    timeZone: 'America/Bogota',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  };
+  
+  const timeOptions: Intl.DateTimeFormatOptions = {
+    timeZone: 'America/Bogota',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  };
+
+  const dateStr = time.toLocaleDateString('es-CO', colombiaOptions);
+  const timeStr = time.toLocaleTimeString('es-CO', timeOptions);
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg">
+      <Clock size={18} className="text-emerald-600" />
+      <div className="text-sm">
+        <div className="font-semibold text-gray-800">{timeStr}</div>
+        <div className="text-xs text-gray-500 capitalize">{dateStr}</div>
+      </div>
+    </div>
+  );
+};
 
 const Layout: React.FC = () => {
   const { user, logout, enabledModules } = useAuth();
@@ -61,9 +105,11 @@ const Layout: React.FC = () => {
       { path: '/cash', icon: Banknote, label: 'Caja', show: isModuleEnabled('cash') },
       { path: '/shifts', icon: Clock, label: 'Turnos', show: isModuleEnabled('shifts') },
       { path: '/reports', icon: FileText, label: 'Reportes', show: isAdmin && isModuleEnabled('reports') },
-      { path: '/users', icon: Users, label: 'Usuarios', show: isAdmin && isModuleEnabled('users') },
-      { path: '/locations', icon: MapPin, label: 'Ubicaciones', show: isSuperuser && isModuleEnabled('locations') },
-      { path: '/super-admin', icon: Shield, label: 'Super Admin', show: isSuperuser && isModuleEnabled('super_admin') },
+            { path: '/users', icon: Users, label: 'Usuarios', show: isAdmin && isModuleEnabled('users') },
+            { path: '/branches', icon: Building2, label: 'Sedes', show: isAdmin && isModuleEnabled('branches') },
+            { path: '/work-report', icon: ClipboardList, label: 'Horas Trabajadas', show: isAdmin && isModuleEnabled('work_report') },
+            { path: '/locations', icon: MapPin, label: 'Ubicaciones', show: isSuperuser && isModuleEnabled('locations') },
+            { path: '/super-admin', icon: Shield, label: 'Super Admin', show: isSuperuser && isModuleEnabled('super_admin') },
     ];
 
   return (
@@ -147,6 +193,7 @@ const Layout: React.FC = () => {
             {menuItems.find(item => item.path === location.pathname)?.label || 'MySale.v1'}
           </h2>
           <div className="flex items-center gap-4">
+            <ColombiaClockDisplay />
             <Button variant="ghost" size="icon" className="relative">
               <Bell size={20} />
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">

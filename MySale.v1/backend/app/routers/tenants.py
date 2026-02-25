@@ -2,10 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
+import secrets
+import string
+import unicodedata
+import re
 
 from app.database import get_db
 from app.models.tenant import Module, Tenant, TenantModule, TenantPayment, PaymentStatus
-from app.models.user import User
+from app.models.user import User, Role, RoleType
+from app.utils.auth import get_password_hash
 from app.schemas.tenant import (
     ModuleCreate, ModuleUpdate, ModuleResponse,
     TenantCreate, TenantUpdate, TenantResponse, TenantListResponse,
@@ -16,6 +21,22 @@ from app.schemas.tenant import (
 from app.utils.auth import get_current_user, require_role
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+
+def generate_pos_username(name: str) -> str:
+    """Generate a POS username from the tenant name"""
+    normalized = unicodedata.normalize('NFD', name.lower())
+    ascii_name = normalized.encode('ascii', 'ignore').decode('ascii')
+    clean_name = re.sub(r'[^a-z0-9]', '', ascii_name)
+    if len(clean_name) < 3:
+        clean_name = "user"
+    return f"{clean_name[:10]}_admin"
+
+
+def generate_pos_password(length: int = 8) -> str:
+    """Generate a random password for POS access"""
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
 @router.get("/modules", response_model=List[ModuleResponse])
@@ -87,7 +108,7 @@ async def update_module(
 
 @router.get("/tenants", response_model=List[TenantListResponse])
 async def get_tenants(
-    is_active: Optional[bool] = None,
+    is_active: Optional[bool] = True,
     payment_status: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("superuser"))
@@ -122,6 +143,9 @@ async def get_tenants(
             payment_status=tenant.payment_status.value,
             payment_due_date=tenant.payment_due_date,
             monthly_fee=tenant.monthly_fee,
+            pos_url=getattr(tenant, 'pos_url', None),
+            pos_username=getattr(tenant, 'pos_username', None),
+            pos_password=getattr(tenant, 'pos_password', None),
             is_active=tenant.is_active,
             created_at=tenant.created_at,
             enabled_modules_count=enabled_count
@@ -193,10 +217,18 @@ async def create_tenant(
         if existing_subdomain:
             raise HTTPException(status_code=400, detail="Subdomain already in use")
     
+    pos_username = data.pos_username if data.pos_username else generate_pos_username(data.name)
+    pos_password = data.pos_password if data.pos_password else generate_pos_password()
+    
+    # Generate POS URL automatically if not provided
+    pos_url = data.pos_url
+    if not pos_url:
+        pos_url = "https://galia-address-app-hhgq2rtr.devinapps.com"
+    
     tenant = Tenant(
         name=data.name,
         code=data.code,
-        subdomain=data.subdomain,
+        subdomain=data.subdomain if data.subdomain else None,
         logo_url=data.logo_url,
         primary_color=data.primary_color or "#10b981",
         contact_name=data.contact_name,
@@ -204,11 +236,44 @@ async def create_tenant(
         contact_phone=data.contact_phone,
         address=data.address,
         monthly_fee=data.monthly_fee or 0,
-        notes=data.notes
+        notes=data.notes,
+        pos_url=pos_url,
+        pos_username=pos_username,
+        pos_password=pos_password
     )
     db.add(tenant)
     db.commit()
     db.refresh(tenant)
+    
+    # Create admin role for this tenant
+    admin_role = Role(
+        tenant_id=tenant.id,
+        name="Administrador",
+        role_type=RoleType.ADMIN,
+        can_void_sales=True,
+        can_manage_inventory=True,
+        can_manage_users=True,
+        can_view_reports=True,
+        can_manage_locations=True,
+        can_set_stock_thresholds=True,
+        can_close_shifts=True
+    )
+    db.add(admin_role)
+    db.commit()
+    db.refresh(admin_role)
+    
+    # Create admin user for this tenant with the generated credentials
+    admin_user = User(
+        tenant_id=tenant.id,
+        username=pos_username,
+        full_name=data.contact_name or data.name,
+        email=data.contact_email,
+        hashed_password=get_password_hash(pos_password),
+        role_id=admin_role.id,
+        is_active=True
+    )
+    db.add(admin_user)
+    db.commit()
     
     core_modules = db.query(Module).filter(Module.is_core == True, Module.is_active == True).all()
     for module in core_modules:
@@ -282,6 +347,12 @@ async def update_tenant(
         tenant.monthly_fee = data.monthly_fee
     if data.notes is not None:
         tenant.notes = data.notes
+    if data.pos_url is not None:
+        tenant.pos_url = data.pos_url
+    if data.pos_username is not None:
+        tenant.pos_username = data.pos_username
+    if data.pos_password is not None:
+        tenant.pos_password = data.pos_password
     if data.is_active is not None:
         tenant.is_active = data.is_active
     

@@ -38,8 +38,11 @@ class UserCreate(BaseModel):
     email: Optional[str] = None
     full_name: str
     password: str
+    pin: Optional[str] = None  # PIN de 4-6 digitos para turnos
     role_id: int
     location_id: Optional[int] = None
+    employee_code: Optional[str] = None
+    default_branch_id: Optional[int] = None
 
 
 class UserUpdate(BaseModel):
@@ -49,6 +52,13 @@ class UserUpdate(BaseModel):
     location_id: Optional[int] = None
     is_active: Optional[bool] = None
     fingerprint_hash: Optional[str] = None
+    pin: Optional[str] = None  # PIN de 4-6 digitos para turnos
+    employee_code: Optional[str] = None
+    default_branch_id: Optional[int] = None
+
+
+class SetPinRequest(BaseModel):
+    pin: str  # PIN de 4-6 digitos
 
 
 class UserResponse(BaseModel):
@@ -60,6 +70,8 @@ class UserResponse(BaseModel):
     role: Optional[RoleResponse] = None
     location_id: Optional[int]
     tenant_id: Optional[int] = None
+    employee_code: Optional[str] = None
+    default_branch_id: Optional[int] = None
     is_active: bool
     points: int
     created_at: datetime

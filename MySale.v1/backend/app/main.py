@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import engine, Base, SessionLocal
 from app.models import *
-from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants, integration, faq, biometric
+from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants, integration, faq, biometric, branches
 
 
 def run_migrations():
@@ -53,6 +53,147 @@ def run_migrations():
                 db.execute(text("ALTER TABLE products ADD COLUMN image_url VARCHAR(500)"))
                 db.commit()
                 print("Migration: Added image_url column to products table")
+        
+        # Check if users table needs new columns
+        result = db.execute(text("PRAGMA table_info(users)"))
+        user_columns = [row[1] for row in result.fetchall()]
+        
+        if 'employee_code' not in user_columns:
+            db.execute(text("ALTER TABLE users ADD COLUMN employee_code VARCHAR(20)"))
+            db.commit()
+            print("Migration: Added employee_code column to users table")
+        
+        if 'default_branch_id' not in user_columns:
+            db.execute(text("ALTER TABLE users ADD COLUMN default_branch_id INTEGER REFERENCES branches(id)"))
+            db.commit()
+            print("Migration: Added default_branch_id column to users table")
+        
+        if 'pin_hash' not in user_columns:
+            db.execute(text("ALTER TABLE users ADD COLUMN pin_hash VARCHAR(255)"))
+            db.commit()
+            print("Migration: Added pin_hash column to users table")
+        
+        # Add pos_url, pos_username, pos_password columns to tenants table BEFORE querying tenants
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='tenants'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(tenants)"))
+            tenant_cols = [row[1] for row in result.fetchall()]
+            
+            if 'pos_url' not in tenant_cols:
+                db.execute(text("ALTER TABLE tenants ADD COLUMN pos_url VARCHAR(500)"))
+                db.commit()
+                print("Migration: Added pos_url column to tenants table")
+            
+            if 'pos_username' not in tenant_cols:
+                db.execute(text("ALTER TABLE tenants ADD COLUMN pos_username VARCHAR(100)"))
+                db.commit()
+                print("Migration: Added pos_username column to tenants table")
+            
+            if 'pos_password' not in tenant_cols:
+                db.execute(text("ALTER TABLE tenants ADD COLUMN pos_password VARCHAR(100)"))
+                db.commit()
+                print("Migration: Added pos_password column to tenants table")
+        
+        # Ensure all tenants have access to all modules (assign missing modules)
+        from app.models.tenant import Tenant, TenantModule
+        tenants = db.query(Tenant).all()
+        all_modules = db.query(Module).filter(Module.is_active == True).all()
+        for tenant in tenants:
+            for module in all_modules:
+                existing = db.query(TenantModule).filter(
+                    TenantModule.tenant_id == tenant.id,
+                    TenantModule.module_id == module.id
+                ).first()
+                if not existing:
+                    new_tm = TenantModule(
+                        tenant_id=tenant.id,
+                        module_id=module.id,
+                        is_enabled=module.is_core  # Enable core modules by default
+                    )
+                    db.add(new_tm)
+                    print(f"Migration: Added module {module.code} to tenant {tenant.name}")
+        db.commit()
+        
+        # Deactivate duplicate/redundant modules
+        modules_to_deactivate = ['branches', 'work_report', 'super_admin', 'cost_control']
+        for code in modules_to_deactivate:
+            mod = db.query(Module).filter(Module.code == code).first()
+            if mod and mod.is_active:
+                mod.is_active = False
+                print(f"Migration: Deactivated module {code}")
+        db.commit()
+        
+        # Fix branches table tenant_id constraint (must allow NULL)
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='branches'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(branches)"))
+            branch_columns = {row[1]: row for row in result.fetchall()}
+            if 'tenant_id' in branch_columns:
+                col_info = branch_columns['tenant_id']
+                notnull = col_info[3]  # notnull flag is at index 3
+                if notnull:
+                    print("Migration: Fixing branches.tenant_id NOT NULL constraint...")
+                    db.execute(text("PRAGMA foreign_keys=OFF"))
+                    db.execute(text("""
+                        CREATE TABLE branches_new (
+                            id INTEGER PRIMARY KEY,
+                            tenant_id INTEGER REFERENCES tenants(id),
+                            name VARCHAR(200) NOT NULL,
+                            code VARCHAR(50) NOT NULL,
+                            city VARCHAR(100),
+                            address TEXT,
+                            phone VARCHAR(50),
+                            is_active BOOLEAN DEFAULT 1,
+                            created_at DATETIME,
+                            updated_at DATETIME
+                        )
+                    """))
+                    db.execute(text("INSERT INTO branches_new SELECT * FROM branches"))
+                    db.execute(text("DROP TABLE branches"))
+                    db.execute(text("ALTER TABLE branches_new RENAME TO branches"))
+                    db.execute(text("CREATE INDEX ix_branches_id ON branches(id)"))
+                    db.execute(text("PRAGMA foreign_keys=ON"))
+                    db.commit()
+                    print("Migration: Fixed branches.tenant_id to allow NULL")
+        
+        # Fix work_sessions table tenant_id constraint (must allow NULL)
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='work_sessions'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(work_sessions)"))
+            ws_columns = {row[1]: row for row in result.fetchall()}
+            if 'tenant_id' in ws_columns:
+                col_info = ws_columns['tenant_id']
+                notnull = col_info[3]  # notnull flag is at index 3
+                if notnull:
+                    print("Migration: Fixing work_sessions.tenant_id NOT NULL constraint...")
+                    db.execute(text("PRAGMA foreign_keys=OFF"))
+                    db.execute(text("""
+                        CREATE TABLE work_sessions_new (
+                            id INTEGER PRIMARY KEY,
+                            tenant_id INTEGER REFERENCES tenants(id),
+                            user_id INTEGER NOT NULL REFERENCES users(id),
+                            branch_id INTEGER NOT NULL REFERENCES branches(id),
+                            clock_in DATETIME NOT NULL,
+                            clock_out DATETIME,
+                            total_minutes INTEGER,
+                            notes TEXT,
+                            created_at DATETIME,
+                            updated_at DATETIME
+                        )
+                    """))
+                    db.execute(text("INSERT INTO work_sessions_new SELECT * FROM work_sessions"))
+                    db.execute(text("DROP TABLE work_sessions"))
+                    db.execute(text("ALTER TABLE work_sessions_new RENAME TO work_sessions"))
+                    db.execute(text("CREATE INDEX ix_work_sessions_id ON work_sessions(id)"))
+                    db.execute(text("PRAGMA foreign_keys=ON"))
+                    db.commit()
+                    print("Migration: Fixed work_sessions.tenant_id to allow NULL")
+        
+        # Check if products table exists and fix subfamily_id constraint
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='products'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(products)"))
+            product_columns = {row[1]: row for row in result.fetchall()}
             
             # Check if subfamily_id has NOT NULL constraint and fix it
             if 'subfamily_id' in product_columns:
@@ -111,8 +252,11 @@ def run_migrations():
             {"code": "shifts", "name": "Turnos", "description": "Gestión de turnos de trabajo y horarios", "icon": "Clock", "route": "/shifts", "display_order": 10, "is_core": False},
             {"code": "reports", "name": "Reportes", "description": "Reportes de ventas, inventario y empleados", "icon": "BarChart3", "route": "/reports", "display_order": 11, "is_core": False},
             {"code": "users", "name": "Usuarios", "description": "Gestión de usuarios y roles", "icon": "Users", "route": "/users", "display_order": 12, "is_core": False},
-            {"code": "locations", "name": "Sucursales", "description": "Gestión de puntos de venta y almacenes", "icon": "MapPin", "route": "/locations", "display_order": 13, "is_core": False},
-        ]
+                    {"code": "locations", "name": "Sucursales", "description": "Gestión de puntos de venta y almacenes", "icon": "MapPin", "route": "/locations", "display_order": 13, "is_core": False},
+                    {"code": "branches", "name": "Sedes", "description": "Gestión de sedes y sucursales del negocio", "icon": "Building2", "route": "/branches", "display_order": 14, "is_core": False},
+                    {"code": "work_report", "name": "Horas Trabajadas", "description": "Reporte de horas trabajadas por empleado", "icon": "ClipboardList", "route": "/work-report", "display_order": 15, "is_core": False},
+                    {"code": "super_admin", "name": "Super Admin", "description": "Panel de administración de tenants", "icon": "Shield", "route": "/super-admin", "display_order": 16, "is_core": False},
+                ]
         
         for module_data in all_modules:
             existing = db.query(Module).filter(Module.code == module_data["code"]).first()
@@ -166,6 +310,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(locations.router)
+app.include_router(branches.router)
 app.include_router(inventory.router)
 app.include_router(shifts.router)
 app.include_router(sales.router)
@@ -218,8 +363,11 @@ def init_default_modules():
             Module(code="shifts", name="Turnos", description="Gestión de turnos de trabajo y horarios", icon="Clock", route="/shifts", display_order=10, is_core=False),
             Module(code="reports", name="Reportes", description="Reportes de ventas, inventario y empleados", icon="BarChart3", route="/reports", display_order=11, is_core=False),
             Module(code="users", name="Usuarios", description="Gestión de usuarios y roles", icon="Users", route="/users", display_order=12, is_core=False),
-            Module(code="locations", name="Sucursales", description="Gestión de puntos de venta y almacenes", icon="MapPin", route="/locations", display_order=13, is_core=False),
-        ]
+                    Module(code="locations", name="Sucursales", description="Gestión de puntos de venta y almacenes", icon="MapPin", route="/locations", display_order=13, is_core=False),
+                    Module(code="branches", name="Sedes", description="Gestión de sedes y sucursales del negocio", icon="Building2", route="/branches", display_order=14, is_core=False),
+                    Module(code="work_report", name="Horas Trabajadas", description="Reporte de horas trabajadas por empleado", icon="ClipboardList", route="/work-report", display_order=15, is_core=False),
+                    Module(code="super_admin", name="Super Admin", description="Panel de administración de tenants", icon="Shield", route="/super-admin", display_order=16, is_core=False),
+                ]
         
         for module in modules:
             db.add(module)

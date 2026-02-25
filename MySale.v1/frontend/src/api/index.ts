@@ -22,6 +22,8 @@ export const createUser = async (data: {
   email?: string;
   role_id: number;
   location_id?: number;
+  employee_code?: string;
+  default_branch_id?: number;
 }): Promise<User> => {
   const response = await api.post('/api/users/', data);
   return response.data;
@@ -958,5 +960,213 @@ export const getBiometricLogs = async (params?: {
   limit?: number;
 }): Promise<BiometricLog[]> => {
   const response = await api.get('/api/biometric/logs', { params });
+  return response.data;
+};
+
+// ==================== BRANCHES (SEDES) ====================
+
+export interface Branch {
+  id: number;
+  tenant_id: number;
+  name: string;
+  code: string;
+  city: string | null;
+  address: string | null;
+  phone: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface WorkSession {
+  id: number;
+  tenant_id: number;
+  user_id: number;
+  branch_id: number;
+  branch_name: string | null;
+  user_name: string | null;
+  employee_code: string | null;
+  clock_in: string;
+  clock_out: string | null;
+  total_minutes: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface WorkSessionSummary {
+  user_id: number;
+  user_name: string;
+  employee_code: string | null;
+  total_sessions: number;
+  total_minutes: number;
+  total_hours: number;
+  branches_worked: string[];
+}
+
+export const getBranches = async (): Promise<Branch[]> => {
+  const response = await api.get('/api/branches/');
+  return response.data;
+};
+
+export const createBranch = async (data: {
+  name: string;
+  code: string;
+  city?: string;
+  address?: string;
+  phone?: string;
+}): Promise<Branch> => {
+  const response = await api.post('/api/branches/', data);
+  return response.data;
+};
+
+export const updateBranch = async (id: number, data: {
+  name?: string;
+  code?: string;
+  city?: string;
+  address?: string;
+  phone?: string;
+  is_active?: boolean;
+}): Promise<Branch> => {
+  const response = await api.put(`/api/branches/${id}`, data);
+  return response.data;
+};
+
+export const deleteBranch = async (id: number): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/branches/${id}`);
+  return response.data;
+};
+
+export const clockIn = async (data: {
+  branch_id: number;
+  notes?: string;
+}): Promise<WorkSession> => {
+  const response = await api.post('/api/branches/clock-in', data);
+  return response.data;
+};
+
+export const clockOut = async (data?: {
+  notes?: string;
+}): Promise<WorkSession> => {
+  const response = await api.post('/api/branches/clock-out', data || {});
+  return response.data;
+};
+
+export const getCurrentWorkSession = async (): Promise<WorkSession | null> => {
+  const response = await api.get('/api/branches/current-session');
+  return response.data;
+};
+
+export const getWorkSessions = async (params?: {
+  branch_id?: number;
+  user_id?: number;
+  start_date?: string;
+  end_date?: string;
+}): Promise<WorkSession[]> => {
+  const response = await api.get('/api/branches/work-sessions', { params });
+  return response.data;
+};
+
+export const getWorkReport = async (params?: {
+  branch_id?: number;
+  start_date?: string;
+  end_date?: string;
+}): Promise<WorkSessionSummary[]> => {
+  const response = await api.get('/api/branches/work-report', { params });
+  return response.data;
+};
+
+// ==================== SHIFTS (TURNOS) WITH PIN ====================
+
+export interface ShiftResponse {
+  id: number;
+  tenant_id: number | null;
+  branch_id: number | null;
+  branch_name: string | null;
+  user_id: number;
+  user_name: string | null;
+  location_id: number | null;
+  location_name: string | null;
+  start_at: string;
+  end_at: string | null;
+  status: 'open' | 'closed' | 'force_closed';
+  opened_by: number | null;
+  opened_by_name: string | null;
+  closed_by: number | null;
+  closed_by_name: string | null;
+  initial_cash: number;
+  final_cash: number | null;
+  total_sales: number;
+  total_cash_sales: number;
+  total_card_sales: number;
+  total_transfer_sales: number;
+  notes: string | null;
+  biometric_verified: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface MyShiftResponse {
+  has_open_shift: boolean;
+  shift: ShiftResponse | null;
+}
+
+export const startShiftWithPin = async (data: {
+  branch_id: number;
+  pin: string;
+}): Promise<ShiftResponse> => {
+  const response = await api.post('/api/shifts/start', data);
+  return response.data;
+};
+
+export const endShiftWithPin = async (data: {
+  branch_id: number;
+  pin: string;
+}): Promise<ShiftResponse> => {
+  const response = await api.post('/api/shifts/end', data);
+  return response.data;
+};
+
+export const forceCloseShift = async (data: {
+  shift_id: number;
+  reason: string;
+}): Promise<ShiftResponse> => {
+  const response = await api.post('/api/shifts/force-close', data);
+  return response.data;
+};
+
+export const getMyShift = async (branchId?: number): Promise<MyShiftResponse> => {
+  const params = branchId ? { branch_id: branchId } : {};
+  const response = await api.get('/api/shifts/me', { params });
+  return response.data;
+};
+
+export const getShiftsByBranch = async (params: {
+  branch_id: number;
+  from_date?: string;
+  to_date?: string;
+  user_id?: number;
+  shift_status?: string;
+}): Promise<ShiftResponse[]> => {
+  const response = await api.get('/api/shifts/by-branch', { params });
+  return response.data;
+};
+
+export const getLongOpenShifts = async (hours?: number): Promise<ShiftResponse[]> => {
+  const params = hours ? { hours } : {};
+  const response = await api.get('/api/shifts/open-long', { params });
+  return response.data;
+};
+
+export const setMyPin = async (pin: string): Promise<{ message: string }> => {
+  const response = await api.post('/api/users/me/pin', { pin });
+  return response.data;
+};
+
+export const checkHasPin = async (): Promise<{ has_pin: boolean }> => {
+  const response = await api.get('/api/users/me/has-pin');
+  return response.data;
+};
+
+export const setUserPin = async (userId: number, pin: string): Promise<{ message: string }> => {
+  const response = await api.post(`/api/users/${userId}/pin`, { pin });
   return response.data;
 };
