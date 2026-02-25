@@ -24,7 +24,7 @@ const generatePassword = (fullName: string): string => {
   return base.charAt(0).toUpperCase() + base.substring(1).toLowerCase() + (Math.floor(Math.random() * 9000) + 1000);
 };
 
-const generatePIN = (): string => String(Math.floor(Math.random() * 9000) + 1000);
+const generatePIN = (): string => String(Math.floor(Math.random() * 900000) + 100000);
 
 const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -36,6 +36,8 @@ const Users: React.FC = () => {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showCredentials, setShowCredentials] = useState(false);
+  const [createdCredentials, setCreatedCredentials] = useState({ username: '', password: '', pin: '' });
   const [newUser, setNewUser] = useState({ full_name: '', phone: '', cedula: '', username: '', password: '', pin: '', role_id: '', location_id: '', photo_url: '' });
 
   useEffect(() => { loadData(); }, []);
@@ -65,7 +67,9 @@ const Users: React.FC = () => {
       let locationId: number | undefined = newUser.location_id === "-1" ? -1 : newUser.location_id ? parseInt(newUser.location_id) : undefined;
       await createUser({ username: newUser.username, password: newUser.password, full_name: newUser.full_name, phone: newUser.phone || undefined, cedula: newUser.cedula || undefined, photo_url: newUser.photo_url || undefined, role_id: parseInt(newUser.role_id), location_id: locationId, pin: newUser.pin || undefined });
       await loadData();
+      setCreatedCredentials({ username: newUser.username, password: newUser.password, pin: newUser.pin });
       setShowAddUser(false);
+      setShowCredentials(true);
       setNewUser({ full_name: '', phone: '', cedula: '', username: '', password: '', pin: '', role_id: '', location_id: '', photo_url: '' });
     } catch (error: any) { alert(error.response?.data?.detail || 'Error al crear usuario'); }
     finally { setIsProcessing(false); }
@@ -85,16 +89,17 @@ const Users: React.FC = () => {
   };
 
   const getRoleBadge = (roleType: string) => {
+    const type = roleType?.toUpperCase();
     const badges: Record<string, JSX.Element> = {
-      'superuser': <Badge className="bg-purple-500">Superusuario</Badge>,
-      'admin': <Badge className="bg-blue-500">Administrador</Badge>,
-      'cashier': <Badge className="bg-green-500">Cajero</Badge>,
-      'waiter': <Badge className="bg-orange-500">Mesero</Badge>
+      'SUPERUSER': <Badge className="bg-purple-500">Superusuario</Badge>,
+      'ADMIN': <Badge className="bg-blue-500">Administrador</Badge>,
+      'CASHIER': <Badge className="bg-green-500">Cajero</Badge>,
+      'WAITER': <Badge className="bg-orange-500">Mesero</Badge>
     };
-    return badges[roleType] || <Badge>{roleType}</Badge>;
+    return badges[type] || <Badge>{roleType}</Badge>;
   };
 
-  const filteredRoles = roles.filter(r => r.role_type !== 'superuser');
+  const filteredRoles = roles.filter(r => r.role_type?.toUpperCase() !== 'SUPERUSER');
 
   if (isLoading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>;
 
@@ -176,34 +181,6 @@ const Users: React.FC = () => {
                 <Input placeholder="Ej: 1234567890" value={newUser.cedula} onChange={(e) => setNewUser({ ...newUser, cedula: e.target.value })} />
               </div>
             </div>
-            {newUser.full_name.trim().length >= 3 && (
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  Credenciales Generadas
-                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => regenerateCredentials(newUser.full_name)}>Regenerar</Button>
-                </h4>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between bg-white rounded px-3 py-2 border">
-                    <div><span className="text-xs text-gray-500">Usuario:</span><span className="ml-2 font-mono font-medium">{newUser.username}</span></div>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => copyToClipboard(newUser.username, 'username')}>
-                      {copiedField === 'username' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between bg-white rounded px-3 py-2 border">
-                    <div><span className="text-xs text-gray-500">Contrasena:</span><span className="ml-2 font-mono font-medium">{newUser.password}</span></div>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => copyToClipboard(newUser.password, 'password')}>
-                      {copiedField === 'password' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between bg-white rounded px-3 py-2 border">
-                    <div><span className="text-xs text-gray-500">PIN (Reloj):</span><span className="ml-2 font-mono font-bold text-lg">{newUser.pin}</span></div>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => copyToClipboard(newUser.pin, 'pin')}>
-                      {copiedField === 'pin' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Rol *</label>
               <Select value={newUser.role_id} onValueChange={(v) => setNewUser({ ...newUser, role_id: v })}>
@@ -244,6 +221,42 @@ const Users: React.FC = () => {
             <Button variant="destructive" onClick={handleDeleteUser} disabled={isProcessing}>
               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Eliminar'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCredentials} onOpenChange={setShowCredentials}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-600">
+              <Check className="w-5 h-5" />Usuario Creado Exitosamente
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600 mb-4">Guarde estas credenciales. La contrasena no se puede recuperar.</p>
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 space-y-3">
+              <div className="flex items-center justify-between bg-white rounded px-3 py-2 border">
+                <div><span className="text-xs text-gray-500">Usuario:</span><span className="ml-2 font-mono font-medium">{createdCredentials.username}</span></div>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => copyToClipboard(createdCredentials.username, 'username')}>
+                  {copiedField === 'username' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between bg-white rounded px-3 py-2 border">
+                <div><span className="text-xs text-gray-500">Contrasena:</span><span className="ml-2 font-mono font-medium">{createdCredentials.password}</span></div>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => copyToClipboard(createdCredentials.password, 'password')}>
+                  {copiedField === 'password' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                </Button>
+              </div>
+              <div className="flex items-center justify-between bg-white rounded px-3 py-2 border">
+                <div><span className="text-xs text-gray-500">PIN (Reloj):</span><span className="ml-2 font-mono font-bold text-lg">{createdCredentials.pin}</span></div>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => copyToClipboard(createdCredentials.pin, 'pin')}>
+                  {copiedField === 'pin' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowCredentials(false)} className="bg-green-600 hover:bg-green-700">Entendido</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
