@@ -74,6 +74,21 @@ def run_migrations():
             db.commit()
             print("Migration: Added pin_hash column to users table")
         
+        if 'phone' not in user_columns:
+            db.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(50)"))
+            db.commit()
+            print("Migration: Added phone column to users table")
+        
+        if 'cedula' not in user_columns:
+            db.execute(text("ALTER TABLE users ADD COLUMN cedula VARCHAR(50)"))
+            db.commit()
+            print("Migration: Added cedula column to users table")
+        
+        if 'photo_url' not in user_columns:
+            db.execute(text("ALTER TABLE users ADD COLUMN photo_url VARCHAR(500)"))
+            db.commit()
+            print("Migration: Added photo_url column to users table")
+        
         # Add pos_url, pos_username, pos_password columns to tenants table BEFORE querying tenants
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='tenants'"))
         if result.fetchone():
