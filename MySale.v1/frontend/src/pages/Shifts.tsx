@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getWorkSessions, getLocations, getUsers } from '../api';
-import type { WorkSession, Location, User } from '../types';
+import { getWorkSessions, getLocations, getUsers, type WorkSession } from '../api';
+import type { Location, User } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -18,7 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Clock, Loader2 } from 'lucide-react';
 
 const Shifts: React.FC = () => {
@@ -29,7 +28,6 @@ const Shifts: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [filterLocation, setFilterLocation] = useState<string>('');
   const [filterUser, setFilterUser] = useState<string>('');
-  const [filterStatus, setFilterStatus] = useState<string>('');
 
   const isAdmin = user?.role?.role_type === 'superuser' || user?.role?.role_type === 'admin';
 
@@ -39,7 +37,7 @@ const Shifts: React.FC = () => {
 
   useEffect(() => {
     loadShifts();
-  }, [filterLocation, filterUser, filterStatus]);
+  }, [filterLocation, filterUser]);
 
   const loadData = async () => {
     try {
@@ -69,32 +67,11 @@ const Shifts: React.FC = () => {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    }).format(value);
-  };
-
   const formatDateTime = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('es-CO', {
       dateStyle: 'short',
       timeStyle: 'short'
     });
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'open':
-        return <Badge className="bg-green-500">Abierto</Badge>;
-      case 'closed':
-        return <Badge className="bg-gray-500">Cerrado</Badge>;
-      case 'closed_by_admin':
-        return <Badge className="bg-orange-500">Cerrado por Admin</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
   };
 
   if (isLoading) {
