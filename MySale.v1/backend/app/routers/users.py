@@ -18,9 +18,12 @@ async def get_roles(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Filter roles by tenant_id
+    from sqlalchemy import or_
+    # Filter roles: include global roles (tenant_id IS NULL) and tenant-specific roles
     if current_user.tenant_id:
-        roles = db.query(Role).filter(Role.tenant_id == current_user.tenant_id).all()
+        roles = db.query(Role).filter(
+            or_(Role.tenant_id == None, Role.tenant_id == current_user.tenant_id)
+        ).all()
     else:
         # System admin sees all roles
         roles = db.query(Role).all()
