@@ -2,7 +2,6 @@ import React from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
-import { Button } from '@/components/ui/button';
 import { clockWithPin } from '@/api';
 import {
   LayoutDashboard,
@@ -105,23 +104,39 @@ const PinModal: React.FC<PinModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
-        <div className="bg-emerald-600 text-white p-4 text-center">
-          <Clock size={32} className="mx-auto mb-2" />
-          <h2 className="text-xl font-bold">Registro de Asistencia</h2>
-          <p className="text-emerald-100 text-sm">Ingresa tu PIN de 6 digitos</p>
+    <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
+      <div 
+        className="bg-white w-full max-w-sm mx-4 overflow-hidden animate-fade-in"
+        style={{ 
+          borderRadius: '18px',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.12)'
+        }}
+      >
+        {/* Header */}
+        <div className="p-6 text-center" style={{ backgroundColor: '#00a86b' }}>
+          <Clock size={32} className="mx-auto mb-2 text-white" />
+          <h2 className="text-xl font-semibold text-white">Registro de Asistencia</h2>
+          <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.8)' }}>Ingresa tu PIN de 6 digitos</p>
         </div>
 
+        {/* Result message */}
         {result && (
-          <div className={`p-4 ${result.success ? 'bg-green-50' : 'bg-red-50'}`}>
+          <div 
+            className="p-4"
+            style={{ 
+              backgroundColor: result.success ? 'rgba(0, 168, 107, 0.1)' : 'rgba(239, 68, 68, 0.1)'
+            }}
+          >
             <div className="flex items-center gap-3">
               {result.success ? (
-                <CheckCircle className="text-green-600" size={24} />
+                <CheckCircle size={24} style={{ color: '#00a86b' }} />
               ) : (
-                <XCircle className="text-red-600" size={24} />
+                <XCircle size={24} style={{ color: '#ef4444' }} />
               )}
-              <p className={`text-sm font-medium ${result.success ? 'text-green-800' : 'text-red-800'}`}>
+              <p 
+                className="text-sm font-medium"
+                style={{ color: result.success ? '#00a86b' : '#ef4444' }}
+              >
                 {result.message}
               </p>
             </div>
@@ -129,28 +144,43 @@ const PinModal: React.FC<PinModalProps> = ({ isOpen, onClose }) => {
         )}
 
         <div className="p-6">
+          {/* PIN display */}
           <div className="flex justify-center gap-2 mb-6">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
-                className={`w-10 h-12 rounded-lg border-2 flex items-center justify-center text-2xl font-bold transition-all ${
-                  pin.length > i
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
-                    : 'border-gray-300 bg-gray-50'
-                }`}
+                className="w-10 h-12 flex items-center justify-center text-2xl font-bold transition-all"
+                style={{ 
+                  borderRadius: '10px',
+                  border: pin.length > i ? '2px solid #00a86b' : '2px solid #e5e7eb',
+                  backgroundColor: pin.length > i ? 'rgba(0, 168, 107, 0.1)' : '#f6f7f9',
+                  color: '#00a86b'
+                }}
               >
                 {pin.length > i ? '•' : ''}
               </div>
             ))}
           </div>
 
+          {/* Keypad */}
           <div className="grid grid-cols-3 gap-3">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
               <button
                 key={num}
                 onClick={() => handlePinChange(num.toString())}
                 disabled={loading || pin.length >= 6}
-                className="h-14 rounded-xl bg-gray-100 hover:bg-gray-200 text-xl font-semibold text-gray-800 transition-colors disabled:opacity-50"
+                className="h-14 text-xl font-semibold transition-all duration-200 disabled:opacity-50"
+                style={{ 
+                  borderRadius: '12px',
+                  backgroundColor: '#f6f7f9',
+                  color: '#111827'
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = '#e5e7eb';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = '#f6f7f9';
+                }}
               >
                 {num}
               </button>
@@ -158,30 +188,76 @@ const PinModal: React.FC<PinModalProps> = ({ isOpen, onClose }) => {
             <button
               onClick={handleClear}
               disabled={loading}
-              className="h-14 rounded-xl bg-red-100 hover:bg-red-200 text-red-600 font-semibold transition-colors"
+              className="h-14 font-semibold transition-all duration-200"
+              style={{ 
+                borderRadius: '12px',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                color: '#ef4444'
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+              }}
             >
               C
             </button>
             <button
               onClick={() => handlePinChange('0')}
               disabled={loading || pin.length >= 6}
-              className="h-14 rounded-xl bg-gray-100 hover:bg-gray-200 text-xl font-semibold text-gray-800 transition-colors disabled:opacity-50"
+              className="h-14 text-xl font-semibold transition-all duration-200 disabled:opacity-50"
+              style={{ 
+                borderRadius: '12px',
+                backgroundColor: '#f6f7f9',
+                color: '#111827'
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = '#e5e7eb';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = '#f6f7f9';
+              }}
             >
               0
             </button>
             <button
               onClick={handleBackspace}
               disabled={loading || pin.length === 0}
-              className="h-14 rounded-xl bg-yellow-100 hover:bg-yellow-200 text-yellow-700 font-semibold transition-colors disabled:opacity-50"
+              className="h-14 font-semibold transition-all duration-200 disabled:opacity-50"
+              style={{ 
+                borderRadius: '12px',
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                color: '#f59e0b'
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(245, 158, 11, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+              }}
             >
               ←
             </button>
           </div>
 
+          {/* Submit button */}
           <button
             onClick={handleSubmit}
             disabled={loading || pin.length !== 6}
-            className="w-full mt-4 h-14 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full mt-4 h-12 text-white font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            style={{ 
+              borderRadius: '12px',
+              backgroundColor: '#00a86b'
+            }}
+            onMouseEnter={(e) => {
+              if (!loading && pin.length === 6) {
+                (e.currentTarget as HTMLElement).style.backgroundColor = '#00965f';
+              }
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = '#00a86b';
+            }}
           >
             {loading ? (
               <>
@@ -193,9 +269,21 @@ const PinModal: React.FC<PinModalProps> = ({ isOpen, onClose }) => {
             )}
           </button>
 
+          {/* Cancel button */}
           <button
             onClick={handleClose}
-            className="w-full mt-2 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium transition-colors"
+            className="w-full mt-2 h-12 font-medium transition-all duration-200"
+            style={{ 
+              borderRadius: '12px',
+              backgroundColor: '#f6f7f9',
+              color: '#6b7280'
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = '#e5e7eb';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = '#f6f7f9';
+            }}
           >
             Cancelar
           </button>
@@ -223,9 +311,8 @@ const ColombiaClockDisplay: React.FC<ColombiaClockDisplayProps> = ({ onClick }) 
   // Format date and time for Colombia timezone (America/Bogota)
   const colombiaOptions: Intl.DateTimeFormatOptions = {
     timeZone: 'America/Bogota',
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
+    weekday: 'short',
+    month: 'short',
     day: 'numeric',
   };
   
@@ -233,7 +320,6 @@ const ColombiaClockDisplay: React.FC<ColombiaClockDisplayProps> = ({ onClick }) 
     timeZone: 'America/Bogota',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
     hour12: true,
   };
 
@@ -243,13 +329,20 @@ const ColombiaClockDisplay: React.FC<ColombiaClockDisplayProps> = ({ onClick }) 
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+      className="flex items-center gap-2 px-3 py-2 transition-all duration-200"
+      style={{ borderRadius: '10px' }}
       title="Clic para registrar entrada/salida"
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 168, 107, 0.08)';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+      }}
     >
-      <Clock size={24} className="text-emerald-600" />
+      <Clock size={20} style={{ color: '#00a86b' }} />
       <div className="text-left">
-        <div className="text-lg font-bold text-gray-800">{timeStr}</div>
-        <div className="text-sm text-gray-600 capitalize">{dateStr}</div>
+        <div className="text-sm font-semibold" style={{ color: '#111827' }}>{timeStr}</div>
+        <div className="text-xs capitalize" style={{ color: '#6b7280' }}>{dateStr}</div>
       </div>
     </button>
   );
@@ -342,98 +435,167 @@ const Layout: React.FC = () => {
       ];
 
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="min-h-screen flex" style={{ backgroundColor: '#f6f7f9' }}>
       {/* PIN Modal */}
       <PinModal isOpen={pinModalOpen} onClose={() => setPinModalOpen(false)} />
 
+      {/* Mobile menu button */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-emerald-600 text-white rounded-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 text-white transition-colors"
+        style={{ backgroundColor: '#00a86b', borderRadius: '10px' }}
         onClick={() => setSidebarOpen(!sidebarOpen)}
       >
         {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
+      {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-slate-900 text-white transform transition-transform duration-200 ease-in-out ${
+        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white transform transition-transform duration-200 ease-in-out flex flex-col ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
+        style={{ 
+          boxShadow: '2px 0 8px rgba(0,0,0,0.04)',
+          borderRight: '1px solid #e5e7eb'
+        }}
       >
-        <div className="p-4 border-b border-slate-800">
+        {/* Logo */}
+        <div className="p-5" style={{ borderBottom: '1px solid #e5e7eb' }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
-              <span className="text-lg font-bold">MS</span>
+            <div 
+              className="w-10 h-10 flex items-center justify-center"
+              style={{ backgroundColor: '#00a86b', borderRadius: '50%' }}
+            >
+              <span className="text-lg font-bold text-white">M</span>
             </div>
             <div>
-              <h1 className="font-bold text-lg">MySale.v1</h1>
-              <p className="text-xs text-gray-400">Sistema POS</p>
+              <h1 className="font-semibold text-base" style={{ color: '#111827' }}>MySale</h1>
+              <p className="text-xs" style={{ color: '#6b7280' }}>Sistema POS</p>
             </div>
           </div>
         </div>
 
-        <div className="p-4 border-b border-slate-800">
-          <p className="text-sm text-slate-400">Bienvenido,</p>
-          <p className="font-semibold truncate">{user?.full_name}</p>
-          <p className="text-xs text-emerald-400">{user?.role?.name}</p>
+        {/* User info */}
+        <div className="p-5" style={{ borderBottom: '1px solid #e5e7eb' }}>
+          <p className="text-xs" style={{ color: '#6b7280' }}>Bienvenido,</p>
+          <p className="font-semibold text-sm truncate" style={{ color: '#111827' }}>{user?.full_name}</p>
+          <p className="text-xs" style={{ color: '#00a86b' }}>{user?.role?.name}</p>
           {currentShift && (
-            <div className="mt-2 px-2 py-1 bg-green-900/50 rounded text-xs text-green-400">
+            <div 
+              className="mt-2 px-3 py-2 text-xs"
+              style={{ 
+                backgroundColor: 'rgba(0, 168, 107, 0.1)',
+                borderRadius: '8px',
+                color: '#00a86b'
+              }}
+            >
               Turno activo en {currentShift.location_name}
             </div>
           )}
         </div>
 
-        <nav className="p-2 flex-1 overflow-y-auto">
-          {menuItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
-                location.pathname === item.path
-                  ? 'bg-emerald-600 text-white'
-                  : 'text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              <item.icon size={20} />
-              <span className="font-medium">{item.label}</span>
-            </Link>
-          ))}
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-3">
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 mb-1 transition-all duration-200"
+                style={{ 
+                  borderRadius: '10px',
+                  backgroundColor: isActive ? '#00a86b' : 'transparent',
+                  color: isActive ? 'white' : '#6b7280'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 168, 107, 0.08)';
+                    (e.currentTarget as HTMLElement).style.color = '#00a86b';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                    (e.currentTarget as HTMLElement).style.color = '#6b7280';
+                  }
+                }}
+              >
+                <item.icon size={20} />
+                <span className="font-medium text-sm">{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-900/20"
+        {/* Logout */}
+        <div className="p-4" style={{ borderTop: '1px solid #e5e7eb' }}>
+          <button
             onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 transition-colors"
+            style={{ 
+              borderRadius: '10px',
+              color: '#ef4444'
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(239, 68, 68, 0.08)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+            }}
           >
-            <LogOut size={20} className="mr-3" />
-            Cerrar Sesion
-          </Button>
+            <LogOut size={20} />
+            <span className="font-medium text-sm">Cerrar Sesion</span>
+          </button>
         </div>
       </aside>
 
+      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/30 z-30 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
+      {/* Main content */}
       <main className="flex-1 overflow-auto">
-        <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
+        {/* Header */}
+        <header 
+          className="bg-white px-6 py-4 flex items-center justify-between"
+          style={{ 
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+            borderBottom: '1px solid #e5e7eb'
+          }}
+        >
           <div className="lg:hidden w-10" />
-          <h2 className="text-xl font-semibold text-gray-800">
-            {menuItems.find(item => item.path === location.pathname)?.label || 'MySale.v1'}
+          <h2 className="text-lg font-semibold" style={{ color: '#111827' }}>
+            {menuItems.find(item => item.path === location.pathname)?.label || 'MySale'}
           </h2>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <ColombiaClockDisplay onClick={() => setPinModalOpen(true)} />
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell size={20} />
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
+            <button 
+              className="relative p-2 transition-colors"
+              style={{ borderRadius: '10px' }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 0, 0, 0.04)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+              }}
+            >
+              <Bell size={20} style={{ color: '#6b7280' }} />
+              <span 
+                className="absolute -top-1 -right-1 w-4 h-4 text-xs text-white flex items-center justify-center"
+                style={{ backgroundColor: '#ef4444', borderRadius: '50%' }}
+              >
                 0
               </span>
-            </Button>
+            </button>
           </div>
         </header>
+        
+        {/* Page content */}
         <div className="p-6">
           <Outlet />
         </div>
