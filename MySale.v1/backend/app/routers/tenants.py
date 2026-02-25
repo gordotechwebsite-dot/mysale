@@ -536,3 +536,91 @@ async def get_admin_dashboard(
         "total_modules": total_modules,
         "monthly_revenue": monthly_revenue
     }
+
+
+@router.get("/tenants/{tenant_id}/modules/active", response_model=List[TenantModuleResponse])
+async def get_tenant_active_modules(
+    tenant_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get all active/enabled modules for a specific tenant.
+    This endpoint can be used by any authenticated user to check which modules
+    are enabled for their tenant.
+    """
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    # Users can only query their own tenant's modules (unless superuser)
+    if current_user.tenant_id and current_user.tenant_id != tenant_id:
+        if not current_user.role or current_user.role.role_type.value != "superuser":
+            raise HTTPException(status_code=403, detail="Cannot access modules for other tenants")
+    
+    tenant_modules = db.query(TenantModule).filter(
+        TenantModule.tenant_id == tenant_id,
+        TenantModule.is_enabled == True
+    ).all()
+    
+    modules_response = []
+    for tm in tenant_modules:
+        module = db.query(Module).filter(Module.id == tm.module_id, Module.is_active == True).first()
+        if module:
+            modules_response.append(TenantModuleResponse(
+                id=tm.id,
+                module_id=module.id,
+                module_code=module.code,
+                module_name=module.name,
+                module_icon=module.icon,
+                module_route=module.route,
+                is_enabled=tm.is_enabled,
+                enabled_at=tm.enabled_at
+            ))
+    
+    return modules_response
+
+
+# Public endpoint to get modules by tenant code (no auth required for POS frontend)
+public_router = APIRouter(prefix="/api/public", tags=["public"])
+
+
+@public_router.get("/tenants/{tenant_code}/modules")
+async def get_public_tenant_modules(
+    tenant_code: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Public endpoint to get enabled modules for a tenant by code.
+    Used by POS frontend to load sidebar modules without requiring full auth.
+    """
+    tenant = db.query(Tenant).filter(Tenant.code == tenant_code, Tenant.is_active == True).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    tenant_modules = db.query(TenantModule).filter(
+        TenantModule.tenant_id == tenant.id,
+        TenantModule.is_enabled == True
+    ).all()
+    
+    modules = []
+    for tm in tenant_modules:
+        module = db.query(Module).filter(Module.id == tm.module_id, Module.is_active == True).first()
+        if module:
+            modules.append({
+                "code": module.code,
+                "name": module.name,
+                "icon": module.icon,
+                "route": module.route,
+                "display_order": module.display_order
+            })
+    
+    # Sort by display_order
+    modules.sort(key=lambda x: x["display_order"])
+    
+    return {
+        "tenant_id": tenant.id,
+        "tenant_name": tenant.name,
+        "tenant_code": tenant.code,
+        "modules": modules
+    }

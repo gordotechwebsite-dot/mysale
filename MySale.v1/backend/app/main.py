@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from app.database import engine, Base, SessionLocal
 from app.models import *
 from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants, integration, faq, biometric, branches
+from app.routers.tenants import public_router as tenants_public_router
 
 
 def run_migrations():
@@ -330,6 +331,7 @@ app.include_router(reports.router)
 app.include_router(cost_control.router)
 app.include_router(tables.router)
 app.include_router(tenants.router)
+app.include_router(tenants_public_router)
 app.include_router(integration.router)
 app.include_router(faq.router)
 app.include_router(biometric.router)
