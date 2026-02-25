@@ -4,8 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
 import { getDashboard, getLocations, openShift, closeShift, getStockAlerts } from '../api';
 import type { DashboardData, Location } from '../types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -20,6 +18,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import {
   DollarSign,
   ShoppingCart,
@@ -135,172 +134,240 @@ const Dashboard: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#00a86b' }} />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">
+          <h1 className="text-2xl font-semibold" style={{ color: '#111827' }}>
             Hola, {user?.full_name?.split(' ')[0]}!
           </h1>
-          <p className="text-gray-500">Resumen del dia</p>
+          <p className="text-sm" style={{ color: '#6b7280' }}>Resumen del dia</p>
         </div>
         <div className="flex gap-3">
           {currentShift ? (
             <>
-              <Button
-                size="lg"
-                className="bg-green-600 hover:bg-green-700"
+              <button
                 onClick={() => navigate('/pos')}
+                className="h-12 px-6 flex items-center gap-2 text-white font-semibold transition-all duration-200"
+                style={{ backgroundColor: '#00a86b', borderRadius: '12px' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00965f'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00a86b'; }}
               >
-                <ShoppingCart className="w-5 h-5 mr-2" />
+                <ShoppingCart size={20} />
                 Ir a Vender
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-red-500 text-red-500 hover:bg-red-50"
+              </button>
+              <button
                 onClick={() => setShowCloseShift(true)}
+                className="h-12 px-6 flex items-center gap-2 font-semibold transition-all duration-200"
+                style={{ 
+                  backgroundColor: 'transparent',
+                  border: '1px solid #ef4444',
+                  borderRadius: '12px',
+                  color: '#ef4444'
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(239, 68, 68, 0.08)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
               >
-                <Square className="w-5 h-5 mr-2" />
+                <Square size={20} />
                 Cerrar Turno
-              </Button>
+              </button>
             </>
           ) : (
-            <Button
-              size="lg"
-              className="bg-emerald-600 hover:bg-emerald-700"
+            <button
               onClick={() => setShowOpenShift(true)}
+              className="h-12 px-6 flex items-center gap-2 text-white font-semibold transition-all duration-200"
+              style={{ backgroundColor: '#00a86b', borderRadius: '12px' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00965f'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00a86b'; }}
             >
-              <Play className="w-5 h-5 mr-2" />
+              <Play size={20} />
               Abrir Turno
-            </Button>
+            </button>
           )}
         </div>
       </div>
 
+      {/* Active Shift Card */}
       {currentShift && (
-        <Card className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
-          <CardContent className="py-4">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <Clock className="w-8 h-8" />
-                <div>
-                  <p className="text-sm opacity-80">Turno Activo</p>
-                  <p className="font-bold text-lg">{currentShift.location_name}</p>
-                </div>
-              </div>
-              <div className="flex gap-8">
-                <div>
-                  <p className="text-sm opacity-80">Ventas del Turno</p>
-                  <p className="font-bold text-xl">{formatCurrency(currentShift.total_sales)}</p>
-                </div>
-                <div>
-                  <p className="text-sm opacity-80">Efectivo</p>
-                  <p className="font-bold text-xl">{formatCurrency(currentShift.total_cash_sales)}</p>
-                </div>
-                <div>
-                  <p className="text-sm opacity-80">Tarjeta</p>
-                  <p className="font-bold text-xl">{formatCurrency(currentShift.total_card_sales)}</p>
-                </div>
+        <div 
+          className="p-6 text-white"
+          style={{ 
+            backgroundColor: '#00a86b',
+            borderRadius: '18px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
+          }}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Clock size={32} />
+              <div>
+                <p className="text-sm opacity-80">Turno Activo</p>
+                <p className="font-semibold text-lg">{currentShift.location_name}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex gap-8">
+              <div>
+                <p className="text-sm opacity-80">Ventas del Turno</p>
+                <p className="font-bold text-2xl">{formatCurrency(currentShift.total_sales)}</p>
+              </div>
+              <div>
+                <p className="text-sm opacity-80">Efectivo</p>
+                <p className="font-bold text-2xl">{formatCurrency(currentShift.total_cash_sales)}</p>
+              </div>
+              <div>
+                <p className="text-sm opacity-80">Tarjeta</p>
+                <p className="font-bold text-2xl">{formatCurrency(currentShift.total_card_sales)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
-            {isAdmin && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Ventas Hoy</p>
-                        <p className="text-2xl font-bold">{formatCurrency(data?.today_sales || 0)}</p>
-                      </div>
-                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                        <DollarSign className="w-6 h-6 text-green-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Transacciones</p>
-                        <p className="text-2xl font-bold">{data?.today_transactions || 0}</p>
-                      </div>
-                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                        <ShoppingCart className="w-6 h-6 text-blue-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Ventas del Mes</p>
-                        <p className="text-2xl font-bold">{formatCurrency(data?.month_sales || 0)}</p>
-                      </div>
-                      <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                        <TrendingUp className="w-6 h-6 text-purple-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-500">Alertas Stock</p>
-                        <p className="text-2xl font-bold text-orange-600">{data?.low_stock_alerts || 0}</p>
-                      </div>
-                      <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                        <AlertTriangle className="w-6 h-6 text-orange-600" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+      {/* Stats Cards */}
+      {isAdmin && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Ventas Hoy */}
+          <div 
+            className="bg-white p-6"
+            style={{ 
+              borderRadius: '18px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm" style={{ color: '#6b7280' }}>Ventas Hoy</p>
+                <p className="text-2xl font-bold mt-1" style={{ color: '#111827' }}>
+                  {formatCurrency(data?.today_sales || 0)}
+                </p>
               </div>
-            )}
+              <div 
+                className="w-12 h-12 flex items-center justify-center"
+                style={{ backgroundColor: 'rgba(0, 168, 107, 0.1)', borderRadius: '50%' }}
+              >
+                <DollarSign size={24} style={{ color: '#00a86b' }} />
+              </div>
+            </div>
+          </div>
 
+          {/* Transacciones */}
+          <div 
+            className="bg-white p-6"
+            style={{ 
+              borderRadius: '18px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm" style={{ color: '#6b7280' }}>Transacciones</p>
+                <p className="text-2xl font-bold mt-1" style={{ color: '#111827' }}>
+                  {data?.today_transactions || 0}
+                </p>
+              </div>
+              <div 
+                className="w-12 h-12 flex items-center justify-center"
+                style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '50%' }}
+              >
+                <ShoppingCart size={24} style={{ color: '#3b82f6' }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Ventas del Mes */}
+          <div 
+            className="bg-white p-6"
+            style={{ 
+              borderRadius: '18px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm" style={{ color: '#6b7280' }}>Ventas del Mes</p>
+                <p className="text-2xl font-bold mt-1" style={{ color: '#111827' }}>
+                  {formatCurrency(data?.month_sales || 0)}
+                </p>
+              </div>
+              <div 
+                className="w-12 h-12 flex items-center justify-center"
+                style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', borderRadius: '50%' }}
+              >
+                <TrendingUp size={24} style={{ color: '#8b5cf6' }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Alertas Stock */}
+          <div 
+            className="bg-white p-6"
+            style={{ 
+              borderRadius: '18px',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm" style={{ color: '#6b7280' }}>Alertas Stock</p>
+                <p className="text-2xl font-bold mt-1" style={{ color: '#f59e0b' }}>
+                  {data?.low_stock_alerts || 0}
+                </p>
+              </div>
+              <div 
+                className="w-12 h-12 flex items-center justify-center"
+                style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: '50%' }}
+              >
+                <AlertTriangle size={24} style={{ color: '#f59e0b' }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stock Alerts */}
       {stockAlerts.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-600">
-              <AlertTriangle className="w-5 h-5" />
-              Alertas de Stock Bajo
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {stockAlerts.slice(0, 5).map((alert, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Package className="w-5 h-5 text-orange-600" />
-                    <div>
-                      <p className="font-medium">{alert.product_name}</p>
-                      <p className="text-sm text-gray-500">{alert.location_name}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-orange-600">{alert.current_stock} unidades</p>
-                    <p className="text-xs text-gray-500">Min: {alert.min_stock}</p>
+        <div 
+          className="bg-white p-6"
+          style={{ 
+            borderRadius: '18px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
+          }}
+        >
+          <h3 className="flex items-center gap-2 text-lg font-semibold mb-4" style={{ color: '#f59e0b' }}>
+            <AlertTriangle size={20} />
+            Alertas de Stock Bajo
+          </h3>
+          <div className="space-y-3">
+            {stockAlerts.slice(0, 5).map((alert, index) => (
+              <div 
+                key={index} 
+                className="flex items-center justify-between p-4"
+                style={{ 
+                  backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                  borderRadius: '12px'
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <Package size={20} style={{ color: '#f59e0b' }} />
+                  <div>
+                    <p className="font-medium" style={{ color: '#111827' }}>{alert.product_name}</p>
+                    <p className="text-sm" style={{ color: '#6b7280' }}>{alert.location_name}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                <div className="text-right">
+                  <p className="font-bold" style={{ color: '#f59e0b' }}>{alert.current_stock} unidades</p>
+                  <p className="text-xs" style={{ color: '#6b7280' }}>Min: {alert.min_stock}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       <Dialog open={showOpenShift} onOpenChange={setShowOpenShift}>

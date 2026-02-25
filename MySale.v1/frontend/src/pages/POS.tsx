@@ -4,9 +4,7 @@ import { useShift } from '../context/ShiftContext';
 import { useCart } from '../context/CartContext';
 import { getProducts, createSale } from '../api';
 import type { Product } from '../types';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -148,27 +146,48 @@ const POS: React.FC = () => {
 
   return (
     <div className="h-[calc(100vh-140px)] flex gap-4">
+      {/* Products Section */}
       <div className="flex-1 flex flex-col">
+        {/* Search Bar */}
         <div className="mb-4">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
+            <Search 
+              className="absolute left-4 top-1/2 -translate-y-1/2" 
+              size={20}
+              style={{ color: '#6b7280' }} 
+            />
+            <input
               ref={searchRef}
               type="text"
               placeholder="Buscar producto por nombre, codigo o escanear codigo de barras..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="pl-12 h-14 text-lg"
+              className="w-full h-12 pl-12 pr-4 text-base outline-none transition-all duration-200"
+              style={{ 
+                borderRadius: '12px',
+                border: '1px solid #e5e7eb',
+                backgroundColor: 'white',
+                color: '#111827'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#00a86b';
+                e.target.style.boxShadow = '0 0 0 3px rgba(0, 168, 107, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.boxShadow = 'none';
+              }}
               autoFocus
             />
           </div>
         </div>
 
+        {/* Products Grid */}
         <div className="flex-1 overflow-auto">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#00a86b' }} />
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -176,11 +195,24 @@ const POS: React.FC = () => {
                 <button
                   key={product.id}
                   onClick={() => handleProductClick(product)}
-                  className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-blue-50 transition-all text-left border-2 border-transparent hover:border-blue-500 active:scale-95"
+                  className="bg-white p-4 text-left transition-all duration-200 active:scale-95"
+                  style={{ 
+                    borderRadius: '12px',
+                    border: '1px solid #e5e7eb',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor = '#00a86b';
+                    (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(0, 168, 107, 0.15)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb';
+                    (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
+                  }}
                 >
-                  <p className="font-semibold text-gray-800 truncate">{product.name}</p>
-                  <p className="text-xs text-gray-500">{product.code}</p>
-                  <p className="text-lg font-bold text-blue-600 mt-2">
+                  <p className="font-semibold truncate" style={{ color: '#111827' }}>{product.name}</p>
+                  <p className="text-xs" style={{ color: '#6b7280' }}>{product.code}</p>
+                  <p className="text-lg font-bold mt-2" style={{ color: '#00a86b' }}>
                     {formatCurrency(product.sale_price)}
                   </p>
                 </button>
@@ -190,67 +222,100 @@ const POS: React.FC = () => {
         </div>
       </div>
 
-      <Card className="w-96 flex flex-col">
-        <div className="p-4 border-b bg-gray-50">
+      {/* Cart Section */}
+      <div 
+        className="w-96 flex flex-col bg-white"
+        style={{ 
+          borderRadius: '18px',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
+        }}
+      >
+        {/* Cart Header */}
+        <div className="p-4" style={{ borderBottom: '1px solid #e5e7eb' }}>
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-lg flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5" />
+            <h3 className="font-semibold text-base flex items-center gap-2" style={{ color: '#111827' }}>
+              <ShoppingCart size={20} />
               Carrito
             </h3>
             {items.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-red-500 hover:text-red-700"
+              <button
                 onClick={clearCart}
+                className="flex items-center gap-1 text-sm font-medium transition-colors"
+                style={{ color: '#ef4444' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.7'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
               >
-                <Trash2 className="w-4 h-4 mr-1" />
+                <Trash2 size={16} />
                 Limpiar
-              </Button>
+              </button>
             )}
           </div>
         </div>
 
+        {/* Cart Items */}
         <div className="flex-1 overflow-auto p-4">
           {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400">
-              <ShoppingCart className="w-16 h-16 mb-4" />
-              <p>Carrito vacio</p>
+            <div className="flex flex-col items-center justify-center h-full" style={{ color: '#9ca3af' }}>
+              <ShoppingCart size={48} className="mb-4" />
+              <p className="font-medium">Carrito vacio</p>
               <p className="text-sm">Agregue productos para comenzar</p>
             </div>
           ) : (
             <div className="space-y-3">
               {items.map((item) => (
-                <div key={item.product.id} className="bg-gray-50 rounded-lg p-3">
+                <div 
+                  key={item.product.id} 
+                  className="p-3"
+                  style={{ 
+                    backgroundColor: '#f6f7f9',
+                    borderRadius: '12px'
+                  }}
+                >
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
-                      <p className="font-medium text-sm">{item.product.name}</p>
-                      <p className="text-xs text-gray-500">{formatCurrency(item.product.sale_price)} c/u</p>
+                      <p className="font-medium text-sm" style={{ color: '#111827' }}>{item.product.name}</p>
+                      <p className="text-xs" style={{ color: '#6b7280' }}>{formatCurrency(item.product.sale_price)} c/u</p>
                     </div>
                     <button
                       onClick={() => removeItem(item.product.id)}
-                      className="text-red-500 hover:text-red-700 p-1"
+                      className="p-1 transition-opacity"
+                      style={{ color: '#ef4444' }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.7'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
                     >
-                      <X className="w-4 h-4" />
+                      <X size={16} />
                     </button>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                        className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
+                        className="w-8 h-8 flex items-center justify-center transition-colors"
+                        style={{ 
+                          borderRadius: '50%',
+                          backgroundColor: '#e5e7eb',
+                          color: '#111827'
+                        }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#d1d5db'; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#e5e7eb'; }}
                       >
-                        <Minus className="w-4 h-4" />
+                        <Minus size={16} />
                       </button>
-                      <span className="w-10 text-center font-bold">{item.quantity}</span>
+                      <span className="w-10 text-center font-bold" style={{ color: '#111827' }}>{item.quantity}</span>
                       <button
                         onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                        className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center"
+                        className="w-8 h-8 flex items-center justify-center text-white transition-colors"
+                        style={{ 
+                          borderRadius: '50%',
+                          backgroundColor: '#00a86b'
+                        }}
+                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00965f'; }}
+                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00a86b'; }}
                       >
-                        <Plus className="w-4 h-4" />
+                        <Plus size={16} />
                       </button>
                     </div>
-                    <p className="font-bold">
+                    <p className="font-bold" style={{ color: '#111827' }}>
                       {formatCurrency(item.product.sale_price * item.quantity)}
                     </p>
                   </div>
@@ -260,24 +325,35 @@ const POS: React.FC = () => {
           )}
         </div>
 
-        <div className="p-4 border-t bg-gray-50">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-gray-600">Subtotal:</span>
-            <span className="font-semibold">{formatCurrency(subtotal)}</span>
+        {/* Cart Footer */}
+        <div className="p-4" style={{ borderTop: '1px solid #e5e7eb' }}>
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-sm" style={{ color: '#6b7280' }}>Subtotal:</span>
+            <span className="font-semibold" style={{ color: '#111827' }}>{formatCurrency(subtotal)}</span>
           </div>
           <div className="flex justify-between items-center mb-4">
-            <span className="text-xl font-bold">TOTAL:</span>
-            <span className="text-2xl font-bold text-blue-600">{formatCurrency(total)}</span>
+            <span className="text-lg font-bold" style={{ color: '#111827' }}>TOTAL:</span>
+            <span className="text-2xl font-bold" style={{ color: '#00a86b' }}>{formatCurrency(total)}</span>
           </div>
-          <Button
-            className="w-full h-14 text-lg font-bold bg-green-600 hover:bg-green-700"
+          <button
             disabled={items.length === 0}
             onClick={() => setShowPayment(true)}
+            className="w-full h-12 text-base font-semibold text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ 
+              backgroundColor: '#00a86b',
+              borderRadius: '12px'
+            }}
+            onMouseEnter={(e) => { 
+              if (items.length > 0) (e.currentTarget as HTMLElement).style.backgroundColor = '#00965f'; 
+            }}
+            onMouseLeave={(e) => { 
+              (e.currentTarget as HTMLElement).style.backgroundColor = '#00a86b'; 
+            }}
           >
             Cobrar (F2)
-          </Button>
+          </button>
         </div>
-      </Card>
+      </div>
 
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="max-w-md">
@@ -336,39 +412,84 @@ const POS: React.FC = () => {
             {paymentMethod === 'cash' && (
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Monto Recibido</label>
-                  <Input
+                  <label className="text-sm font-medium" style={{ color: '#6b7280' }}>Monto Recibido</label>
+                  <input
                     type="number"
                     value={amountReceived}
-                    onChange={(e) => setAmountReceived(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmountReceived(e.target.value)}
                     placeholder="0"
-                    className="h-14 text-2xl text-center font-bold mt-2"
+                    className="w-full h-14 text-2xl text-center font-bold mt-2 outline-none transition-all duration-200"
+                    style={{ 
+                      borderRadius: '12px',
+                      border: '1px solid #e5e7eb',
+                      color: '#111827'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#00a86b';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(0, 168, 107, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#e5e7eb';
+                      e.target.style.boxShadow = 'none';
+                    }}
                     autoFocus
                   />
                 </div>
                 <div className="flex gap-2">
                   {quickAmounts.map((amount) => (
-                    <Button
+                    <button
                       key={amount}
-                      variant="outline"
-                      className="flex-1"
+                      className="flex-1 h-10 font-medium transition-all duration-200"
+                      style={{ 
+                        borderRadius: '10px',
+                        border: '1px solid #e5e7eb',
+                        backgroundColor: 'white',
+                        color: '#111827'
+                      }}
                       onClick={() => setAmountReceived(amount.toString())}
+                      onMouseEnter={(e) => { 
+                        (e.currentTarget as HTMLElement).style.borderColor = '#00a86b';
+                        (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 168, 107, 0.05)';
+                      }}
+                      onMouseLeave={(e) => { 
+                        (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb';
+                        (e.currentTarget as HTMLElement).style.backgroundColor = 'white';
+                      }}
                     >
                       {formatCurrency(amount)}
-                    </Button>
+                    </button>
                   ))}
                 </div>
-                <Button
-                  variant="outline"
-                  className="w-full"
+                <button
+                  className="w-full h-10 font-medium transition-all duration-200"
+                  style={{ 
+                    borderRadius: '10px',
+                    border: '1px solid #e5e7eb',
+                    backgroundColor: 'white',
+                    color: '#111827'
+                  }}
                   onClick={() => setAmountReceived(total.toString())}
+                  onMouseEnter={(e) => { 
+                    (e.currentTarget as HTMLElement).style.borderColor = '#00a86b';
+                    (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 168, 107, 0.05)';
+                  }}
+                  onMouseLeave={(e) => { 
+                    (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb';
+                    (e.currentTarget as HTMLElement).style.backgroundColor = 'white';
+                  }}
                 >
                   Monto Exacto
-                </Button>
+                </button>
                 {change > 0 && (
-                  <div className="p-4 bg-green-50 rounded-lg text-center">
-                    <p className="text-sm text-gray-600">Cambio a devolver</p>
-                    <p className="text-3xl font-bold text-green-600">{formatCurrency(change)}</p>
+                  <div 
+                    className="p-4 text-center"
+                    style={{ 
+                      backgroundColor: 'rgba(0, 168, 107, 0.1)',
+                      borderRadius: '12px'
+                    }}
+                  >
+                    <p className="text-sm" style={{ color: '#6b7280' }}>Cambio a devolver</p>
+                    <p className="text-3xl font-bold" style={{ color: '#00a86b' }}>{formatCurrency(change)}</p>
                   </div>
                 )}
               </div>
