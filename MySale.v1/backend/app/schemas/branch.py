@@ -89,10 +89,21 @@ class PinClockRequest(BaseModel):
     branch_id: Optional[int] = None  # Optional for clock out
 
 
+class BranchOption(BaseModel):
+    """Branch option for selection"""
+    id: int
+    name: str
+    code: str
+    address: Optional[str] = None
+
+
 class PinClockResponse(BaseModel):
     """Response for clock in/out using PIN"""
     success: bool
-    action: str  # "clock_in" or "clock_out"
+    action: str  # "clock_in", "clock_out", or "select_branch"
     employee_name: str
     message: str
     session: Optional[WorkSessionResponse] = None
+    # For rotative users who need to select a branch
+    needs_branch_selection: bool = False
+    available_branches: Optional[List[BranchOption]] = None

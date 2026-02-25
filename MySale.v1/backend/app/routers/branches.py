@@ -9,7 +9,8 @@ from app.models.branch import Branch, WorkSession
 from app.schemas.branch import (
     BranchCreate, BranchUpdate, BranchResponse,
     WorkSessionCreate, WorkSessionClockOut, WorkSessionResponse,
-    WorkSessionSummary, BranchWorkReport, PinClockRequest, PinClockResponse
+    WorkSessionSummary, BranchWorkReport, PinClockRequest, PinClockResponse,
+    BranchOption
 )
 from app.utils.auth import get_current_user, require_role, verify_pin
 
@@ -478,25 +479,42 @@ async def clock_with_pin(
     else:
         # Clock in - requires branch_id
         if not request.branch_id:
-            # Get default branch or first active branch for tenant
+            # Check if user has a default branch assigned
             branch = None
-            if authenticated_user.default_branch_id:
+            if authenticated_user.default_branch_id and authenticated_user.default_branch_id > 0:
                 branch = db.query(Branch).filter(
                     Branch.id == authenticated_user.default_branch_id,
                     Branch.is_active == True
                 ).first()
             
             if not branch:
-                # Get first active branch for tenant
-                branch = db.query(Branch).filter(
+                # User is rotative (no fixed branch) - get all available branches for tenant
+                available_branches = db.query(Branch).filter(
                     Branch.tenant_id == authenticated_user.tenant_id,
                     Branch.is_active == True
-                ).first()
-            
-            if not branch:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="No hay sedes disponibles. Contacte al administrador."
+                ).all()
+                
+                if not available_branches:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="No hay sedes disponibles. Contacte al administrador."
+                    )
+                
+                # Return response asking user to select a branch
+                return PinClockResponse(
+                    success=True,
+                    action="select_branch",
+                    employee_name=authenticated_user.full_name,
+                    message=f"Hola {authenticated_user.full_name}, selecciona en que sede vas a trabajar hoy.",
+                    needs_branch_selection=True,
+                    available_branches=[
+                        BranchOption(
+                            id=b.id,
+                            name=b.name,
+                            code=b.code,
+                            address=b.address
+                        ) for b in available_branches
+                    ]
                 )
             
             branch_id = branch.id

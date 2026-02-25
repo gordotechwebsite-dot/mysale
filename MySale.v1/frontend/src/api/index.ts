@@ -1095,12 +1095,21 @@ export const getMyModules = async (): Promise<EnabledModule[]> => {
 
 // ==================== PIN CLOCK IN/OUT ====================
 
+export interface BranchOption {
+  id: number;
+  name: string;
+  code: string;
+  address?: string;
+}
+
 export interface PinClockResponse {
   success: boolean;
-  action: 'clock_in' | 'clock_out';
+  action: 'clock_in' | 'clock_out' | 'select_branch';
   employee_name: string;
   message: string;
   session: WorkSession | null;
+  needs_branch_selection?: boolean;
+  available_branches?: BranchOption[];
 }
 
 export const clockWithPin = async (pin: string, branchId?: number): Promise<PinClockResponse> => {

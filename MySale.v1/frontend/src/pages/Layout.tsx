@@ -31,6 +31,14 @@ import {
   Loader2
 } from 'lucide-react';
 
+// Branch option type for selection
+interface BranchOption {
+  id: number;
+  name: string;
+  code: string;
+  address?: string;
+}
+
 // PIN Modal Component
 interface PinModalProps {
   isOpen: boolean;
@@ -45,6 +53,12 @@ const PinModal: React.FC<PinModalProps> = ({ isOpen, onClose }) => {
     message: string;
     action?: string;
   } | null>(null);
+  
+  // State for branch selection (rotative users)
+  const [showBranchSelection, setShowBranchSelection] = React.useState(false);
+  const [availableBranches, setAvailableBranches] = React.useState<BranchOption[]>([]);
+  const [employeeName, setEmployeeName] = React.useState('');
+  const [validatedPin, setValidatedPin] = React.useState('');
 
   const handlePinChange = (digit: string) => {
     if (pin.length < 6) {
@@ -69,6 +83,23 @@ const PinModal: React.FC<PinModalProps> = ({ isOpen, onClose }) => {
     
     try {
       const response = await clockWithPin(pin);
+      
+      // Check if user needs to select a branch (rotative user)
+      if (response.action === 'select_branch' && response.needs_branch_selection && response.available_branches) {
+        setShowBranchSelection(true);
+        setAvailableBranches(response.available_branches);
+        setEmployeeName(response.employee_name);
+        setValidatedPin(pin);
+        setPin('');
+        setResult({
+          success: true,
+          message: response.message,
+          action: response.action
+        });
+        setLoading(false);
+        return;
+      }
+      
       setResult({
         success: response.success,
         message: response.message,
@@ -77,10 +108,11 @@ const PinModal: React.FC<PinModalProps> = ({ isOpen, onClose }) => {
       setPin('');
       
       // Auto close after 3 seconds on success
-      if (response.success) {
+      if (response.success && response.action !== 'select_branch') {
         setTimeout(() => {
           onClose();
           setResult(null);
+          resetState();
         }, 3000);
       }
     } catch (error: unknown) {
@@ -95,14 +127,165 @@ const PinModal: React.FC<PinModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleClose = () => {
+  const handleBranchSelect = async (branchId: number) => {
+    setLoading(true);
+    try {
+      const response = await clockWithPin(validatedPin, branchId);
+      setResult({
+        success: response.success,
+        message: response.message,
+        action: response.action
+      });
+      setShowBranchSelection(false);
+      
+      // Auto close after 3 seconds on success
+      if (response.success) {
+        setTimeout(() => {
+          onClose();
+          setResult(null);
+          resetState();
+        }, 3000);
+      }
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } }; message?: string };
+      const errorMessage = err.response?.data?.detail || err.message || 'Error al registrar entrada';
+      setResult({
+        success: false,
+        message: errorMessage
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetState = () => {
     setPin('');
+    setShowBranchSelection(false);
+    setAvailableBranches([]);
+    setEmployeeName('');
+    setValidatedPin('');
+  };
+
+  const handleClose = () => {
+    resetState();
     setResult(null);
     onClose();
   };
 
   if (!isOpen) return null;
 
+  // Branch selection view
+  if (showBranchSelection) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
+        <div 
+          className="bg-white w-full max-w-md mx-4 overflow-hidden animate-fade-in"
+          style={{ 
+            borderRadius: '18px',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.12)'
+          }}
+        >
+          {/* Header */}
+          <div className="p-6 text-center" style={{ backgroundColor: '#00a86b' }}>
+            <Building2 size={32} className="mx-auto mb-2 text-white" />
+            <h2 className="text-xl font-semibold text-white">Selecciona tu Sucursal</h2>
+            <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              Hola {employeeName}, ¿en que sede vas a trabajar hoy?
+            </p>
+          </div>
+
+          {/* Result message */}
+          {result && !result.success && (
+            <div 
+              className="p-4"
+              style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+            >
+              <div className="flex items-center gap-3">
+                <XCircle size={24} style={{ color: '#ef4444' }} />
+                <p className="text-sm font-medium" style={{ color: '#ef4444' }}>
+                  {result.message}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="p-6">
+            {/* Branch options */}
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {availableBranches.map((branch) => (
+                <button
+                  key={branch.id}
+                  onClick={() => handleBranchSelect(branch.id)}
+                  disabled={loading}
+                  className="w-full p-4 text-left transition-all duration-200 disabled:opacity-50"
+                  style={{ 
+                    borderRadius: '12px',
+                    border: '2px solid #e5e7eb',
+                    backgroundColor: '#f6f7f9'
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor = '#00a86b';
+                    (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 168, 107, 0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb';
+                    (e.currentTarget as HTMLElement).style.backgroundColor = '#f6f7f9';
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-10 h-10 flex items-center justify-center"
+                      style={{ 
+                        borderRadius: '10px',
+                        backgroundColor: 'rgba(0, 168, 107, 0.1)'
+                      }}
+                    >
+                      <Store size={20} style={{ color: '#00a86b' }} />
+                    </div>
+                    <div>
+                      <p className="font-semibold" style={{ color: '#111827' }}>{branch.name}</p>
+                      {branch.address && (
+                        <p className="text-sm" style={{ color: '#6b7280' }}>{branch.address}</p>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {loading && (
+              <div className="flex items-center justify-center gap-2 mt-4 py-3" style={{ color: '#00a86b' }}>
+                <Loader2 className="animate-spin" size={20} />
+                <span className="font-medium">Registrando entrada...</span>
+              </div>
+            )}
+
+            {/* Cancel button */}
+            <button
+              onClick={handleClose}
+              disabled={loading}
+              className="w-full mt-4 h-12 font-medium transition-all duration-200 disabled:opacity-50"
+              style={{ 
+                borderRadius: '12px',
+                backgroundColor: '#f6f7f9',
+                color: '#6b7280'
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = '#e5e7eb';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = '#f6f7f9';
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // PIN entry view
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
       <div 
