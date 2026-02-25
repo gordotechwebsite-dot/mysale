@@ -9,9 +9,9 @@ from app.models.branch import Branch, WorkSession
 from app.schemas.branch import (
     BranchCreate, BranchUpdate, BranchResponse,
     WorkSessionCreate, WorkSessionClockOut, WorkSessionResponse,
-    WorkSessionSummary, BranchWorkReport
+    WorkSessionSummary, BranchWorkReport, PinClockRequest, PinClockResponse
 )
-from app.utils.auth import get_current_user, require_role
+from app.utils.auth import get_current_user, require_role, verify_pin
 
 router = APIRouter(prefix="/api/branches", tags=["Sedes"])
 
@@ -393,3 +393,155 @@ async def get_work_report(
         ))
     
     return sorted(result, key=lambda x: x.total_hours, reverse=True)
+
+
+# ==================== PIN-BASED CLOCK IN/OUT ====================
+
+@router.post("/clock-pin", response_model=PinClockResponse)
+async def clock_with_pin(
+    request: PinClockRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Clock in or clock out using a 6-digit PIN.
+    - If user has no open session: clock in (requires branch_id)
+    - If user has an open session: clock out
+    """
+    # Validate PIN format
+    if not request.pin or len(request.pin) != 6 or not request.pin.isdigit():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El PIN debe ser de 6 digitos"
+        )
+    
+    # Find user by PIN
+    users = db.query(User).filter(
+        User.pin_hash.isnot(None),
+        User.is_active == True
+    ).all()
+    
+    authenticated_user = None
+    for user in users:
+        if verify_pin(request.pin, user.pin_hash):
+            authenticated_user = user
+            break
+    
+    if not authenticated_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="PIN incorrecto"
+        )
+    
+    # Check if user has an open session
+    open_session = db.query(WorkSession).filter(
+        WorkSession.user_id == authenticated_user.id,
+        WorkSession.clock_out.is_(None)
+    ).first()
+    
+    if open_session:
+        # Clock out
+        clock_out_time = datetime.utcnow()
+        total_minutes = int((clock_out_time - open_session.clock_in).total_seconds() / 60)
+        
+        open_session.clock_out = clock_out_time
+        open_session.total_minutes = total_minutes
+        
+        db.commit()
+        db.refresh(open_session)
+        
+        branch = db.query(Branch).filter(Branch.id == open_session.branch_id).first()
+        
+        hours = total_minutes // 60
+        mins = total_minutes % 60
+        time_worked = f"{hours}h {mins}m" if hours > 0 else f"{mins} minutos"
+        
+        return PinClockResponse(
+            success=True,
+            action="clock_out",
+            employee_name=authenticated_user.full_name,
+            message=f"Hasta luego, {authenticated_user.full_name}! Has registrado tu salida exitosamente. Tiempo trabajado: {time_worked}",
+            session=WorkSessionResponse(
+                id=open_session.id,
+                tenant_id=open_session.tenant_id,
+                user_id=open_session.user_id,
+                branch_id=open_session.branch_id,
+                branch_name=branch.name if branch else None,
+                user_name=authenticated_user.full_name,
+                employee_code=authenticated_user.employee_code,
+                clock_in=open_session.clock_in,
+                clock_out=open_session.clock_out,
+                total_minutes=open_session.total_minutes,
+                notes=open_session.notes,
+                created_at=open_session.created_at
+            )
+        )
+    else:
+        # Clock in - requires branch_id
+        if not request.branch_id:
+            # Get default branch or first active branch for tenant
+            branch = None
+            if authenticated_user.default_branch_id:
+                branch = db.query(Branch).filter(
+                    Branch.id == authenticated_user.default_branch_id,
+                    Branch.is_active == True
+                ).first()
+            
+            if not branch:
+                # Get first active branch for tenant
+                branch = db.query(Branch).filter(
+                    Branch.tenant_id == authenticated_user.tenant_id,
+                    Branch.is_active == True
+                ).first()
+            
+            if not branch:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="No hay sedes disponibles. Contacte al administrador."
+                )
+            
+            branch_id = branch.id
+        else:
+            branch_id = request.branch_id
+            branch = db.query(Branch).filter(Branch.id == branch_id).first()
+            if not branch:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Sede no encontrada"
+                )
+            if not branch.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="La sede no esta activa"
+                )
+        
+        # Create new work session
+        work_session = WorkSession(
+            tenant_id=authenticated_user.tenant_id,
+            user_id=authenticated_user.id,
+            branch_id=branch_id,
+            clock_in=datetime.utcnow()
+        )
+        db.add(work_session)
+        db.commit()
+        db.refresh(work_session)
+        
+        return PinClockResponse(
+            success=True,
+            action="clock_in",
+            employee_name=authenticated_user.full_name,
+            message=f"Bienvenido, {authenticated_user.full_name}! Has iniciado tu turno exitosamente en {branch.name}.",
+            session=WorkSessionResponse(
+                id=work_session.id,
+                tenant_id=work_session.tenant_id,
+                user_id=work_session.user_id,
+                branch_id=work_session.branch_id,
+                branch_name=branch.name,
+                user_name=authenticated_user.full_name,
+                employee_code=authenticated_user.employee_code,
+                clock_in=work_session.clock_in,
+                clock_out=work_session.clock_out,
+                total_minutes=work_session.total_minutes,
+                notes=work_session.notes,
+                created_at=work_session.created_at
+            )
+        )

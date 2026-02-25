@@ -31,6 +31,16 @@ def get_password_hash(password: str) -> str:
     return hashed.decode('utf-8')
 
 
+def verify_pin(plain_pin: str, hashed_pin: str) -> bool:
+    """Verify a PIN against its hash"""
+    return verify_password(plain_pin, hashed_pin)
+
+
+def get_pin_hash(pin: str) -> str:
+    """Hash a PIN for storage"""
+    return get_password_hash(pin)
+
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     if expires_delta:

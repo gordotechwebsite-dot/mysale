@@ -81,3 +81,18 @@ class BranchWorkReport(BaseModel):
     total_minutes: int
     total_hours: float
     employees: List[WorkSessionSummary]
+
+
+class PinClockRequest(BaseModel):
+    """Request for clock in/out using PIN"""
+    pin: str
+    branch_id: Optional[int] = None  # Optional for clock out
+
+
+class PinClockResponse(BaseModel):
+    """Response for clock in/out using PIN"""
+    success: bool
+    action: str  # "clock_in" or "clock_out"
+    employee_name: str
+    message: str
+    session: Optional[WorkSessionResponse] = None

@@ -1088,3 +1088,21 @@ export const getMyModules = async (): Promise<EnabledModule[]> => {
   const response = await api.get('/api/users/me/modules');
   return response.data;
 };
+
+// ==================== PIN CLOCK IN/OUT ====================
+
+export interface PinClockResponse {
+  success: boolean;
+  action: 'clock_in' | 'clock_out';
+  employee_name: string;
+  message: string;
+  session: WorkSession | null;
+}
+
+export const clockWithPin = async (pin: string, branchId?: number): Promise<PinClockResponse> => {
+  const response = await api.post('/api/branches/clock-pin', {
+    pin,
+    branch_id: branchId
+  });
+  return response.data;
+};

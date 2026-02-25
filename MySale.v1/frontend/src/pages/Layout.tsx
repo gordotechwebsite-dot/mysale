@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
 import { Button } from '@/components/ui/button';
+import { clockWithPin } from '@/api';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -25,11 +26,191 @@ import {
   Banknote,
   Building2,
   ClipboardList,
-  LucideIcon
+  LucideIcon,
+  CheckCircle,
+  XCircle,
+  Loader2
 } from 'lucide-react';
 
+// PIN Modal Component
+interface PinModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const PinModal: React.FC<PinModalProps> = ({ isOpen, onClose }) => {
+  const [pin, setPin] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [result, setResult] = React.useState<{
+    success: boolean;
+    message: string;
+    action?: string;
+  } | null>(null);
+
+  const handlePinChange = (digit: string) => {
+    if (pin.length < 6) {
+      setPin(prev => prev + digit);
+    }
+  };
+
+  const handleBackspace = () => {
+    setPin(prev => prev.slice(0, -1));
+  };
+
+  const handleClear = () => {
+    setPin('');
+    setResult(null);
+  };
+
+  const handleSubmit = async () => {
+    if (pin.length !== 6) return;
+    
+    setLoading(true);
+    setResult(null);
+    
+    try {
+      const response = await clockWithPin(pin);
+      setResult({
+        success: response.success,
+        message: response.message,
+        action: response.action
+      });
+      setPin('');
+      
+      // Auto close after 3 seconds on success
+      if (response.success) {
+        setTimeout(() => {
+          onClose();
+          setResult(null);
+        }, 3000);
+      }
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } }; message?: string };
+      const errorMessage = err.response?.data?.detail || err.message || 'Error al procesar el PIN';
+      setResult({
+        success: false,
+        message: errorMessage
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setPin('');
+    setResult(null);
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+        <div className="bg-emerald-600 text-white p-4 text-center">
+          <Clock size={32} className="mx-auto mb-2" />
+          <h2 className="text-xl font-bold">Registro de Asistencia</h2>
+          <p className="text-emerald-100 text-sm">Ingresa tu PIN de 6 digitos</p>
+        </div>
+
+        {result && (
+          <div className={`p-4 ${result.success ? 'bg-green-50' : 'bg-red-50'}`}>
+            <div className="flex items-center gap-3">
+              {result.success ? (
+                <CheckCircle className="text-green-600" size={24} />
+              ) : (
+                <XCircle className="text-red-600" size={24} />
+              )}
+              <p className={`text-sm font-medium ${result.success ? 'text-green-800' : 'text-red-800'}`}>
+                {result.message}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="p-6">
+          <div className="flex justify-center gap-2 mb-6">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                className={`w-10 h-12 rounded-lg border-2 flex items-center justify-center text-2xl font-bold transition-all ${
+                  pin.length > i
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
+                    : 'border-gray-300 bg-gray-50'
+                }`}
+              >
+                {pin.length > i ? '•' : ''}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+              <button
+                key={num}
+                onClick={() => handlePinChange(num.toString())}
+                disabled={loading || pin.length >= 6}
+                className="h-14 rounded-xl bg-gray-100 hover:bg-gray-200 text-xl font-semibold text-gray-800 transition-colors disabled:opacity-50"
+              >
+                {num}
+              </button>
+            ))}
+            <button
+              onClick={handleClear}
+              disabled={loading}
+              className="h-14 rounded-xl bg-red-100 hover:bg-red-200 text-red-600 font-semibold transition-colors"
+            >
+              C
+            </button>
+            <button
+              onClick={() => handlePinChange('0')}
+              disabled={loading || pin.length >= 6}
+              className="h-14 rounded-xl bg-gray-100 hover:bg-gray-200 text-xl font-semibold text-gray-800 transition-colors disabled:opacity-50"
+            >
+              0
+            </button>
+            <button
+              onClick={handleBackspace}
+              disabled={loading || pin.length === 0}
+              className="h-14 rounded-xl bg-yellow-100 hover:bg-yellow-200 text-yellow-700 font-semibold transition-colors disabled:opacity-50"
+            >
+              ←
+            </button>
+          </div>
+
+          <button
+            onClick={handleSubmit}
+            disabled={loading || pin.length !== 6}
+            className="w-full mt-4 h-14 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin" size={20} />
+                Verificando...
+              </>
+            ) : (
+              'Registrar'
+            )}
+          </button>
+
+          <button
+            onClick={handleClose}
+            className="w-full mt-2 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium transition-colors"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Colombia Clock Component - Real-time clock synchronized to Colombia timezone (UTC-5)
-const ColombiaClockDisplay: React.FC = () => {
+interface ColombiaClockDisplayProps {
+  onClick: () => void;
+}
+
+const ColombiaClockDisplay: React.FC<ColombiaClockDisplayProps> = ({ onClick }) => {
   const [time, setTime] = React.useState(new Date());
 
   React.useEffect(() => {
@@ -60,13 +241,17 @@ const ColombiaClockDisplay: React.FC = () => {
   const timeStr = time.toLocaleTimeString('es-CO', timeOptions);
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2">
+    <button
+      onClick={onClick}
+      className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+      title="Clic para registrar entrada/salida"
+    >
       <Clock size={24} className="text-emerald-600" />
-      <div>
+      <div className="text-left">
         <div className="text-lg font-bold text-gray-800">{timeStr}</div>
         <div className="text-sm text-gray-600 capitalize">{dateStr}</div>
       </div>
-    </div>
+    </button>
   );
 };
 
@@ -125,6 +310,7 @@ const Layout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [pinModalOpen, setPinModalOpen] = React.useState(false);
 
   const handleLogout = () => {
     logout();
@@ -157,6 +343,9 @@ const Layout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
+      {/* PIN Modal */}
+      <PinModal isOpen={pinModalOpen} onClose={() => setPinModalOpen(false)} />
+
       <button
         className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-emerald-600 text-white rounded-lg"
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -236,7 +425,7 @@ const Layout: React.FC = () => {
             {menuItems.find(item => item.path === location.pathname)?.label || 'MySale.v1'}
           </h2>
           <div className="flex items-center gap-4">
-            <ColombiaClockDisplay />
+            <ColombiaClockDisplay onClick={() => setPinModalOpen(true)} />
             <Button variant="ghost" size="icon" className="relative">
               <Bell size={20} />
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
