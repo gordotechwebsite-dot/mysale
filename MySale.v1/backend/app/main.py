@@ -1,31 +1,9 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
-from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 from app.database import engine, Base, SessionLocal
 from app.models import *
 from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants, integration, faq, biometric, branches
-
-
-class CORSPreflight(BaseHTTPMiddleware):
-    """Custom middleware to handle CORS preflight requests explicitly"""
-    async def dispatch(self, request: Request, call_next):
-        # Handle preflight OPTIONS requests
-        if request.method == "OPTIONS":
-            response = Response(status_code=200)
-            response.headers["Access-Control-Allow-Origin"] = "*"
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-            response.headers["Access-Control-Max-Age"] = "86400"
-            return response
-        
-        # For other requests, add CORS headers to response
-        response = await call_next(request)
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
-        return response
 
 
 def run_migrations():
@@ -320,16 +298,21 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add custom CORS middleware first (handles OPTIONS preflight explicitly)
-app.add_middleware(CORSPreflight)
+# CORS configuration - specific origins with credentials support
+ALLOWED_ORIGINS = [
+    "https://www.pos-mysale.co",
+    "https://pos-mysale.co",
+    "https://admin.pos-mysale.co",
+    "https://galia-address-app-hhgq2rtr.devinapps.com",
+    "https://galia-location-app-7ena2v2t.devinapps.com",
+]
 
-# CORS configuration - allow all origins without credentials for broader compatibility
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
-    allow_credentials=False,  # Must be False when using "*" for origins
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(auth.router)
