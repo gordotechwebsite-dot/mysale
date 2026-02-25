@@ -4,45 +4,74 @@ import { useAuth } from '../context/AuthContext';
 import { login as apiLogin } from '../api';
 import { User, Lock, Eye, EyeOff, Fingerprint, Loader2 } from 'lucide-react';
 
-// Cashier Illustration Component
+// Cashier Illustration Component - Similar to reference image
 const CashierIllustration: React.FC = () => (
-  <svg viewBox="0 0 400 500" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto max-h-[70vh]">
-    {/* POS Terminal */}
-    <rect x="100" y="180" width="200" height="280" rx="16" fill="#1f2937" />
-    <rect x="115" y="200" width="170" height="120" rx="8" fill="#374151" />
-    {/* Screen content */}
-    <rect x="125" y="210" width="150" height="100" rx="4" fill="#111827" />
-    <rect x="135" y="220" width="80" height="8" rx="2" fill="#00a86b" opacity="0.8" />
-    <rect x="135" y="235" width="60" height="6" rx="2" fill="#6b7280" opacity="0.5" />
-    <rect x="135" y="250" width="100" height="6" rx="2" fill="#6b7280" opacity="0.5" />
-    <rect x="135" y="265" width="70" height="6" rx="2" fill="#6b7280" opacity="0.5" />
-    <text x="135" y="295" fill="#00a86b" fontSize="14" fontWeight="600">$125.000</text>
-    {/* Keypad */}
-    <g fill="#4b5563">
-      <rect x="125" y="335" width="40" height="30" rx="4" />
-      <rect x="175" y="335" width="40" height="30" rx="4" />
-      <rect x="225" y="335" width="40" height="30" rx="4" />
-      <rect x="125" y="375" width="40" height="30" rx="4" />
-      <rect x="175" y="375" width="40" height="30" rx="4" />
-      <rect x="225" y="375" width="40" height="30" rx="4" />
-      <rect x="125" y="415" width="90" height="30" rx="4" fill="#00a86b" />
-      <rect x="225" y="415" width="40" height="30" rx="4" />
+  <svg viewBox="0 0 500 450" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
+    {/* Background blob - soft blue */}
+    <ellipse cx="320" cy="180" rx="180" ry="160" fill="#93c5fd" opacity="0.35" />
+    
+    {/* Counter/Desk - brown wood color */}
+    <rect x="50" y="340" width="450" height="110" rx="8" fill="#c4a484" />
+    <rect x="50" y="340" width="450" height="20" rx="4" fill="#a67c52" />
+    
+    {/* POS Terminal - dark with white screen */}
+    <g>
+      {/* Terminal base/stand */}
+      <rect x="180" y="320" width="80" height="25" rx="4" fill="#374151" />
+      <rect x="200" y="300" width="40" height="25" fill="#4b5563" />
+      
+      {/* Terminal screen - angled */}
+      <g transform="rotate(-10 240 250)">
+        <rect x="160" y="180" width="160" height="130" rx="8" fill="#1f2937" />
+        <rect x="168" y="188" width="144" height="105" rx="4" fill="#f8fafc" />
+        {/* Screen content lines */}
+        <rect x="178" y="200" width="80" height="6" rx="2" fill="#e5e7eb" />
+        <rect x="178" y="215" width="60" height="4" rx="2" fill="#e5e7eb" />
+        <rect x="178" y="228" width="100" height="4" rx="2" fill="#e5e7eb" />
+        <rect x="178" y="241" width="70" height="4" rx="2" fill="#e5e7eb" />
+        <rect x="178" y="260" width="50" height="8" rx="2" fill="#00a86b" opacity="0.6" />
+      </g>
     </g>
-    {/* Card reader slot */}
-    <rect x="280" y="280" width="8" height="60" rx="2" fill="#374151" />
-    {/* Person silhouette */}
-    <circle cx="200" cy="80" r="35" fill="#d1d5db" />
-    <path d="M130 180 Q130 130 200 130 Q270 130 270 180" fill="#d1d5db" />
-    {/* Hands */}
-    <ellipse cx="140" cy="360" rx="20" ry="12" fill="#e5e7eb" />
-    <ellipse cx="260" cy="360" rx="20" ry="12" fill="#e5e7eb" />
-    {/* Shopping bag */}
-    <rect x="300" y="350" width="60" height="80" rx="4" fill="#00a86b" opacity="0.3" />
-    <path d="M310 350 Q330 320 350 350" stroke="#00a86b" strokeWidth="3" fill="none" opacity="0.5" />
-    {/* Floating elements */}
-    <circle cx="80" cy="120" r="8" fill="#00a86b" opacity="0.2" />
-    <circle cx="320" cy="100" r="6" fill="#3b82f6" opacity="0.2" />
-    <rect x="50" y="250" width="20" height="20" rx="4" fill="#00a86b" opacity="0.15" transform="rotate(15 60 260)" />
+    
+    {/* Person - Cashier */}
+    <g>
+      {/* Body - Green shirt (MySale brand color) */}
+      <path d="M320 180 Q280 200 270 280 L270 340 L410 340 L410 280 Q400 200 360 180 Z" fill="#00a86b" />
+      
+      {/* Collar */}
+      <path d="M320 175 L340 195 L340 210 L320 195 L300 210 L300 195 Z" fill="#ffffff" />
+      
+      {/* Neck */}
+      <rect x="325" y="145" width="30" height="40" rx="8" fill="#fcd5b8" />
+      
+      {/* Head */}
+      <ellipse cx="340" cy="115" rx="45" ry="50" fill="#fcd5b8" />
+      
+      {/* Hair - dark */}
+      <ellipse cx="340" cy="85" rx="48" ry="35" fill="#1f2937" />
+      <path d="M295 100 Q295 70 340 65 Q385 70 385 100 Q385 85 340 80 Q295 85 295 100" fill="#1f2937" />
+      
+      {/* Ear */}
+      <ellipse cx="295" cy="115" rx="8" ry="12" fill="#fcd5b8" />
+      
+      {/* Face features */}
+      <ellipse cx="320" cy="110" rx="4" ry="3" fill="#1f2937" opacity="0.6" />
+      <ellipse cx="355" cy="110" rx="4" ry="3" fill="#1f2937" opacity="0.6" />
+      <path d="M330 130 Q340 138 350 130" stroke="#d4a088" strokeWidth="2" fill="none" />
+      
+      {/* Left arm pointing to screen */}
+      <path d="M270 220 Q230 240 200 260" stroke="#00a86b" strokeWidth="28" strokeLinecap="round" fill="none" />
+      <ellipse cx="195" cy="265" rx="18" ry="14" fill="#fcd5b8" />
+      
+      {/* Right arm */}
+      <path d="M410 250 Q430 280 420 320" stroke="#00a86b" strokeWidth="26" strokeLinecap="round" fill="none" />
+      <ellipse cx="420" cy="325" rx="16" ry="12" fill="#fcd5b8" />
+    </g>
+    
+    {/* Small decorative elements */}
+    <circle cx="80" cy="100" r="6" fill="#00a86b" opacity="0.3" />
+    <circle cx="460" cy="80" r="8" fill="#93c5fd" opacity="0.4" />
+    <rect x="70" y="200" width="12" height="12" rx="2" fill="#00a86b" opacity="0.2" transform="rotate(15 76 206)" />
   </svg>
 );
 
