@@ -182,11 +182,6 @@ const Login: React.FC = () => {
                 </p>
               </div>
 
-              {/* Subtitle */}
-              <p className="text-center mb-6" style={{ color: '#9ca3af', fontSize: '13px' }}>
-                Acceso al sistema
-              </p>
-
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Username Input */}
