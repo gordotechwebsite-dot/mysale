@@ -4,77 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { login as apiLogin } from '../api';
 import { User, Lock, Eye, EyeOff, Fingerprint, Loader2 } from 'lucide-react';
 
-// Cashier Illustration Component - Similar to reference image
-const CashierIllustration: React.FC = () => (
-  <svg viewBox="0 0 500 450" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-auto">
-    {/* Background blob - soft blue */}
-    <ellipse cx="320" cy="180" rx="180" ry="160" fill="#93c5fd" opacity="0.35" />
-    
-    {/* Counter/Desk - brown wood color */}
-    <rect x="50" y="340" width="450" height="110" rx="8" fill="#c4a484" />
-    <rect x="50" y="340" width="450" height="20" rx="4" fill="#a67c52" />
-    
-    {/* POS Terminal - dark with white screen */}
-    <g>
-      {/* Terminal base/stand */}
-      <rect x="180" y="320" width="80" height="25" rx="4" fill="#374151" />
-      <rect x="200" y="300" width="40" height="25" fill="#4b5563" />
-      
-      {/* Terminal screen - angled */}
-      <g transform="rotate(-10 240 250)">
-        <rect x="160" y="180" width="160" height="130" rx="8" fill="#1f2937" />
-        <rect x="168" y="188" width="144" height="105" rx="4" fill="#f8fafc" />
-        {/* Screen content lines */}
-        <rect x="178" y="200" width="80" height="6" rx="2" fill="#e5e7eb" />
-        <rect x="178" y="215" width="60" height="4" rx="2" fill="#e5e7eb" />
-        <rect x="178" y="228" width="100" height="4" rx="2" fill="#e5e7eb" />
-        <rect x="178" y="241" width="70" height="4" rx="2" fill="#e5e7eb" />
-        <rect x="178" y="260" width="50" height="8" rx="2" fill="#00a86b" opacity="0.6" />
-      </g>
-    </g>
-    
-    {/* Person - Cashier */}
-    <g>
-      {/* Body - Green shirt (MySale brand color) */}
-      <path d="M320 180 Q280 200 270 280 L270 340 L410 340 L410 280 Q400 200 360 180 Z" fill="#00a86b" />
-      
-      {/* Collar */}
-      <path d="M320 175 L340 195 L340 210 L320 195 L300 210 L300 195 Z" fill="#ffffff" />
-      
-      {/* Neck */}
-      <rect x="325" y="145" width="30" height="40" rx="8" fill="#fcd5b8" />
-      
-      {/* Head */}
-      <ellipse cx="340" cy="115" rx="45" ry="50" fill="#fcd5b8" />
-      
-      {/* Hair - dark */}
-      <ellipse cx="340" cy="85" rx="48" ry="35" fill="#1f2937" />
-      <path d="M295 100 Q295 70 340 65 Q385 70 385 100 Q385 85 340 80 Q295 85 295 100" fill="#1f2937" />
-      
-      {/* Ear */}
-      <ellipse cx="295" cy="115" rx="8" ry="12" fill="#fcd5b8" />
-      
-      {/* Face features */}
-      <ellipse cx="320" cy="110" rx="4" ry="3" fill="#1f2937" opacity="0.6" />
-      <ellipse cx="355" cy="110" rx="4" ry="3" fill="#1f2937" opacity="0.6" />
-      <path d="M330 130 Q340 138 350 130" stroke="#d4a088" strokeWidth="2" fill="none" />
-      
-      {/* Left arm pointing to screen */}
-      <path d="M270 220 Q230 240 200 260" stroke="#00a86b" strokeWidth="28" strokeLinecap="round" fill="none" />
-      <ellipse cx="195" cy="265" rx="18" ry="14" fill="#fcd5b8" />
-      
-      {/* Right arm */}
-      <path d="M410 250 Q430 280 420 320" stroke="#00a86b" strokeWidth="26" strokeLinecap="round" fill="none" />
-      <ellipse cx="420" cy="325" rx="16" ry="12" fill="#fcd5b8" />
-    </g>
-    
-    {/* Small decorative elements */}
-    <circle cx="80" cy="100" r="6" fill="#00a86b" opacity="0.3" />
-    <circle cx="460" cy="80" r="8" fill="#93c5fd" opacity="0.4" />
-    <rect x="70" y="200" width="12" height="12" rx="2" fill="#00a86b" opacity="0.2" transform="rotate(15 76 206)" />
-  </svg>
-);
-
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -117,50 +46,95 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#f6f7f9' }}>
-      {/* Background Blobs */}
+      {/* Background Blobs - Multiple soft colors */}
+      {/* Green blob - top left */}
       <div 
         className="absolute"
         style={{
-          top: '-100px',
-          left: '-100px',
+          top: '-80px',
+          left: '-80px',
+          width: '400px',
+          height: '400px',
+          borderRadius: '9999px',
+          backgroundColor: 'rgba(0, 168, 107, 0.12)',
+          filter: 'blur(120px)',
+          zIndex: 0
+        }}
+      />
+      {/* Blue blob - bottom right */}
+      <div 
+        className="absolute"
+        style={{
+          bottom: '-100px',
+          right: '-80px',
           width: '450px',
           height: '450px',
           borderRadius: '9999px',
-          backgroundColor: 'rgba(0, 168, 107, 0.14)',
-          filter: 'blur(140px)',
+          backgroundColor: 'rgba(59, 130, 246, 0.14)',
+          filter: 'blur(130px)',
           zIndex: 0
         }}
       />
+      {/* Purple blob - top right */}
       <div 
         className="absolute"
         style={{
-          bottom: '-150px',
-          right: '-100px',
-          width: '500px',
-          height: '500px',
-          borderRadius: '9999px',
-          backgroundColor: 'rgba(59, 130, 246, 0.12)',
-          filter: 'blur(150px)',
-          zIndex: 0
-        }}
-      />
-      <div 
-        className="absolute hidden lg:block"
-        style={{
-          top: '40%',
-          right: '15%',
+          top: '5%',
+          right: '10%',
           width: '350px',
           height: '350px',
           borderRadius: '9999px',
-          backgroundColor: 'rgba(168, 85, 247, 0.08)',
-          filter: 'blur(130px)',
+          backgroundColor: 'rgba(168, 85, 247, 0.10)',
+          filter: 'blur(120px)',
+          zIndex: 0
+        }}
+      />
+      {/* Cyan blob - center left */}
+      <div 
+        className="absolute"
+        style={{
+          top: '40%',
+          left: '5%',
+          width: '300px',
+          height: '300px',
+          borderRadius: '9999px',
+          backgroundColor: 'rgba(34, 211, 238, 0.10)',
+          filter: 'blur(110px)',
+          zIndex: 0
+        }}
+      />
+      {/* Pink blob - bottom left */}
+      <div 
+        className="absolute"
+        style={{
+          bottom: '10%',
+          left: '20%',
+          width: '280px',
+          height: '280px',
+          borderRadius: '9999px',
+          backgroundColor: 'rgba(236, 72, 153, 0.08)',
+          filter: 'blur(100px)',
+          zIndex: 0
+        }}
+      />
+      {/* Yellow/Amber blob - top center */}
+      <div 
+        className="absolute"
+        style={{
+          top: '15%',
+          left: '40%',
+          width: '250px',
+          height: '250px',
+          borderRadius: '9999px',
+          backgroundColor: 'rgba(251, 191, 36, 0.08)',
+          filter: 'blur(100px)',
           zIndex: 0
         }}
       />
 
       {/* Main Container */}
       <div className="min-h-screen flex items-center justify-center px-4 py-8 relative" style={{ zIndex: 1 }}>
-        <div className="w-full flex items-center justify-center lg:justify-between gap-8 lg:gap-16" style={{ maxWidth: '1100px' }}>
+        <div className="w-full flex items-center justify-center" style={{ maxWidth: '460px' }}>
           {/* Left Column - Login Card */}
           <div 
             className="w-full flex flex-col items-center"
@@ -366,28 +340,10 @@ const Login: React.FC = () => {
 
               {/* Footer */}
               <div className="mt-8 pt-6 text-center" style={{ borderTop: '1px solid #f3f4f6' }}>
-                <p className="text-xs" style={{ color: '#6b7280' }}>
-                  Sucursal: Galia 1539
-                </p>
-                <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>
+                <p className="text-xs" style={{ color: '#9ca3af' }}>
                   MySale POS Cloud v1.0
                 </p>
               </div>
-            </div>
-          </div>
-
-          {/* Right Column - Illustration (hidden on mobile) */}
-          <div 
-            className="hidden lg:flex flex-1 items-center justify-center"
-            style={{
-              opacity: isVisible ? 0.88 : 0,
-              transform: isVisible ? 'translateX(0)' : 'translateX(20px)',
-              transition: 'opacity 0.6s ease-out 0.2s, transform 0.6s ease-out 0.2s',
-              filter: 'saturate(0.95) contrast(0.98)'
-            }}
-          >
-            <div style={{ maxWidth: '380px', width: '100%' }}>
-              <CashierIllustration />
             </div>
           </div>
         </div>
