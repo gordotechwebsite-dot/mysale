@@ -96,52 +96,57 @@ const Shifts: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4 mb-6">
-            <Select value={filterLocation || "all"} onValueChange={(v) => setFilterLocation(v === "all" ? "" : v)}>
-              <SelectTrigger className="w-56">
-                <SelectValue placeholder="Todas las sucursales" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {locations.map(l => (
-                  <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {isAdmin && (
-              <Select value={filterUser || "all"} onValueChange={(v) => setFilterUser(v === "all" ? "" : v)}>
-                <SelectTrigger className="w-56">
-                  <SelectValue placeholder="Todos los usuarios" />
+          <div className="flex flex-wrap items-end gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">Sucursal</label>
+              <Select value={filterLocation || "all"} onValueChange={(v) => setFilterLocation(v === "all" ? "" : v)}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {users.map(u => (
-                    <SelectItem key={u.id} value={u.id.toString()}>{u.full_name}</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {locations.map(l => (
+                    <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {isAdmin && (
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Empleado</label>
+                <Select value={filterUser || "all"} onValueChange={(v) => setFilterUser(v === "all" ? "" : v)}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {users.map(u => (
+                      <SelectItem key={u.id} value={u.id.toString()}>{u.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
 
-            <div className="flex items-center gap-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Desde</label>
-                <input
-                  type="date"
-                  value={filterStartDate}
-                  onChange={(e) => setFilterStartDate(e.target.value)}
-                  className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Hasta</label>
-                <input
-                  type="date"
-                  value={filterEndDate}
-                  onChange={(e) => setFilterEndDate(e.target.value)}
-                  className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">Desde</label>
+              <input
+                type="date"
+                value={filterStartDate}
+                onChange={(e) => setFilterStartDate(e.target.value)}
+                className="h-10 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-500 mb-1">Hasta</label>
+              <input
+                type="date"
+                value={filterEndDate}
+                onChange={(e) => setFilterEndDate(e.target.value)}
+                className="h-10 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
             </div>
           </div>
 
