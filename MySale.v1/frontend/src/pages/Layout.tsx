@@ -18,11 +18,68 @@ import {
   DollarSign,
   Menu,
   X,
-  Store
+  Store,
+  Calculator,
+  UtensilsCrossed,
+  Shield,
+  Zap,
+  Banknote,
+  Building2,
+  ClipboardList,
+  LucideIcon
 } from 'lucide-react';
 
+// Map module codes to icons
+const moduleIcons: Record<string, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  pos: ShoppingCart,
+  quick_sale: Zap,
+  locations: Store,
+  tables: UtensilsCrossed,
+  inventory: Package,
+  cost_control: Calculator,
+  transfers: Truck,
+  losses: AlertTriangle,
+  expenses: DollarSign,
+  cash: Banknote,
+  shifts: Clock,
+  reports: FileText,
+  users: Users,
+  branches: Building2,
+  work_report: ClipboardList,
+  super_admin: Shield,
+};
+
+// Map module codes to routes
+const moduleRoutes: Record<string, string> = {
+  dashboard: '/',
+  pos: '/pos',
+  quick_sale: '/quick-sale',
+  locations: '/locations-dashboard',
+  tables: '/tables',
+  inventory: '/inventory',
+  cost_control: '/cost-control',
+  transfers: '/transfers',
+  losses: '/losses',
+  expenses: '/expenses',
+  cash: '/cash',
+  shifts: '/shifts',
+  reports: '/reports',
+  users: '/users',
+  branches: '/branches',
+  work_report: '/work-report',
+  super_admin: '/super-admin',
+  locations_admin: '/locations',
+};
+
+// Modules that require admin role
+const adminOnlyModules = ['inventory', 'cost_control', 'expenses', 'reports', 'users', 'branches', 'work_report', 'locations'];
+
+// Modules that require superuser role
+const superuserOnlyModules = ['super_admin', 'locations_admin'];
+
 const Layout: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, enabledModules } = useAuth();
   const { currentShift } = useShift();
   const location = useLocation();
   const navigate = useNavigate();
@@ -34,20 +91,36 @@ const Layout: React.FC = () => {
   };
 
   const isAdmin = user?.role?.role_type === 'superuser' || user?.role?.role_type === 'admin';
+  const isSuperuser = user?.role?.role_type === 'superuser';
 
-    const menuItems = [
-      { path: '/', icon: LayoutDashboard, label: 'Dashboard', show: true },
-      { path: '/locations-dashboard', icon: Store, label: 'Puntos de Venta', show: isAdmin },
-      { path: '/pos', icon: ShoppingCart, label: 'Punto de Venta', show: true },
-      { path: '/inventory', icon: Package, label: 'Inventario', show: isAdmin },
-      { path: '/transfers', icon: Truck, label: 'Transferencias', show: true },
-      { path: '/losses', icon: AlertTriangle, label: 'Mermas', show: true },
-      { path: '/expenses', icon: DollarSign, label: 'Gastos', show: isAdmin },
-      { path: '/shifts', icon: Clock, label: 'Turnos', show: true },
-      { path: '/reports', icon: FileText, label: 'Reportes', show: isAdmin },
-      { path: '/users', icon: Users, label: 'Usuarios', show: isAdmin },
-      { path: '/locations', icon: MapPin, label: 'Ubicaciones', show: user?.role?.role_type === 'superuser' },
-    ];
+  // Check if a module is enabled for this tenant
+  const isModuleEnabled = (moduleCode: string) => {
+    // System admin (no tenant_id) sees all modules
+    if (isSuperuser && !user?.tenant_id) return true;
+    // Tenant users only see their enabled modules
+    return enabledModules.some(m => m.code === moduleCode);
+  };
+
+  // Build menu items dynamically from enabled modules
+  const menuItems = enabledModules.length > 0 
+    ? enabledModules
+        .filter(module => {
+          // Check role-based access
+          if (superuserOnlyModules.includes(module.code) && !isSuperuser) return false;
+          if (adminOnlyModules.includes(module.code) && !isAdmin) return false;
+          return true;
+        })
+        .map(module => ({
+          path: module.route || moduleRoutes[module.code] || '/',
+          icon: moduleIcons[module.code] || LayoutDashboard,
+          label: module.name,
+          code: module.code,
+        }))
+    : [
+        // Fallback menu if no modules loaded (for backwards compatibility)
+        { path: '/', icon: LayoutDashboard, label: 'Dashboard', code: 'dashboard' },
+        { path: '/pos', icon: ShoppingCart, label: 'Punto de Venta', code: 'pos' },
+      ];
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
@@ -87,7 +160,7 @@ const Layout: React.FC = () => {
         </div>
 
         <nav className="p-2 flex-1 overflow-y-auto">
-          {menuItems.filter(item => item.show).map((item) => (
+          {menuItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}

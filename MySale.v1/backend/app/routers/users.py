@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models.user import User, Role, RoleType
+from app.models.tenant import Module, TenantModule
 from app.schemas.user import (
     UserCreate, UserUpdate, UserResponse,
     RoleCreate, RoleResponse
@@ -200,3 +201,50 @@ async def delete_user(
     db.commit()
     
     return {"message": "Usuario desactivado exitosamente"}
+
+
+@router.get("/me/modules")
+async def get_my_modules(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get enabled modules for the current user's tenant.
+    Returns all active modules if user is a superuser without tenant_id.
+    """
+    # Superuser without tenant sees all modules
+    if current_user.role and current_user.role.role_type == RoleType.SUPERUSER and not current_user.tenant_id:
+        modules = db.query(Module).filter(Module.is_active == True).order_by(Module.display_order).all()
+        return [
+            {
+                "code": m.code,
+                "name": m.name,
+                "icon": m.icon,
+                "route": m.route,
+                "display_order": m.display_order
+            }
+            for m in modules
+        ]
+    
+    # Tenant users only see their enabled modules
+    if not current_user.tenant_id:
+        return []
+    
+    enabled_modules = db.query(Module).join(
+        TenantModule, TenantModule.module_id == Module.id
+    ).filter(
+        TenantModule.tenant_id == current_user.tenant_id,
+        TenantModule.is_enabled == True,
+        Module.is_active == True
+    ).order_by(Module.display_order).all()
+    
+    return [
+        {
+            "code": m.code,
+            "name": m.name,
+            "icon": m.icon,
+            "route": m.route,
+            "display_order": m.display_order
+        }
+        for m in enabled_modules
+    ]
