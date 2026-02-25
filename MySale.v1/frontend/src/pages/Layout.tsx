@@ -311,8 +311,8 @@ const ColombiaClockDisplay: React.FC<ColombiaClockDisplayProps> = ({ onClick }) 
   // Format date and time for Colombia timezone (America/Bogota)
   const colombiaOptions: Intl.DateTimeFormatOptions = {
     timeZone: 'America/Bogota',
-    weekday: 'short',
-    month: 'short',
+    weekday: 'long',
+    month: 'long',
     day: 'numeric',
   };
   
@@ -320,6 +320,7 @@ const ColombiaClockDisplay: React.FC<ColombiaClockDisplayProps> = ({ onClick }) 
     timeZone: 'America/Bogota',
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit',
     hour12: true,
   };
 
@@ -329,7 +330,7 @@ const ColombiaClockDisplay: React.FC<ColombiaClockDisplayProps> = ({ onClick }) 
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 px-3 py-2 transition-all duration-200"
+      className="flex items-center gap-3 px-4 py-2 transition-all duration-200"
       style={{ borderRadius: '10px' }}
       title="Clic para registrar entrada/salida"
       onMouseEnter={(e) => {
@@ -339,10 +340,10 @@ const ColombiaClockDisplay: React.FC<ColombiaClockDisplayProps> = ({ onClick }) 
         (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
       }}
     >
-      <Clock size={20} style={{ color: '#00a86b' }} />
+      <Clock size={22} style={{ color: '#00a86b' }} />
       <div className="text-left">
-        <div className="text-sm font-semibold" style={{ color: '#111827' }}>{timeStr}</div>
-        <div className="text-xs capitalize" style={{ color: '#6b7280' }}>{dateStr}</div>
+        <div className="font-semibold" style={{ color: '#111827', fontSize: '16px' }}>{timeStr}</div>
+        <div className="capitalize" style={{ color: '#6b7280', fontSize: '13px' }}>{dateStr}</div>
       </div>
     </button>
   );
