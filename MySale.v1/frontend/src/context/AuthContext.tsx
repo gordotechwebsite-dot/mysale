@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { User } from '../types';
-import { getMe, getMyModules, EnabledModule, clockIn, clockOut, getBranches } from '../api';
+import { getMe, getMyModules, EnabledModule } from '../api';
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   enabledModules: EnabledModule[];
   login: (token: string, user: User) => void;
-  logout: () => Promise<void>;
+  logout: () => void;
   isLoading: boolean;
   refreshModules: () => Promise<void>;
 }
@@ -62,36 +62,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
-    // Load modules and auto clock-in after login
+    // Load modules after login
     try {
-      const [modules] = await Promise.all([
-        getMyModules(),
-        (async () => {
-          try {
-            // Get branches and clock in to first available one
-            const branches = await getBranches();
-            if (branches.length > 0) {
-              const branchId = (newUser as any).default_branch_id || branches[0].id;
-              await clockIn({ branch_id: branchId, notes: 'Auto registro al iniciar sesion' });
-            }
-          } catch (e) {
-            console.error('Auto clock-in error:', e);
-          }
-        })()
-      ]);
+      const modules = await getMyModules();
       setEnabledModules(modules);
     } catch (e) {
       console.error('Error loading modules:', e);
     }
   };
 
-  const logout = async () => {
-    // Auto clock-out before clearing session
-    try {
-      await clockOut({ notes: 'Auto registro al cerrar sesion' });
-    } catch (e) {
-      console.error('Auto clock-out error:', e);
-    }
+  const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
