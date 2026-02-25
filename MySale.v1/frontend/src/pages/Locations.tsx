@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { getLocations, createLocation } from '../api';
-import type { Location } from '../types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getLocationsDashboard, createLocation, updateLocation } from '../api';
+import type { LocationDashboard } from '../api';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -19,13 +19,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Loader2, Store, Warehouse } from 'lucide-react';
+import { Plus, Loader2, Store, Warehouse, Users, DollarSign, ShoppingCart, Camera, Building2 } from 'lucide-react';
+import api from '../api/client';
 
 const Locations: React.FC = () => {
-  const [locations, setLocations] = useState<Location[]>([]);
+  const [locations, setLocations] = useState<LocationDashboard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddLocation, setShowAddLocation] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadingImageFor, setUploadingImageFor] = useState<number | null>(null);
 
   const [newLocation, setNewLocation] = useState({
     name: '',
@@ -42,12 +44,31 @@ const Locations: React.FC = () => {
 
   const loadLocations = async () => {
     try {
-      const data = await getLocations();
+      const data = await getLocationsDashboard();
       setLocations(data);
     } catch (error) {
       console.error('Error loading locations:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (locationId: number, file: File) => {
+    setUploadingImageFor(locationId);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await api.post('/api/inventory/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const imageUrl = response.data.url;
+      await updateLocation(locationId, { image_url: imageUrl });
+      await loadLocations();
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Error al subir la imagen');
+    } finally {
+      setUploadingImageFor(null);
     }
   };
 
@@ -85,7 +106,7 @@ const Locations: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#00a86b]" />
       </div>
     );
   }
@@ -93,87 +114,166 @@ const Locations: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Ubicaciones</h2>
-        <Button onClick={() => setShowAddLocation(true)} className="bg-blue-600 hover:bg-blue-700">
+        <h2 className="text-xl font-bold">Sucursales</h2>
+        <Button onClick={() => setShowAddLocation(true)} className="bg-[#00a86b] hover:bg-[#008f5b]">
           <Plus className="w-4 h-4 mr-2" />
-          Nueva Ubicacion
+          Nueva Sucursal
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {locations.map((location) => (
-          <Card key={location.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                    location.location_type === 'pos' ? 'bg-blue-100' : 'bg-orange-100'
-                  }`}>
-                    {location.location_type === 'pos' ? (
-                      <Store className="w-6 h-6 text-blue-600" />
+      {locations.length === 0 ? (
+        <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+          <Building2 className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+          <h3 className="text-lg font-medium text-gray-600 mb-2">No hay sucursales registradas</h3>
+          <p className="text-gray-400 mb-4">Crea tu primera sucursal para comenzar</p>
+          <Button onClick={() => setShowAddLocation(true)} className="bg-[#00a86b] hover:bg-[#008f5b]">
+            <Plus className="w-4 h-4 mr-2" />
+            Crear Sucursal
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {locations.map((location) => {
+            const isOpen = location.active_workers.length > 0;
+            
+            return (
+              <Card 
+                key={location.id} 
+                className="overflow-hidden hover:shadow-lg transition-all duration-300 border-0 shadow-md"
+              >
+                <div className="flex h-48">
+                  {/* Imagen de la sucursal */}
+                  <div className="w-1/3 relative bg-gradient-to-br from-gray-100 to-gray-200">
+                    {location.image_url ? (
+                      <img 
+                        src={location.image_url} 
+                        alt={location.name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
-                      <Warehouse className="w-6 h-6 text-orange-600" />
+                      <div className="w-full h-full flex items-center justify-center">
+                        {location.location_type === 'pos' ? (
+                          <Store className="w-16 h-16 text-gray-300" />
+                        ) : (
+                          <Warehouse className="w-16 h-16 text-gray-300" />
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Boton para subir imagen */}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      id={`file-input-${location.id}`}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleImageUpload(location.id, file);
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={() => {
+                        document.getElementById(`file-input-${location.id}`)?.click();
+                      }}
+                      className="absolute bottom-2 right-2 bg-white/90 hover:bg-white p-2 rounded-full shadow-md transition-all"
+                      title="Cambiar imagen"
+                    >
+                      {uploadingImageFor === location.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-[#00a86b]" />
+                      ) : (
+                        <Camera className="w-4 h-4 text-gray-600" />
+                      )}
+                    </button>
+
+                    {/* Badge de estado */}
+                    <div className="absolute top-2 left-2">
+                      <Badge className={`${isOpen ? 'bg-green-500' : 'bg-gray-400'} text-white font-medium`}>
+                        {isOpen ? 'Abierto' : 'Cerrado'}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Informacion de la sucursal */}
+                  <div className="w-2/3 p-4 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-800">{location.name}</h3>
+                          <p className="text-sm text-gray-500 font-mono">{location.code}</p>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {location.location_type === 'pos' ? 'POS' : 'Almacen'}
+                        </Badge>
+                      </div>
+                      {location.address && (
+                        <p className="text-sm text-gray-500 truncate">{location.address}</p>
+                      )}
+                    </div>
+
+                    {/* Estadisticas del dia */}
+                    <div className="grid grid-cols-3 gap-3 mt-3">
+                      <div className="bg-green-50 rounded-lg p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 text-green-600 mb-1">
+                          <DollarSign className="w-3 h-3" />
+                          <span className="text-xs font-medium">Ventas</span>
+                        </div>
+                        <p className="text-sm font-bold text-green-700">
+                          {formatCurrency(location.today_sales)}
+                        </p>
+                      </div>
+                      
+                      <div className="bg-blue-50 rounded-lg p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 text-blue-600 mb-1">
+                          <ShoppingCart className="w-3 h-3" />
+                          <span className="text-xs font-medium">Transacc.</span>
+                        </div>
+                        <p className="text-sm font-bold text-blue-700">
+                          {location.today_transactions}
+                        </p>
+                      </div>
+                      
+                      <div className="bg-purple-50 rounded-lg p-2 text-center">
+                        <div className="flex items-center justify-center gap-1 text-purple-600 mb-1">
+                          <Users className="w-3 h-3" />
+                          <span className="text-xs font-medium">Empleados</span>
+                        </div>
+                        <p className="text-sm font-bold text-purple-700">
+                          {location.active_workers.length}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Lista de empleados activos */}
+                    {location.active_workers.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <p className="text-xs text-gray-500">
+                          Activos: {location.active_workers.map(w => w.name).join(', ')}
+                        </p>
+                      </div>
                     )}
                   </div>
-                  <div>
-                    <CardTitle className="text-lg">{location.name}</CardTitle>
-                    <p className="text-sm text-gray-500 font-mono">{location.code}</p>
-                  </div>
                 </div>
-                {location.is_active ? (
-                  <Badge className="bg-green-500">Activo</Badge>
-                ) : (
-                  <Badge className="bg-red-500">Inactivo</Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Tipo:</span>
-                  <span className="font-medium">
-                    {location.location_type === 'pos' ? 'Punto de Venta' : 'Almacen'}
-                  </span>
-                </div>
-                {location.address && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Direccion:</span>
-                    <span className="font-medium">{location.address}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Base Diaria:</span>
-                  <span className="font-medium">{formatCurrency(location.daily_base_cash)}</span>
-                </div>
-                {location.folio_prefix && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Prefijo Folio:</span>
-                    <span className="font-mono">{location.folio_prefix}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Ultimo Folio:</span>
-                  <span className="font-mono">{location.folio_counter}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <Dialog open={showAddLocation} onOpenChange={setShowAddLocation}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nueva Ubicacion</DialogTitle>
+            <DialogTitle>Nueva Sucursal</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <Input
-              placeholder="Nombre *"
+              placeholder="Nombre de la sucursal *"
               value={newLocation.name}
               onChange={(e) => setNewLocation({ ...newLocation, name: e.target.value })}
             />
             <Input
-              placeholder="Codigo *"
+              placeholder="Codigo (ej: SUC01) *"
               value={newLocation.code}
               onChange={(e) => setNewLocation({ ...newLocation, code: e.target.value.toUpperCase() })}
             />
@@ -211,8 +311,9 @@ const Locations: React.FC = () => {
             <Button
               onClick={handleAddLocation}
               disabled={isProcessing || !newLocation.name || !newLocation.code}
+              className="bg-[#00a86b] hover:bg-[#008f5b]"
             >
-              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crear'}
+              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crear Sucursal'}
             </Button>
           </DialogFooter>
         </DialogContent>
