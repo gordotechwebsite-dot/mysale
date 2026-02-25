@@ -232,10 +232,10 @@ async def delete_user(
             detail="No puede eliminar su propio usuario"
         )
     
-    user.is_active = False
+    db.delete(user)
     db.commit()
     
-    return {"message": "Usuario desactivado exitosamente"}
+    return {"message": "Usuario eliminado exitosamente"}
 
 
 @router.get("/me/modules")
