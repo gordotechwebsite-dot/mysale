@@ -451,7 +451,7 @@ const Layout: React.FC = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white transform transition-transform duration-200 ease-in-out flex flex-col ${
+        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white transform transition-transform duration-200 ease-in-out flex flex-col h-screen ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
         style={{ 
@@ -493,8 +493,8 @@ const Layout: React.FC = () => {
           )}
         </div>
 
-        {/* Navigation - Premium Style */}
-        <nav className="flex-1 overflow-y-auto px-4 py-3">
+        {/* Navigation - Premium Style with scroll */}
+        <nav className="flex-1 overflow-y-auto px-4 py-3" style={{ minHeight: 0 }}>
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
