@@ -9,6 +9,7 @@ class RoleType(str, enum.Enum):
     SUPERUSER = "superuser"
     ADMIN = "admin"
     CASHIER = "cashier"
+    WAITER = "waiter"
 
 
 class Role(Base):
@@ -39,6 +40,9 @@ class User(Base):
     username = Column(String(50), nullable=False, index=True)
     email = Column(String(100), nullable=True)
     full_name = Column(String(100), nullable=False)
+    phone = Column(String(20), nullable=True)
+    cedula = Column(String(20), nullable=True, index=True)
+    photo_url = Column(String(500), nullable=True)
     hashed_password = Column(String(255), nullable=False)
     pin_hash = Column(String(255), nullable=True)
     fingerprint_hash = Column(String(255), nullable=True)

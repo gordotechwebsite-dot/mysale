@@ -35,16 +35,20 @@ class RoleResponse(BaseModel):
 
 class UserCreate(BaseModel):
     username: str
-    email: Optional[str] = None
     full_name: str
     password: str
+    phone: Optional[str] = None
+    cedula: Optional[str] = None
+    photo_url: Optional[str] = None
     role_id: int
     location_id: Optional[int] = None
 
 
 class UserUpdate(BaseModel):
-    email: Optional[str] = None
     full_name: Optional[str] = None
+    phone: Optional[str] = None
+    cedula: Optional[str] = None
+    photo_url: Optional[str] = None
     role_id: Optional[int] = None
     location_id: Optional[int] = None
     is_active: Optional[bool] = None
@@ -54,8 +58,10 @@ class UserUpdate(BaseModel):
 class UserResponse(BaseModel):
     id: int
     username: str
-    email: Optional[str]
     full_name: str
+    phone: Optional[str] = None
+    cedula: Optional[str] = None
+    photo_url: Optional[str] = None
     role_id: int
     role: Optional[RoleResponse] = None
     location_id: Optional[int]

@@ -20,6 +20,10 @@ export const createUser = async (data: {
   password: string;
   full_name: string;
   email?: string;
+  phone?: string;
+  cedula?: string;
+  photo_url?: string;
+  pin?: string;
   role_id: number;
   location_id?: number;
   employee_code?: string;

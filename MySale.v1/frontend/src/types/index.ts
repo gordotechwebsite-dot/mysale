@@ -3,6 +3,10 @@ export interface User {
   username: string;
   email: string | null;
   full_name: string;
+  phone: string | null;
+  cedula: string | null;
+  photo_url: string | null;
+  pin: string | null;
   role_id: number;
   role?: Role;
   location_id: number | null;
