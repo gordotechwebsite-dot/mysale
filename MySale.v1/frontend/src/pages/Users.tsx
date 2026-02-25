@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users as UsersIcon, Plus, Loader2, Trash2, User as UserIcon, Copy, Check } from 'lucide-react';
+import { Users as UsersIcon, Plus, Loader2, Trash2, User as UserIcon, Copy, Check, Camera } from 'lucide-react';
 
 const generateUsername = (fullName: string): string => {
   if (!fullName.trim()) return '';
@@ -39,6 +39,8 @@ const Users: React.FC = () => {
   const [showCredentials, setShowCredentials] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState({ username: '', password: '', pin: '' });
   const [newUser, setNewUser] = useState({ full_name: '', phone: '', cedula: '', username: '', password: '', pin: '', role_id: '', location_id: '', photo_url: '' });
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -61,6 +63,23 @@ const Users: React.FC = () => {
     if (name.trim().length >= 3) regenerateCredentials(name);
   };
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('La imagen no debe superar 2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setPhotoPreview(base64);
+        setNewUser(prev => ({ ...prev, photo_url: base64 }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAddUser = async () => {
     setIsProcessing(true);
     try {
@@ -71,6 +90,7 @@ const Users: React.FC = () => {
       setShowAddUser(false);
       setShowCredentials(true);
       setNewUser({ full_name: '', phone: '', cedula: '', username: '', password: '', pin: '', role_id: '', location_id: '', photo_url: '' });
+      setPhotoPreview(null);
     } catch (error: any) { alert(error.response?.data?.detail || 'Error al crear usuario'); }
     finally { setIsProcessing(false); }
   };
@@ -163,10 +183,34 @@ const Users: React.FC = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex justify-center mb-4">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg">
-                <UserIcon className="w-10 h-10 text-white" />
+              <div className="relative">
+                <div 
+                  className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg cursor-pointer overflow-hidden hover:opacity-90 transition-opacity"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {photoPreview ? (
+                    <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <UserIcon className="w-10 h-10 text-white" />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="absolute bottom-0 right-0 w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center shadow-md hover:bg-blue-700 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Camera className="w-4 h-4 text-white" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoChange}
+                />
               </div>
             </div>
+            <p className="text-xs text-gray-500 text-center -mt-2">Clic para subir foto (max 2MB)</p>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 block">Nombre Completo *</label>
               <Input placeholder="Ej: Juan Perez" value={newUser.full_name} onChange={(e) => handleNameChange(e.target.value)} />
