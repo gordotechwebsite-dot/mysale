@@ -1,0 +1,119 @@
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, Text, Enum
+from sqlalchemy.orm import relationship
+from datetime import datetime
+import enum
+from app.database import Base
+
+
+class TableStatus(str, enum.Enum):
+    AVAILABLE = "available"
+    OCCUPIED = "occupied"
+    RESERVED = "reserved"
+    CLEANING = "cleaning"
+
+
+class TicketStatus(str, enum.Enum):
+    OPEN = "open"
+    CLOSED = "closed"
+    CANCELLED = "cancelled"
+    PAID = "paid"
+
+
+class Zone(Base):
+    __tablename__ = "zones"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    tables = relationship("Table", back_populates="zone")
+
+
+class Table(Base):
+    __tablename__ = "tables"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    zone_id = Column(Integer, ForeignKey("zones.id"), nullable=True)
+    number = Column(String(20), nullable=False)
+    capacity = Column(Integer, default=4)
+    status = Column(Enum(TableStatus), default=TableStatus.AVAILABLE)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    zone = relationship("Zone", back_populates="tables")
+    tickets = relationship("Ticket", back_populates="table")
+
+
+class Ticket(Base):
+    __tablename__ = "tickets"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    table_id = Column(Integer, ForeignKey("tables.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    folio = Column(String(50), nullable=False)
+    status = Column(Enum(TicketStatus), default=TicketStatus.OPEN)
+    subtotal = Column(Float, default=0)
+    tax = Column(Float, default=0)
+    discount = Column(Float, default=0)
+    total = Column(Float, default=0)
+    guests = Column(Integer, default=1)
+    notes = Column(Text)
+    opened_at = Column(DateTime, default=datetime.utcnow)
+    closed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    table = relationship("Table", back_populates="tickets")
+    items = relationship("TicketItem", back_populates="ticket")
+    payments = relationship("TicketPayment", back_populates="ticket")
+    comandas = relationship("Comanda", back_populates="ticket")
+
+
+class TicketItem(Base):
+    __tablename__ = "ticket_items"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    quantity = Column(Float, nullable=False)
+    unit_price = Column(Float, nullable=False)
+    subtotal = Column(Float, nullable=False)
+    notes = Column(Text)
+    is_sent = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    ticket = relationship("Ticket", back_populates="items")
+    product = relationship("Product")
+
+
+class Comanda(Base):
+    __tablename__ = "comandas"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id"), nullable=False)
+    folio = Column(String(50), nullable=False)
+    notes = Column(Text)
+    is_printed = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    ticket = relationship("Ticket", back_populates="comandas")
+
+
+class TicketPayment(Base):
+    __tablename__ = "ticket_payments"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id"), nullable=False)
+    payment_method = Column(String(50), nullable=False)
+    amount = Column(Float, nullable=False)
+    reference = Column(String(100))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    ticket = relationship("Ticket", back_populates="payments")
