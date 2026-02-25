@@ -72,6 +72,7 @@ function AppRoutes() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route path="dashboard" element={<Dashboard />} />
         <Route path="pos" element={<POS />} />
         <Route path="quick-sale" element={<QuickSale />} />
         <Route path="inventory" element={<Inventory />} />
