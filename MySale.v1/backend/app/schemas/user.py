@@ -40,6 +40,7 @@ class UserCreate(BaseModel):
     phone: Optional[str] = None
     cedula: Optional[str] = None
     photo_url: Optional[str] = None
+    pin: Optional[str] = None
     role_id: int
     location_id: Optional[int] = None
 

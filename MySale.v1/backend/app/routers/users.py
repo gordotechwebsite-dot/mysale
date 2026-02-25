@@ -8,7 +8,7 @@ from app.schemas.user import (
     UserCreate, UserUpdate, UserResponse,
     RoleCreate, RoleResponse
 )
-from app.utils.auth import get_password_hash, get_current_user, require_role
+from app.utils.auth import get_password_hash, get_current_user, require_role, get_pin_hash
 
 router = APIRouter(prefix="/api/users", tags=["Usuarios"])
 
@@ -108,6 +108,7 @@ async def create_user(
         )
     
     hashed_password = get_password_hash(user.password)
+    pin_hash = get_pin_hash(user.pin) if user.pin else None
     db_user = User(
         username=user.username,
         full_name=user.full_name,
@@ -115,6 +116,7 @@ async def create_user(
         cedula=user.cedula,
         photo_url=user.photo_url,
         hashed_password=hashed_password,
+        pin_hash=pin_hash,
         role_id=user.role_id,
         location_id=user.location_id,
         tenant_id=current_user.tenant_id  # Assign same tenant as creator
