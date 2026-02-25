@@ -22,7 +22,6 @@ import { Button } from '@/components/ui/button';
 import {
   DollarSign,
   ShoppingCart,
-  TrendingUp,
   AlertTriangle,
   Clock,
   Package,
@@ -140,22 +139,28 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-8">
+      {/* Header - Premium Style */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
           <h1 className="text-2xl font-semibold" style={{ color: '#111827' }}>
-            Hola, {user?.full_name?.split(' ')[0]}!
+            Hola, {user?.full_name?.split(' ')[0]}
           </h1>
-          <p className="text-sm" style={{ color: '#6b7280' }}>Resumen del dia</p>
+          <p className="text-sm mt-1" style={{ color: '#9ca3af' }}>Resumen de hoy</p>
         </div>
         <div className="flex gap-3">
           {currentShift ? (
             <>
               <button
                 onClick={() => navigate('/pos')}
-                className="h-12 px-6 flex items-center gap-2 text-white font-semibold transition-all duration-200"
-                style={{ backgroundColor: '#00a86b', borderRadius: '12px' }}
+                className="flex items-center gap-2 text-white font-semibold transition-all duration-200"
+                style={{ 
+                  backgroundColor: '#00a86b', 
+                  borderRadius: '12px',
+                  height: '52px',
+                  padding: '0 28px',
+                  fontSize: '15px'
+                }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00965f'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00a86b'; }}
               >
@@ -164,12 +169,15 @@ const Dashboard: React.FC = () => {
               </button>
               <button
                 onClick={() => setShowCloseShift(true)}
-                className="h-12 px-6 flex items-center gap-2 font-semibold transition-all duration-200"
+                className="flex items-center gap-2 font-semibold transition-all duration-200"
                 style={{ 
                   backgroundColor: 'transparent',
                   border: '1px solid #ef4444',
                   borderRadius: '12px',
-                  color: '#ef4444'
+                  color: '#ef4444',
+                  height: '52px',
+                  padding: '0 28px',
+                  fontSize: '15px'
                 }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(239, 68, 68, 0.08)'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
@@ -181,8 +189,14 @@ const Dashboard: React.FC = () => {
           ) : (
             <button
               onClick={() => setShowOpenShift(true)}
-              className="h-12 px-6 flex items-center gap-2 text-white font-semibold transition-all duration-200"
-              style={{ backgroundColor: '#00a86b', borderRadius: '12px' }}
+              className="flex items-center gap-2 text-white font-semibold transition-all duration-200"
+              style={{ 
+                backgroundColor: '#00a86b', 
+                borderRadius: '12px',
+                height: '52px',
+                padding: '0 32px',
+                fontSize: '15px'
+              }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00965f'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00a86b'; }}
             >
@@ -229,103 +243,67 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Stats Cards */}
+      {/* Stats Cards - Premium Style */}
       {isAdmin && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* Ventas Hoy */}
           <div 
-            className="bg-white p-6"
+            className="bg-white"
             style={{ 
-              borderRadius: '18px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
+              borderRadius: '16px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+              padding: '28px'
             }}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm" style={{ color: '#6b7280' }}>Ventas Hoy</p>
-                <p className="text-2xl font-bold mt-1" style={{ color: '#111827' }}>
-                  {formatCurrency(data?.today_sales || 0)}
-                </p>
-              </div>
-              <div 
-                className="w-12 h-12 flex items-center justify-center"
-                style={{ backgroundColor: 'rgba(0, 168, 107, 0.1)', borderRadius: '50%' }}
-              >
-                <DollarSign size={24} style={{ color: '#00a86b' }} />
-              </div>
-            </div>
+            <p className="text-sm font-medium" style={{ color: '#6b7280' }}>Ventas Hoy</p>
+            <p className="text-3xl font-bold mt-2" style={{ color: '#111827' }}>
+              {formatCurrency(data?.today_sales || 0)}
+            </p>
           </div>
 
           {/* Transacciones */}
           <div 
-            className="bg-white p-6"
+            className="bg-white"
             style={{ 
-              borderRadius: '18px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
+              borderRadius: '16px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+              padding: '28px'
             }}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm" style={{ color: '#6b7280' }}>Transacciones</p>
-                <p className="text-2xl font-bold mt-1" style={{ color: '#111827' }}>
-                  {data?.today_transactions || 0}
-                </p>
-              </div>
-              <div 
-                className="w-12 h-12 flex items-center justify-center"
-                style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '50%' }}
-              >
-                <ShoppingCart size={24} style={{ color: '#3b82f6' }} />
-              </div>
-            </div>
+            <p className="text-sm font-medium" style={{ color: '#6b7280' }}>Transacciones</p>
+            <p className="text-3xl font-bold mt-2" style={{ color: '#111827' }}>
+              {data?.today_transactions || 0}
+            </p>
           </div>
 
           {/* Ventas del Mes */}
           <div 
-            className="bg-white p-6"
+            className="bg-white"
             style={{ 
-              borderRadius: '18px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
+              borderRadius: '16px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+              padding: '28px'
             }}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm" style={{ color: '#6b7280' }}>Ventas del Mes</p>
-                <p className="text-2xl font-bold mt-1" style={{ color: '#111827' }}>
-                  {formatCurrency(data?.month_sales || 0)}
-                </p>
-              </div>
-              <div 
-                className="w-12 h-12 flex items-center justify-center"
-                style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', borderRadius: '50%' }}
-              >
-                <TrendingUp size={24} style={{ color: '#8b5cf6' }} />
-              </div>
-            </div>
+            <p className="text-sm font-medium" style={{ color: '#6b7280' }}>Ventas del Mes</p>
+            <p className="text-3xl font-bold mt-2" style={{ color: '#111827' }}>
+              {formatCurrency(data?.month_sales || 0)}
+            </p>
           </div>
 
           {/* Alertas Stock */}
           <div 
-            className="bg-white p-6"
+            className="bg-white"
             style={{ 
-              borderRadius: '18px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
+              borderRadius: '16px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+              padding: '28px'
             }}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm" style={{ color: '#6b7280' }}>Alertas Stock</p>
-                <p className="text-2xl font-bold mt-1" style={{ color: '#f59e0b' }}>
-                  {data?.low_stock_alerts || 0}
-                </p>
-              </div>
-              <div 
-                className="w-12 h-12 flex items-center justify-center"
-                style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', borderRadius: '50%' }}
-              >
-                <AlertTriangle size={24} style={{ color: '#f59e0b' }} />
-              </div>
-            </div>
+            <p className="text-sm font-medium" style={{ color: '#6b7280' }}>Alertas Stock</p>
+            <p className="text-3xl font-bold mt-2" style={{ color: data?.low_stock_alerts ? '#f59e0b' : '#111827' }}>
+              {data?.low_stock_alerts || 0}
+            </p>
           </div>
         </div>
       )}

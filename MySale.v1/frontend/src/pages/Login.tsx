@@ -54,12 +54,13 @@ const Login: React.FC = () => {
         </p>
       </div>
 
-      {/* Login Card */}
+      {/* Login Card - Premium Style */}
       <div 
-        className="w-full max-w-[420px] bg-white p-10 animate-fade-in"
+        className="w-full max-w-[420px] bg-white animate-fade-in"
         style={{ 
           borderRadius: '18px',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
+          boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+          padding: '40px'
         }}
       >
         {/* Header */}
@@ -173,14 +174,16 @@ const Login: React.FC = () => {
             </div>
           )}
 
-          {/* Submit Button */}
+          {/* Submit Button - Premium */}
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-12 text-base font-semibold text-white flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50"
+            className="w-full text-base text-white flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50"
             style={{ 
               backgroundColor: '#00a86b',
-              borderRadius: '12px'
+              borderRadius: '12px',
+              height: '48px',
+              fontWeight: 600
             }}
             onMouseEnter={(e) => {
               if (!isLoading) {

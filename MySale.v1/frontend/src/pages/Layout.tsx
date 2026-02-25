@@ -493,8 +493,8 @@ const Layout: React.FC = () => {
           )}
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-3">
+        {/* Navigation - Premium Style */}
+        <nav className="flex-1 overflow-y-auto px-4 py-3">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -502,15 +502,15 @@ const Layout: React.FC = () => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setSidebarOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 mb-1 transition-all duration-200"
+                className="flex items-center gap-3 px-4 py-3 mb-2 transition-all duration-200"
                 style={{ 
                   borderRadius: '10px',
-                  backgroundColor: isActive ? '#00a86b' : 'transparent',
-                  color: isActive ? 'white' : '#6b7280'
+                  backgroundColor: isActive ? 'rgba(0, 168, 107, 0.1)' : 'transparent',
+                  color: isActive ? '#00a86b' : '#6b7280'
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 168, 107, 0.08)';
+                    (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 168, 107, 0.06)';
                     (e.currentTarget as HTMLElement).style.color = '#00a86b';
                   }
                 }}
@@ -521,8 +521,8 @@ const Layout: React.FC = () => {
                   }
                 }}
               >
-                <item.icon size={20} />
-                <span className="font-medium text-sm">{item.label}</span>
+                <item.icon size={18} strokeWidth={1.5} />
+                <span className="text-sm" style={{ fontWeight: isActive ? 500 : 400 }}>{item.label}</span>
               </Link>
             );
           })}
