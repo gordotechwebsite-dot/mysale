@@ -50,11 +50,11 @@ const Login: React.FC = () => {
       {/* Grainient Animated Background */}
       <div className="absolute inset-0" style={{ zIndex: 0 }}>
         <Grainient
-          color1="#9effcd"
-          color2="#5227FF"
+          color1="#ebc8b2"
+          color2="#856edd"
           color3="#a3ddf0"
-          timeSpeed={1.55}
-          colorBalance={0}
+          timeSpeed={3.15}
+          colorBalance={-0.26}
           warpStrength={1}
           warpFrequency={5}
           warpSpeed={2}
