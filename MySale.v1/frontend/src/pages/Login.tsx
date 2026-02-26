@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { login as apiLogin } from '../api';
 import { User, Lock, Eye, EyeOff, Fingerprint, Loader2 } from 'lucide-react';
+import { Plasma } from '../components/Plasma';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -45,92 +46,18 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#f6f7f9' }}>
-      {/* Background Blobs - Multiple soft colors */}
-      {/* Green blob - top left */}
-      <div 
-        className="absolute"
-        style={{
-          top: '-80px',
-          left: '-80px',
-          width: '400px',
-          height: '400px',
-          borderRadius: '9999px',
-          backgroundColor: 'rgba(0, 168, 107, 0.12)',
-          filter: 'blur(120px)',
-          zIndex: 0
-        }}
-      />
-      {/* Blue blob - bottom right */}
-      <div 
-        className="absolute"
-        style={{
-          bottom: '-100px',
-          right: '-80px',
-          width: '450px',
-          height: '450px',
-          borderRadius: '9999px',
-          backgroundColor: 'rgba(59, 130, 246, 0.14)',
-          filter: 'blur(130px)',
-          zIndex: 0
-        }}
-      />
-      {/* Purple blob - top right */}
-      <div 
-        className="absolute"
-        style={{
-          top: '5%',
-          right: '10%',
-          width: '350px',
-          height: '350px',
-          borderRadius: '9999px',
-          backgroundColor: 'rgba(168, 85, 247, 0.10)',
-          filter: 'blur(120px)',
-          zIndex: 0
-        }}
-      />
-      {/* Cyan blob - center left */}
-      <div 
-        className="absolute"
-        style={{
-          top: '40%',
-          left: '5%',
-          width: '300px',
-          height: '300px',
-          borderRadius: '9999px',
-          backgroundColor: 'rgba(34, 211, 238, 0.10)',
-          filter: 'blur(110px)',
-          zIndex: 0
-        }}
-      />
-      {/* Pink blob - bottom left */}
-      <div 
-        className="absolute"
-        style={{
-          bottom: '10%',
-          left: '20%',
-          width: '280px',
-          height: '280px',
-          borderRadius: '9999px',
-          backgroundColor: 'rgba(236, 72, 153, 0.08)',
-          filter: 'blur(100px)',
-          zIndex: 0
-        }}
-      />
-      {/* Yellow/Amber blob - top center */}
-      <div 
-        className="absolute"
-        style={{
-          top: '15%',
-          left: '40%',
-          width: '250px',
-          height: '250px',
-          borderRadius: '9999px',
-          backgroundColor: 'rgba(251, 191, 36, 0.08)',
-          filter: 'blur(100px)',
-          zIndex: 0
-        }}
-      />
+    <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#0a0a0a' }}>
+      {/* Plasma Animated Background */}
+      <div className="absolute inset-0" style={{ zIndex: 0 }}>
+        <Plasma
+          color="#00eeff"
+          speed={2}
+          direction="backward"
+          scale={1}
+          opacity={1}
+          mouseInteractive
+        />
+      </div>
 
       {/* Main Container */}
       <div className="min-h-screen flex items-center justify-center px-4 py-8 relative" style={{ zIndex: 1 }}>
@@ -148,22 +75,25 @@ const Login: React.FC = () => {
           >
             {/* Welcome text */}
             <div className="text-center mb-6">
-              <h1 className="font-bold" style={{ color: '#111827', fontSize: '26px' }}>
+              <h1 className="font-bold" style={{ color: '#ffffff', fontSize: '26px', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
                 Bienvenido a MySale
               </h1>
-              <p className="mt-2" style={{ color: '#6b7280', fontSize: '15px' }}>
+              <p className="mt-2" style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px', textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>
                 Plataforma inteligente de ventas
               </p>
             </div>
 
-            {/* Login Card - Premium Style */}
+            {/* Login Card - Glass Morphism Style */}
             <div 
-              className="w-full bg-white"
+              className="w-full"
               style={{ 
                 borderRadius: '22px',
-                boxShadow: '0 30px 80px rgba(0,0,0,0.08)',
-                border: '1px solid rgba(17,24,39,0.06)',
-                padding: '40px'
+                boxShadow: '0 30px 80px rgba(0,0,0,0.3)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                padding: '40px',
+                backgroundColor: 'rgba(255,255,255,0.95)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)'
               }}
             >
               {/* Header */}
