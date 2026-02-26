@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { login as apiLogin } from '../api';
 import { User, Lock, Eye, EyeOff, Fingerprint, Loader2 } from 'lucide-react';
 import Grainient from '../components/Grainient';
+import Balatro from '../components/Balatro';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -15,6 +16,9 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const usernameRef = useRef<HTMLInputElement>(null);
+
+  // Detect if we're on the admin subdomain
+  const isAdmin = window.location.hostname.startsWith('admin');
 
   // Animation on mount
   useEffect(() => {
@@ -47,32 +51,46 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#0a0a0a' }}>
-      {/* Grainient Animated Background */}
+      {/* Animated Background - Balatro for admin, Grainient for clients */}
       <div className="absolute inset-0" style={{ zIndex: 0 }}>
-        <Grainient
-          color1="#ebc8b2"
-          color2="#856edd"
-          color3="#a3ddf0"
-          timeSpeed={3.15}
-          colorBalance={-0.26}
-          warpStrength={1}
-          warpFrequency={5}
-          warpSpeed={2}
-          warpAmplitude={50}
-          blendAngle={0}
-          blendSoftness={0.05}
-          rotationAmount={500}
-          noiseScale={2}
-          grainAmount={0.1}
-          grainScale={2}
-          grainAnimated={false}
-          contrast={1.5}
-          gamma={1}
-          saturation={1}
-          centerX={0}
-          centerY={0}
-          zoom={0.9}
-        />
+        {isAdmin ? (
+          <Balatro
+            spinRotation={-2}
+            spinSpeed={7}
+            color1="#3ba7de"
+            color2="#b30000"
+            color3="#162325"
+            contrast={6.5}
+            lighting={0.7}
+            spinAmount={0.25}
+            pixelFilter={1050}
+          />
+        ) : (
+          <Grainient
+            color1="#ebc8b2"
+            color2="#856edd"
+            color3="#a3ddf0"
+            timeSpeed={3.15}
+            colorBalance={-0.26}
+            warpStrength={1}
+            warpFrequency={5}
+            warpSpeed={2}
+            warpAmplitude={50}
+            blendAngle={0}
+            blendSoftness={0.05}
+            rotationAmount={500}
+            noiseScale={2}
+            grainAmount={0.1}
+            grainScale={2}
+            grainAnimated={false}
+            contrast={1.5}
+            gamma={1}
+            saturation={1}
+            centerX={0}
+            centerY={0}
+            zoom={0.9}
+          />
+        )}
       </div>
 
       {/* Main Container */}
@@ -92,10 +110,10 @@ const Login: React.FC = () => {
             {/* Welcome text */}
             <div className="text-center mb-6">
               <h1 className="font-bold" style={{ color: '#ffffff', fontSize: '26px', textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
-                Bienvenido a MySale
+                {isAdmin ? 'MySale Factory' : 'Bienvenido a MySale'}
               </h1>
               <p className="mt-2" style={{ color: 'rgba(255,255,255,0.7)', fontSize: '15px', textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>
-                Plataforma inteligente de ventas
+                {isAdmin ? 'Panel de Administracion' : 'Plataforma inteligente de ventas'}
               </p>
             </div>
 
