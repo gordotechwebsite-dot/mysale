@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { login as apiLogin } from '../api';
 import { User, Lock, Eye, EyeOff, Fingerprint, Loader2 } from 'lucide-react';
-import { Plasma } from '../components/Plasma';
+import Grainient from '../components/Grainient';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -47,15 +47,31 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#0a0a0a' }}>
-      {/* Plasma Animated Background */}
+      {/* Grainient Animated Background */}
       <div className="absolute inset-0" style={{ zIndex: 0 }}>
-        <Plasma
-          color="#00eeff"
-          speed={2}
-          direction="backward"
-          scale={1}
-          opacity={1}
-          mouseInteractive
+        <Grainient
+          color1="#9effcd"
+          color2="#5227FF"
+          color3="#a3ddf0"
+          timeSpeed={1.55}
+          colorBalance={0}
+          warpStrength={1}
+          warpFrequency={5}
+          warpSpeed={2}
+          warpAmplitude={50}
+          blendAngle={0}
+          blendSoftness={0.05}
+          rotationAmount={500}
+          noiseScale={2}
+          grainAmount={0.1}
+          grainScale={2}
+          grainAnimated={false}
+          contrast={1.5}
+          gamma={1}
+          saturation={1}
+          centerX={0}
+          centerY={0}
+          zoom={0.9}
         />
       </div>
 
