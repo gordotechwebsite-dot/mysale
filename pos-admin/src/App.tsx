@@ -6,6 +6,7 @@ import {
   AlertCircle, CheckCircle, Clock, Ban, LayoutDashboard, Search,
   MessageCircle, Save
 } from 'lucide-react'
+import Balatro from './components/Balatro'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001'
 
@@ -298,59 +299,80 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-        <div className="text-center mb-8">
-          <img 
-            src="/logo.png" 
-            alt="MySale Logo" 
-            className="mx-auto mb-4"
-            style={{ width: '64px', height: '64px', objectFit: 'contain' }}
-          />
-          <h1 className="text-2xl font-bold text-gray-900">MySale Factory</h1>
-          <p className="text-gray-500 mt-2">Plataforma de Gestión de Clientes POS</p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ backgroundColor: '#0a0a0a' }}>
+      {/* Animated Balatro Background */}
+      <div className="absolute inset-0" style={{ zIndex: 0 }}>
+        <Balatro
+          spinRotation={-2}
+          spinSpeed={7}
+          color1="#3ba7de"
+          color2="#b30000"
+          color3="#162325"
+          contrast={6.5}
+          lighting={0.7}
+          spinAmount={0.25}
+          pixelFilter={1050}
+        />
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2">
-              <AlertCircle className="w-4 h-4" />
-              {error}
+      {/* Content */}
+      <div className="relative" style={{ zIndex: 1 }}>
+        <h1 className="text-3xl font-bold text-white text-center mb-2" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>MySale Factory</h1>
+        <p className="text-white/70 text-center mb-6">Panel de Administracion</p>
+
+        <div className="rounded-2xl shadow-2xl w-full max-w-md p-8" style={{ backgroundColor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(20px)' }}>
+          <div className="text-center mb-8">
+            <img 
+              src="/logo.png" 
+              alt="MySale Logo" 
+              className="mx-auto mb-4"
+              style={{ width: '64px', height: '64px', objectFit: 'contain' }}
+            />
+            <h2 className="text-xl font-bold text-gray-900">MySale</h2>
+            <p className="text-gray-500 text-sm">Sistema POS</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {error}
+              </div>
+            )}
+            
+            <div>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50"
+                placeholder="Usuario o correo"
+                required
+              />
             </div>
-          )}
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              placeholder="admin"
-              required
-            />
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              placeholder="********"
-              required
-            />
-          </div>
+            <div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-gray-50"
+                placeholder="Contrasena"
+                required
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-emerald-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-emerald-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Iniciando sesion...' : 'Iniciar sesion'}
+            </button>
+          </form>
+
+          <p className="text-center text-gray-400 text-xs mt-6">MySale POS Cloud v1.0</p>
+        </div>
       </div>
     </div>
   )
