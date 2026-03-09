@@ -242,6 +242,31 @@ async def delete_user(
     return {"message": "Usuario eliminado exitosamente"}
 
 
+@router.put("/{user_id}/reset-pin")
+async def reset_user_pin(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Reset a user's PIN and return the new one. Only superuser/admin can do this."""
+    query = db.query(User).filter(User.id == user_id)
+    if current_user.tenant_id:
+        query = query.filter(User.tenant_id == current_user.tenant_id)
+    user = query.first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    
+    import random
+    new_pin = str(random.randint(100000, 999999))
+    user.pin_hash = get_pin_hash(new_pin)
+    db.commit()
+    
+    return {"pin": new_pin, "message": "PIN actualizado exitosamente"}
+
+
 @router.get("/me/modules")
 async def get_my_modules(
     db: Session = Depends(get_db),

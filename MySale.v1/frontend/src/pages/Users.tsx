@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getUsers, createUser, deleteUser, getRoles, getLocations } from '../api';
+import { getUsers, createUser, deleteUser, getRoles, getLocations, resetUserPin } from '../api';
 import type { User, Role, Location } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users as UsersIcon, Plus, Loader2, Trash2, User as UserIcon, Copy, Check, Camera } from 'lucide-react';
+import { Users as UsersIcon, Plus, Loader2, Trash2, User as UserIcon, Copy, Check, Camera, Eye, KeyRound, RefreshCw, Phone, CreditCard, MapPin, Shield, Calendar } from 'lucide-react';
 
 const generateUsername = (fullName: string): string => {
   if (!fullName.trim()) return '';
@@ -38,6 +38,10 @@ const Users: React.FC = () => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showCredentials, setShowCredentials] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState({ username: '', password: '', pin: '' });
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showUserDetail, setShowUserDetail] = useState(false);
+  const [resetPinResult, setResetPinResult] = useState<string | null>(null);
+  const [isResettingPin, setIsResettingPin] = useState(false);
   const [newUser, setNewUser] = useState({ full_name: '', phone: '', cedula: '', username: '', password: '', pin: '', role_id: '', location_id: '', photo_url: '' });
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -108,6 +112,25 @@ const Users: React.FC = () => {
     catch (err) { console.error('Failed to copy:', err); }
   };
 
+  const handleViewUser = (user: User) => {
+    setSelectedUser(user);
+    setResetPinResult(null);
+    setShowUserDetail(true);
+  };
+
+  const handleResetPin = async () => {
+    if (!selectedUser) return;
+    setIsResettingPin(true);
+    try {
+      const result = await resetUserPin(selectedUser.id);
+      setResetPinResult(result.pin);
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Error al resetear PIN');
+    } finally {
+      setIsResettingPin(false);
+    }
+  };
+
   const getRoleBadge = (roleType: string) => {
     const type = roleType?.toUpperCase();
     const badges: Record<string, JSX.Element> = {
@@ -150,7 +173,7 @@ const Users: React.FC = () => {
               </TableHeader>
               <TableBody>
                 {users.map((user) => (
-                  <TableRow key={user.id}>
+                  <TableRow key={user.id} className="cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => handleViewUser(user)}>
                     <TableCell>
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
                         {user.photo_url ? <img src={user.photo_url} alt={user.full_name} className="w-full h-full object-cover rounded-full" /> : <UserIcon className="w-6 h-6 text-white" />}
@@ -164,9 +187,14 @@ const Users: React.FC = () => {
                     <TableCell>{user.location_id === -1 ? <Badge className="bg-orange-500">Rotativo</Badge> : (locations.find(l => l.id === user.location_id)?.name || 'Sin asignar')}</TableCell>
                     <TableCell>{user.is_active ? <Badge className="bg-green-500">Activo</Badge> : <Badge className="bg-red-500">Inactivo</Badge>}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => { setUserToDelete(user); setShowDeleteConfirm(true); }} className="text-red-500 hover:text-red-700">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleViewUser(user); }} className="text-blue-500 hover:text-blue-700">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setUserToDelete(user); setShowDeleteConfirm(true); }} className="text-red-500 hover:text-red-700">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -301,6 +329,126 @@ const Users: React.FC = () => {
           </div>
           <DialogFooter>
             <Button onClick={() => setShowCredentials(false)} className="bg-green-600 hover:bg-green-700">Entendido</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Detail Modal */}
+      <Dialog open={showUserDetail} onOpenChange={(open) => { setShowUserDetail(open); if (!open) { setResetPinResult(null); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserIcon className="w-5 h-5" />Detalles del Empleado
+            </DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="py-4">
+              {/* User Photo & Name Header */}
+              <div className="flex items-center gap-4 mb-6 pb-4 border-b">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg">
+                  {selectedUser.photo_url ? (
+                    <img src={selectedUser.photo_url} alt={selectedUser.full_name} className="w-full h-full object-cover rounded-full" />
+                  ) : (
+                    <UserIcon className="w-8 h-8 text-white" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">{selectedUser.full_name}</h3>
+                  <p className="text-sm text-gray-500 font-mono">@{selectedUser.username}</p>
+                  <div className="mt-1">
+                    {selectedUser.is_active ? <Badge className="bg-green-500">Activo</Badge> : <Badge className="bg-red-500">Inactivo</Badge>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Info Grid */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <Shield className="w-5 h-5 text-purple-500" />
+                  <div>
+                    <p className="text-xs text-gray-500">Rol</p>
+                    <div>{selectedUser.role ? getRoleBadge(selectedUser.role.role_type) : <span className="text-gray-400">Sin rol</span>}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <Phone className="w-5 h-5 text-green-500" />
+                  <div>
+                    <p className="text-xs text-gray-500">Telefono</p>
+                    <p className="font-medium">{selectedUser.phone || <span className="text-gray-400">No registrado</span>}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <CreditCard className="w-5 h-5 text-blue-500" />
+                  <div>
+                    <p className="text-xs text-gray-500">Cedula</p>
+                    <p className="font-medium">{selectedUser.cedula || <span className="text-gray-400">No registrada</span>}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <MapPin className="w-5 h-5 text-orange-500" />
+                  <div>
+                    <p className="text-xs text-gray-500">Sucursal</p>
+                    <p className="font-medium">
+                      {selectedUser.location_id === -1 
+                        ? <Badge className="bg-orange-500">Rotativo (todas)</Badge>
+                        : (locations.find(l => l.id === selectedUser.location_id)?.name || <span className="text-gray-400">Sin asignar</span>)
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <Calendar className="w-5 h-5 text-gray-500" />
+                  <div>
+                    <p className="text-xs text-gray-500">Fecha de creacion</p>
+                    <p className="font-medium">{new Date(selectedUser.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                  </div>
+                </div>
+
+                {/* PIN Section */}
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <KeyRound className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <p className="text-xs text-gray-500">PIN (Reloj de asistencia)</p>
+                        {resetPinResult ? (
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-xl text-blue-700">{resetPinResult}</span>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => copyToClipboard(resetPinResult, 'detail-pin')}>
+                              {copiedField === 'detail-pin' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500 italic">Encriptado - use el boton para generar uno nuevo</p>
+                        )}
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={handleResetPin} 
+                      disabled={isResettingPin}
+                      className="border-blue-300 text-blue-600 hover:bg-blue-100"
+                    >
+                      {isResettingPin ? <Loader2 className="w-4 h-4 animate-spin" /> : <><RefreshCw className="w-4 h-4 mr-1" />Nuevo PIN</>}
+                    </Button>
+                  </div>
+                  {resetPinResult && (
+                    <p className="text-xs text-amber-600 mt-2 font-medium">Guarde este PIN. No se podra ver de nuevo al cerrar este dialogo.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowUserDetail(false)}>Cerrar</Button>
+            <Button variant="destructive" onClick={() => { setShowUserDetail(false); if (selectedUser) { setUserToDelete(selectedUser); setShowDeleteConfirm(true); } }}>
+              <Trash2 className="w-4 h-4 mr-1" />Eliminar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

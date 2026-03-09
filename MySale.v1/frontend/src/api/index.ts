@@ -38,6 +38,11 @@ export const deleteUser = async (userId: number): Promise<{ message: string }> =
   return response.data;
 };
 
+export const resetUserPin = async (userId: number): Promise<{ pin: string; message: string }> => {
+  const response = await api.put(`/api/users/${userId}/reset-pin`);
+  return response.data;
+};
+
 export const getRoles = async (): Promise<Role[]> => {
   const response = await api.get('/api/users/roles');
   return response.data;
