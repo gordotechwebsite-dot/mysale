@@ -97,7 +97,7 @@ export default function TableManagement() {
   const [currentTicket, setCurrentTicket] = useState<Ticket | null>(null);
 
   const [zoneName, setZoneName] = useState('');
-  const [zoneColor, setZoneColor] = useState('#4ade80');
+  const [zoneColor, setZoneColor] = useState('#64748b');
   const [tableName, setTableName] = useState('');
   const [tableCapacity, setTableCapacity] = useState(4);
   const [tableShape, setTableShape] = useState<'square' | 'round' | 'rectangle'>('square');
@@ -194,7 +194,7 @@ export default function TableManagement() {
       toast.success('Zona creada exitosamente');
       setShowZoneDialog(false);
       setZoneName('');
-      setZoneColor('#4ade80');
+      setZoneColor('#64748b');
       loadZones();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
@@ -995,7 +995,7 @@ export default function TableManagement() {
                 onClick={() => {
                   setEditingZone(null);
                   setZoneName('');
-                  setZoneColor('#4ade80');
+                  setZoneColor('#64748b');
                   setShowZoneDialog(true);
                 }}
               >
@@ -1129,76 +1129,90 @@ export default function TableManagement() {
       </div>
 
       <Dialog open={showZoneDialog} onOpenChange={setShowZoneDialog}>
-        <DialogContent className="bg-slate-800 text-white border-slate-700">
+        <DialogContent className="bg-white text-gray-900 border-gray-200 rounded-xl shadow-2xl max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingZone ? 'Editar Zona' : 'Nueva Zona'}</DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-gray-900">{editingZone ? 'Editar Zona' : 'Nueva Zona'}</DialogTitle>
+            <p className="text-sm text-gray-500 mt-1">Define un nombre y color para identificar la zona</p>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5 pt-2">
             <div>
-              <Label>Nombre</Label>
+              <Label className="text-gray-700 text-sm font-medium">Nombre de la zona</Label>
               <Input
                 value={zoneName}
                 onChange={(e) => setZoneName(e.target.value)}
                 placeholder="Ej: Terraza, Salón Principal"
-                className="bg-slate-700 border-slate-600"
+                className="mt-1.5 bg-gray-50 border-gray-300 text-gray-900 focus:border-emerald-500 focus:ring-emerald-500"
               />
             </div>
             <div>
-              <Label>Color</Label>
-              <div className="flex gap-2 mt-2">
-                {['#4ade80', '#22d3ee', '#f472b6', '#fbbf24', '#a78bfa', '#fb923c'].map(color => (
+              <Label className="text-gray-700 text-sm font-medium">Color de identificación</Label>
+              <div className="grid grid-cols-6 gap-2 mt-2">
+                {[
+                  { color: '#64748b', label: 'Gris' },
+                  { color: '#0ea5e9', label: 'Azul' },
+                  { color: '#10b981', label: 'Verde' },
+                  { color: '#f59e0b', label: 'Ámbar' },
+                  { color: '#8b5cf6', label: 'Violeta' },
+                  { color: '#ef4444', label: 'Rojo' },
+                ].map(({ color, label }) => (
                   <button
                     key={color}
                     onClick={() => setZoneColor(color)}
-                    className={`w-8 h-8 rounded-full border-2 ${
-                      zoneColor === color ? 'border-white' : 'border-transparent'
+                    className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${
+                      zoneColor === color ? 'bg-gray-100 ring-2 ring-gray-900' : 'hover:bg-gray-50'
                     }`}
-                    style={{ backgroundColor: color }}
-                  />
+                  >
+                    <div
+                      className="w-6 h-6 rounded-md"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="text-[10px] text-gray-500 font-medium">{label}</span>
+                  </button>
                 ))}
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowZoneDialog(false)}>
+          <DialogFooter className="pt-4 border-t border-gray-100">
+            <Button variant="outline" onClick={() => setShowZoneDialog(false)} className="text-gray-600 border-gray-300 hover:bg-gray-50">
               Cancelar
             </Button>
-            <Button onClick={editingZone ? handleUpdateZone : handleCreateZone}>
-              {editingZone ? 'Guardar' : 'Crear'}
+            <Button onClick={editingZone ? handleUpdateZone : handleCreateZone} className="bg-gray-900 hover:bg-gray-800 text-white" disabled={!zoneName.trim()}>
+              {editingZone ? 'Guardar Cambios' : 'Crear Zona'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showTableDialog} onOpenChange={setShowTableDialog}>
-        <DialogContent className="bg-slate-800 text-white border-slate-700">
+        <DialogContent className="bg-white text-gray-900 border-gray-200 rounded-xl shadow-2xl max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingTable ? 'Editar Mesa' : 'Nueva Mesa'}</DialogTitle>
+            <DialogTitle className="text-lg font-semibold text-gray-900">{editingTable ? 'Editar Mesa' : 'Nueva Mesa'}</DialogTitle>
+            <p className="text-sm text-gray-500 mt-1">Configura los datos de la mesa</p>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5 pt-2">
             <div>
-              <Label>Nombre</Label>
+              <Label className="text-gray-700 text-sm font-medium">Nombre</Label>
               <Input
                 value={tableName}
                 onChange={(e) => setTableName(e.target.value)}
                 placeholder="Ej: T1, Mesa 1"
-                className="bg-slate-700 border-slate-600"
+                className="mt-1.5 bg-gray-50 border-gray-300 text-gray-900 focus:border-emerald-500 focus:ring-emerald-500"
               />
             </div>
             <div>
-              <Label>Capacidad</Label>
+              <Label className="text-gray-700 text-sm font-medium">Capacidad (personas)</Label>
               <Input
                 type="number"
                 value={tableCapacity}
                 onChange={(e) => setTableCapacity(parseInt(e.target.value) || 4)}
                 min={1}
-                className="bg-slate-700 border-slate-600"
+                className="mt-1.5 bg-gray-50 border-gray-300 text-gray-900 focus:border-emerald-500 focus:ring-emerald-500"
               />
             </div>
             <div>
-              <Label>Forma</Label>
+              <Label className="text-gray-700 text-sm font-medium">Forma</Label>
               <Select value={tableShape} onValueChange={(v) => setTableShape(v as 'square' | 'round' | 'rectangle')}>
-                <SelectTrigger className="bg-slate-700 border-slate-600">
+                <SelectTrigger className="mt-1.5 bg-gray-50 border-gray-300 text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1209,12 +1223,12 @@ export default function TableManagement() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTableDialog(false)}>
+          <DialogFooter className="pt-4 border-t border-gray-100">
+            <Button variant="outline" onClick={() => setShowTableDialog(false)} className="text-gray-600 border-gray-300 hover:bg-gray-50">
               Cancelar
             </Button>
-            <Button onClick={editingTable ? handleUpdateTable : handleCreateTable}>
-              {editingTable ? 'Guardar' : 'Crear'}
+            <Button onClick={editingTable ? handleUpdateTable : handleCreateTable} className="bg-gray-900 hover:bg-gray-800 text-white" disabled={!tableName.trim()}>
+              {editingTable ? 'Guardar Cambios' : 'Crear Mesa'}
             </Button>
           </DialogFooter>
         </DialogContent>
