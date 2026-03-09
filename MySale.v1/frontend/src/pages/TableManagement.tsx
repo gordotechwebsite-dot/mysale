@@ -946,26 +946,26 @@ export default function TableManagement() {
 
   if (!loading && locations.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full bg-slate-900">
+      <div className="flex items-center justify-center h-full bg-gray-50">
         <div className="text-center p-8">
-          <h2 className="text-xl font-bold text-white mb-4">No hay ubicaciones configuradas</h2>
-          <p className="text-slate-400 mb-4">Para usar Gestión de Mesas, primero debe crear una ubicación de tipo POS.</p>
-          <p className="text-slate-500 text-sm">Vaya a Sucursales para crear una ubicación.</p>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">No hay ubicaciones configuradas</h2>
+          <p className="text-gray-500 mb-4">Para usar Gestión de Mesas, primero debe crear una ubicación de tipo POS.</p>
+          <p className="text-gray-400 text-sm">Vaya a Sucursales para crear una ubicación.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col bg-slate-900">
-      <div className="flex items-center justify-between p-4 bg-slate-800 border-b border-slate-700">
+    <div className="h-full flex flex-col bg-gray-50">
+      <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-white">Gestión de Mesas</h1>
+          <h1 className="text-xl font-bold text-gray-900">Gestión de Mesas</h1>
           <Select
             value={selectedLocation?.toString() || ''}
             onValueChange={(v) => setSelectedLocation(parseInt(v))}
           >
-            <SelectTrigger className="w-48 bg-slate-700 border-slate-600 text-white">
+            <SelectTrigger className="w-52 bg-gray-50 border-gray-300 text-gray-900">
               <SelectValue placeholder="Seleccionar ubicación" />
             </SelectTrigger>
             <SelectContent>
@@ -984,7 +984,7 @@ export default function TableManagement() {
                 variant={editMode ? "default" : "outline"}
                 size="sm"
                 onClick={() => setEditMode(!editMode)}
-                className={editMode ? "bg-amber-500 hover:bg-amber-600" : ""}
+                className={editMode ? "bg-amber-500 hover:bg-amber-600 text-white" : "border-gray-300 text-gray-700 hover:bg-gray-50"}
               >
                 <Edit className="w-4 h-4 mr-2" />
                 {editMode ? 'Salir Edición' : 'Editar'}
@@ -998,6 +998,7 @@ export default function TableManagement() {
                   setZoneColor('#64748b');
                   setShowZoneDialog(true);
                 }}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Nueva Zona
@@ -1007,40 +1008,45 @@ export default function TableManagement() {
         </div>
       </div>
 
-      <div className="flex border-b border-slate-700 bg-slate-800">
-        {zones.map(zone => (
-          <button
-            key={zone.id}
-            onClick={() => setSelectedZone(zone.id)}
-            className={`px-6 py-3 font-medium transition-colors relative ${
-              selectedZone === zone.id
-                ? 'text-white'
-                : 'text-slate-400 hover:text-white'
-            }`}
-            style={{
-              backgroundColor: selectedZone === zone.id ? zone.color : 'transparent'
-            }}
-          >
-            {zone.name}
-            {editMode && isSuperuser && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setEditingZone(zone);
-                  setZoneName(zone.name);
-                  setZoneColor(zone.color);
-                  setShowZoneDialog(true);
-                }}
-                className="ml-2 text-white/70 hover:text-white"
-              >
-                <Settings className="w-4 h-4 inline" />
-              </button>
-            )}
-          </button>
-        ))}
-      </div>
+      {zones.length > 0 && (
+        <div className="flex border-b border-gray-200 bg-white px-2">
+          {zones.map(zone => (
+            <button
+              key={zone.id}
+              onClick={() => setSelectedZone(zone.id)}
+              className={`px-5 py-3 text-sm font-medium transition-colors relative ${
+                selectedZone === zone.id
+                  ? 'text-gray-900 border-b-2'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              style={{
+                borderBottomColor: selectedZone === zone.id ? zone.color : 'transparent'
+              }}
+            >
+              <span className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: zone.color }} />
+                {zone.name}
+              </span>
+              {editMode && isSuperuser && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingZone(zone);
+                    setZoneName(zone.name);
+                    setZoneColor(zone.color);
+                    setShowZoneDialog(true);
+                  }}
+                  className="ml-2 text-gray-400 hover:text-gray-600"
+                >
+                  <Settings className="w-3.5 h-3.5 inline" />
+                </button>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
 
-      <div className="flex-1 p-6 overflow-auto bg-slate-900">
+      <div className="flex-1 p-6 overflow-auto">
         {editMode && isSuperuser && selectedZone && (
           <div className="mb-4 flex gap-2">
             <Button
@@ -1118,11 +1124,17 @@ export default function TableManagement() {
         </div>
 
         {(!currentZone || currentZone.tables.length === 0) && (
-          <div className="text-center text-slate-500 py-12">
+          <div className="text-center text-gray-400 py-16">
             {zones.length === 0 ? (
-              <p>No hay zonas creadas. {isSuperuser && 'Crea una zona para comenzar.'}</p>
+              <div>
+                <p className="text-lg font-medium text-gray-500">No hay zonas creadas</p>
+                <p className="text-sm text-gray-400 mt-1">{isSuperuser && 'Crea una zona para comenzar.'}</p>
+              </div>
             ) : (
-              <p>No hay mesas en esta zona. {isSuperuser && editMode && 'Agrega mesas usando el botón de arriba.'}</p>
+              <div>
+                <p className="text-lg font-medium text-gray-500">No hay mesas en esta zona</p>
+                <p className="text-sm text-gray-400 mt-1">{isSuperuser && editMode && 'Agrega mesas usando el botón de arriba.'}</p>
+              </div>
             )}
           </div>
         )}
