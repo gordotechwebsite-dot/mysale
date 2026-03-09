@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 import bcrypt
+import logging
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -9,6 +10,8 @@ from app.database import get_db
 from app.models.user import User
 from app.models.tenant import Module, TenantModule
 import os
+
+logger = logging.getLogger("mysale.auth")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "mysale-v1-secret-key-change-in-production")
 ALGORITHM = "HS256"
@@ -152,6 +155,7 @@ def require_module(module_code: str):
         ).first()
         
         if not tenant_module:
+            logger.warning(f"MODULE_ACCESS_DENIED: user_id={current_user.id} username='{current_user.username}' tenant_id={current_user.tenant_id} module='{module_code}'")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Módulo '{module_code}' no habilitado para este tenant"

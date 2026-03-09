@@ -6,6 +6,9 @@ import secrets
 import string
 import unicodedata
 import re
+import logging
+
+logger = logging.getLogger("mysale.tenants")
 
 from app.database import get_db
 from app.models.tenant import Module, Tenant, TenantModule, TenantPayment, PaymentStatus
@@ -244,6 +247,7 @@ async def create_tenant(
     db.add(tenant)
     db.commit()
     db.refresh(tenant)
+    logger.info(f"TENANT_CREATED: id={tenant.id} name='{tenant.name}' code='{tenant.code}' pos_username='{pos_username}'")
     
     # Create superuser role for this tenant
     admin_role = Role(
@@ -274,6 +278,7 @@ async def create_tenant(
     )
     db.add(admin_user)
     db.commit()
+    logger.info(f"TENANT_USER_CREATED: tenant_id={tenant.id} user='{pos_username}' role_id={admin_role.id} tenant_name='{tenant.name}'")
     
     core_modules = db.query(Module).filter(Module.is_core == True, Module.is_active == True).all()
     for module in core_modules:
@@ -396,6 +401,7 @@ async def update_tenant_modules(
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     
+    changes = []
     for module_update in modules:
         module = db.query(Module).filter(Module.id == module_update.module_id).first()
         if not module:
@@ -407,6 +413,8 @@ async def update_tenant_modules(
         ).first()
         
         if tenant_module:
+            if tenant_module.is_enabled != module_update.is_enabled:
+                changes.append(f"{module.code}={'enabled' if module_update.is_enabled else 'disabled'}")
             tenant_module.is_enabled = module_update.is_enabled
             if module_update.is_enabled:
                 tenant_module.enabled_at = datetime.utcnow()
@@ -420,8 +428,10 @@ async def update_tenant_modules(
                 is_enabled=module_update.is_enabled
             )
             db.add(tenant_module)
+            changes.append(f"{module.code}={'enabled' if module_update.is_enabled else 'disabled'}(new)")
     
     db.commit()
+    logger.info(f"MODULES_UPDATED: tenant_id={tenant_id} tenant='{tenant.name}' changes=[{', '.join(changes)}]")
     return {"message": "Modules updated successfully"}
 
 

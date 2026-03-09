@@ -354,7 +354,22 @@ app.include_router(biometric.router)
 
 @app.get("/healthz")
 async def healthz():
-    return {"status": "ok"}
+    """Health check endpoint - verifies backend and database are operational."""
+    import logging
+    logger = logging.getLogger("mysale.health")
+    checks = {"api": "ok", "database": "unknown"}
+    try:
+        db = SessionLocal()
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+        db.close()
+    except Exception as e:
+        checks["database"] = f"error: {str(e)}"
+        logger.error(f"HEALTHZ: Database check failed: {e}")
+        return {"status": "degraded", "checks": checks}
+    
+    return {"status": "ok", "checks": checks}
 
 
 @app.get("/")

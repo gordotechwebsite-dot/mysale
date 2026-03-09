@@ -3,7 +3,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta
 import json
+import logging
 from app.database import get_db
+
+logger = logging.getLogger("mysale.auth")
 from app.models.user import User, Role, RoleType
 from app.models.audit import AuditLog
 from app.schemas.user import Token, UserResponse, UserLogin
@@ -41,6 +44,7 @@ async def login(
 ):
     user = db.query(User).filter(User.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
+        logger.warning(f"LOGIN_FAILED: username='{form_data.username}' reason='invalid_credentials'")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario o contrasena incorrectos",
@@ -48,6 +52,7 @@ async def login(
         )
     
     if not user.is_active:
+        logger.warning(f"LOGIN_FAILED: username='{form_data.username}' reason='inactive_user' user_id={user.id}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Usuario inactivo"
@@ -88,6 +93,8 @@ async def login(
         points=user.points,
         created_at=user.created_at
     )
+    
+    logger.info(f"LOGIN_SUCCESS: username='{user.username}' user_id={user.id} tenant_id={user.tenant_id} role='{user.role.role_type if user.role else None}'")
     
     return Token(
         access_token=access_token,
