@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users as UsersIcon, Plus, Loader2, Trash2, User as UserIcon, Copy, Check, Camera, Eye, KeyRound, RefreshCw, Phone, CreditCard, MapPin, Shield, Calendar, Ban, UserCheck } from 'lucide-react';
+import { Users as UsersIcon, Plus, Loader2, Trash2, User as UserIcon, Copy, Check, Camera, Eye, KeyRound, RefreshCw, X, Ban, UserCheck } from 'lucide-react';
 
 const generateUsername = (fullName: string): string => {
   if (!fullName.trim()) return '';
@@ -354,7 +354,7 @@ const Users: React.FC = () => {
 
       {/* User Detail Modal - ID Card Style */}
       <Dialog open={showUserDetail} onOpenChange={(open) => { setShowUserDetail(open); if (!open) { setResetPinResult(null); setShowPin(false); } }}>
-        <DialogContent className="max-w-3xl p-0 overflow-hidden rounded-2xl border-0 shadow-2xl">
+        <DialogContent className="max-w-3xl p-0 overflow-hidden rounded-2xl border-0 shadow-2xl [&>button.absolute]:hidden" aria-describedby={undefined}>
           {selectedUser && (
             <div>
               {/* ID Card - Horizontal Layout */}
@@ -387,27 +387,26 @@ const Users: React.FC = () => {
 
                 {/* Right: Data Section */}
                 <div className="flex-1 p-6 bg-white">
-                  <div className="mb-4">
-                    <h3 className="text-xl font-bold text-gray-900">{selectedUser.full_name}</h3>
-                    <p className="text-xs text-gray-400 uppercase tracking-wider mt-0.5">Carnet de Empleado</p>
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">{selectedUser.full_name}</h3>
+                      <p className="text-xs text-gray-400 uppercase tracking-wider mt-0.5">Carnet de Empleado</p>
+                    </div>
+                    <button onClick={() => setShowUserDetail(false)} className="text-gray-400 hover:text-gray-600 transition-colors p-1">
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
 
                   {/* Data Grid - 2 columns */}
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <Shield className="w-3.5 h-3.5 text-purple-500" />
-                        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Rol</p>
-                      </div>
-                      <div className="pl-5">{selectedUser.role ? getRoleBadge(selectedUser.role.role_type) : <span className="text-gray-400 text-sm">Sin rol</span>}</div>
+                      <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Rol</p>
+                      <div>{selectedUser.role ? getRoleBadge(selectedUser.role.role_type) : <span className="text-gray-400 text-sm">Sin rol</span>}</div>
                     </div>
 
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-orange-500" />
-                        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Sucursal</p>
-                      </div>
-                      <div className="pl-5 text-sm font-medium">
+                      <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Sucursal</p>
+                      <div className="text-sm font-medium">
                         {selectedUser.location_id === -1 
                           ? <Badge className="bg-orange-500 text-xs">Rotativo (todas)</Badge>
                           : (locations.find(l => l.id === selectedUser.location_id)?.name || <span className="text-gray-400">Sin asignar</span>)
@@ -416,27 +415,18 @@ const Users: React.FC = () => {
                     </div>
 
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <Phone className="w-3.5 h-3.5 text-green-500" />
-                        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Telefono</p>
-                      </div>
-                      <p className="pl-5 text-sm font-medium">{selectedUser.phone || <span className="text-gray-400">No registrado</span>}</p>
+                      <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Telefono</p>
+                      <p className="text-sm font-medium">{selectedUser.phone || <span className="text-gray-400">No registrado</span>}</p>
                     </div>
 
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <CreditCard className="w-3.5 h-3.5 text-blue-500" />
-                        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Cedula</p>
-                      </div>
-                      <p className="pl-5 text-sm font-medium font-mono">{selectedUser.cedula || <span className="text-gray-400 font-sans">No registrada</span>}</p>
+                      <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Cedula</p>
+                      <p className="text-sm font-medium font-mono">{selectedUser.cedula || <span className="text-gray-400 font-sans">No registrada</span>}</p>
                     </div>
 
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-gray-500" />
-                        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Trabajando desde</p>
-                      </div>
-                      <p className="pl-5 text-sm font-medium">{new Date(selectedUser.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                      <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Trabajando desde</p>
+                      <p className="text-sm font-medium">{new Date(selectedUser.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                     </div>
                   </div>
 
