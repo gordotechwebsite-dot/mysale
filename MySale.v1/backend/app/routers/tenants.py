@@ -644,12 +644,35 @@ async def migrate_tenant_users(
             skipped.append({"tenant": tenant.name, "reason": "no credentials"})
             continue
         
-        # Check if user already exists - if so, fix password to match tenant record
+        # Check if user already exists - if so, fix password and tenant_id
         existing_user = db.query(User).filter(User.username == tenant.pos_username).first()
         if existing_user:
             existing_user.hashed_password = get_password_hash(tenant.pos_password)
+            existing_user.tenant_id = tenant.id
+            # Also fix role to be tenant-specific
+            tenant_role = db.query(Role).filter(
+                Role.tenant_id == tenant.id,
+                Role.role_type == RoleType.SUPERUSER
+            ).first()
+            if not tenant_role:
+                tenant_role = Role(
+                    tenant_id=tenant.id,
+                    name="Superusuario",
+                    role_type=RoleType.SUPERUSER,
+                    can_void_sales=True,
+                    can_manage_inventory=True,
+                    can_manage_users=True,
+                    can_view_reports=True,
+                    can_manage_locations=True,
+                    can_set_stock_thresholds=True,
+                    can_close_shifts=True
+                )
+                db.add(tenant_role)
+                db.commit()
+                db.refresh(tenant_role)
+            existing_user.role_id = tenant_role.id
             db.commit()
-            created.append({"tenant": tenant.name, "username": tenant.pos_username, "action": "password_fixed"})
+            created.append({"tenant": tenant.name, "username": tenant.pos_username, "action": "fixed_tenant_and_password"})
             continue
         
         # Check if role exists for this tenant, create if not
