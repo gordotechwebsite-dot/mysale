@@ -82,3 +82,60 @@ class EmployeeReportResponse(BaseModel):
     points: int
     alerts_count: int
     shifts: List[EmployeeShiftReport] = []
+
+
+class EmployeeSummary(BaseModel):
+    user_id: int
+    full_name: str
+    username: str
+    role: str
+    total_hours: float
+    total_shifts: int
+    total_sales: float
+    total_transactions: int
+    avg_sales_per_shift: float
+    avg_hours_per_shift: float
+    points: int
+    is_active: bool
+
+
+class EmployeesReportResponse(BaseModel):
+    start_date: date
+    end_date: date
+    total_employees: int
+    total_hours_all: float
+    total_sales_all: float
+    total_transactions_all: int
+    employees: List[EmployeeSummary] = []
+
+
+class ProfitabilityByDay(BaseModel):
+    date: str
+    sales: float
+    cost_of_goods: float
+    expenses: float
+    losses: float
+    gross_profit: float
+    net_profit: float
+
+
+class ProfitabilitySummary(BaseModel):
+    total_sales: float
+    total_cost_of_goods: float
+    gross_profit: float
+    gross_margin_pct: float
+    total_expenses: float
+    total_losses: float
+    net_profit: float
+    net_margin_pct: float
+    total_transactions: int
+    expenses_by_category: dict = {}
+    losses_by_type: dict = {}
+
+
+class ProfitabilityReportResponse(BaseModel):
+    start_date: date
+    end_date: date
+    location_name: Optional[str]
+    summary: ProfitabilitySummary
+    by_day: List[ProfitabilityByDay] = []

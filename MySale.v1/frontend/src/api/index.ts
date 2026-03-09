@@ -360,6 +360,23 @@ export const exportInventoryExcel = async (locationId?: number): Promise<Blob> =
   return response.data;
 };
 
+export const getEmployeesSummaryReport = async (params: {
+  start_date: string;
+  end_date: string;
+}): Promise<any> => {
+  const response = await api.get('/api/reports/employees-summary', { params });
+  return response.data;
+};
+
+export const getProfitabilityReport = async (params: {
+  start_date: string;
+  end_date: string;
+  location_id?: number;
+}): Promise<any> => {
+  const response = await api.get('/api/reports/profitability', { params });
+  return response.data;
+};
+
 export interface LocationDashboard {
   id: number;
   name: string;

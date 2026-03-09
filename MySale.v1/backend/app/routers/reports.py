@@ -16,7 +16,9 @@ from app.models.expense import Expense
 from app.schemas.reports import (
     SalesReportRequest, SalesReportResponse, SaleDetailReport,
     InventoryReportResponse, ProductStockReport,
-    EmployeeReportResponse, EmployeeShiftReport
+    EmployeeReportResponse, EmployeeShiftReport,
+    EmployeesReportResponse, EmployeeSummary,
+    ProfitabilityReportResponse, ProfitabilitySummary, ProfitabilityByDay
 )
 from app.utils.auth import get_current_user, require_role
 
@@ -346,6 +348,237 @@ async def export_inventory_excel(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/employees-summary", response_model=EmployeesReportResponse)
+async def get_employees_summary_report(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Get performance summary for all employees in a date range."""
+    if not start_date:
+        start_date = date.today() - timedelta(days=30)
+    if not end_date:
+        end_date = date.today()
+    
+    start_dt = datetime.combine(start_date, datetime.min.time())
+    end_dt = datetime.combine(end_date, datetime.max.time())
+    
+    # Get all users for this tenant
+    query = db.query(User)
+    if current_user.tenant_id:
+        query = query.filter(User.tenant_id == current_user.tenant_id)
+    users = query.all()
+    
+    employees = []
+    total_hours_all = 0.0
+    total_sales_all = 0.0
+    total_transactions_all = 0
+    
+    for user in users:
+        # Get shifts in date range
+        shifts = db.query(Shift).filter(
+            Shift.user_id == user.id,
+            Shift.start_time >= start_dt,
+            Shift.start_time <= end_dt
+        ).all()
+        
+        total_hours = 0.0
+        total_sales = 0.0
+        total_transactions = 0
+        
+        for shift in shifts:
+            if shift.end_time:
+                delta = shift.end_time - shift.start_time
+                total_hours += delta.total_seconds() / 3600
+            total_sales += shift.total_sales
+            sales_count = db.query(Sale).filter(Sale.shift_id == shift.id).count()
+            total_transactions += sales_count
+        
+        num_shifts = len(shifts)
+        role_name = user.role.name if user.role else "Sin rol"
+        
+        employees.append(EmployeeSummary(
+            user_id=user.id,
+            full_name=user.full_name,
+            username=user.username,
+            role=role_name,
+            total_hours=round(total_hours, 2),
+            total_shifts=num_shifts,
+            total_sales=total_sales,
+            total_transactions=total_transactions,
+            avg_sales_per_shift=round(total_sales / num_shifts, 2) if num_shifts > 0 else 0,
+            avg_hours_per_shift=round(total_hours / num_shifts, 2) if num_shifts > 0 else 0,
+            points=user.points,
+            is_active=user.is_active
+        ))
+        
+        total_hours_all += total_hours
+        total_sales_all += total_sales
+        total_transactions_all += total_transactions
+    
+    # Sort by total sales descending
+    employees.sort(key=lambda e: e.total_sales, reverse=True)
+    
+    return EmployeesReportResponse(
+        start_date=start_date,
+        end_date=end_date,
+        total_employees=len(employees),
+        total_hours_all=round(total_hours_all, 2),
+        total_sales_all=total_sales_all,
+        total_transactions_all=total_transactions_all,
+        employees=employees
+    )
+
+
+@router.get("/profitability", response_model=ProfitabilityReportResponse)
+async def get_profitability_report(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    location_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Get profitability report: Sales - Cost of Goods - Expenses - Losses = Net Profit."""
+    if not start_date:
+        start_date = date.today() - timedelta(days=30)
+    if not end_date:
+        end_date = date.today()
+    
+    start_dt = datetime.combine(start_date, datetime.min.time())
+    end_dt = datetime.combine(end_date, datetime.max.time())
+    
+    location_name = None
+    if location_id:
+        location = db.query(Location).filter(Location.id == location_id).first()
+        location_name = location.name if location else None
+    
+    # --- SALES ---
+    sales_query = db.query(Sale).filter(
+        Sale.created_at >= start_dt,
+        Sale.created_at <= end_dt
+    )
+    if location_id:
+        sales_query = sales_query.filter(Sale.location_id == location_id)
+    sales = sales_query.all()
+    
+    total_sales = sum(s.total for s in sales)
+    total_transactions = len(sales)
+    
+    # --- COST OF GOODS SOLD (COGS) ---
+    total_cogs = 0.0
+    for sale in sales:
+        for item in sale.items:
+            product = db.query(Product).filter(Product.id == item.product_id).first()
+            if product:
+                total_cogs += item.quantity * product.weighted_cost
+    
+    # --- EXPENSES ---
+    expenses_query = db.query(Expense).filter(
+        Expense.expense_date >= start_dt,
+        Expense.expense_date <= end_dt
+    )
+    if location_id:
+        expenses_query = expenses_query.filter(Expense.location_id == location_id)
+    expenses = expenses_query.all()
+    
+    total_expenses = sum(e.amount for e in expenses)
+    expenses_by_category = {}
+    for e in expenses:
+        cat = e.category.value if hasattr(e.category, 'value') else str(e.category)
+        cat_labels = {
+            'purchase': 'Compras', 'utilities': 'Servicios', 'rent': 'Arriendo',
+            'salary': 'Salarios', 'maintenance': 'Mantenimiento', 'supplies': 'Insumos', 'other': 'Otros'
+        }
+        label = cat_labels.get(cat, cat)
+        expenses_by_category[label] = expenses_by_category.get(label, 0) + e.amount
+    
+    # --- LOSSES ---
+    losses_query = db.query(Loss).filter(
+        Loss.created_at >= start_dt,
+        Loss.created_at <= end_dt
+    )
+    if location_id:
+        losses_query = losses_query.filter(Loss.location_id == location_id)
+    losses = losses_query.all()
+    
+    total_losses = sum(l.total_value for l in losses)
+    losses_by_type = {}
+    for l in losses:
+        lt = l.loss_type.value if hasattr(l.loss_type, 'value') else str(l.loss_type)
+        type_labels = {
+            'breakage': 'Rotura', 'expiration': 'Vencimiento', 'theft': 'Robo',
+            'damage': 'Daño', 'other': 'Otros'
+        }
+        label = type_labels.get(lt, lt)
+        losses_by_type[label] = losses_by_type.get(label, 0) + l.total_value
+    
+    # --- CALCULATIONS ---
+    gross_profit = total_sales - total_cogs
+    net_profit = gross_profit - total_expenses - total_losses
+    gross_margin_pct = (gross_profit / total_sales * 100) if total_sales > 0 else 0
+    net_margin_pct = (net_profit / total_sales * 100) if total_sales > 0 else 0
+    
+    # --- BY DAY ---
+    by_day_data = {}
+    for sale in sales:
+        day = sale.created_at.date().isoformat()
+        if day not in by_day_data:
+            by_day_data[day] = {"sales": 0, "cogs": 0, "expenses": 0, "losses": 0}
+        by_day_data[day]["sales"] += sale.total
+        for item in sale.items:
+            product = db.query(Product).filter(Product.id == item.product_id).first()
+            if product:
+                by_day_data[day]["cogs"] += item.quantity * product.weighted_cost
+    
+    for e in expenses:
+        day = e.expense_date.date().isoformat() if isinstance(e.expense_date, datetime) else str(e.expense_date)
+        if day not in by_day_data:
+            by_day_data[day] = {"sales": 0, "cogs": 0, "expenses": 0, "losses": 0}
+        by_day_data[day]["expenses"] += e.amount
+    
+    for l in losses:
+        day = l.created_at.date().isoformat()
+        if day not in by_day_data:
+            by_day_data[day] = {"sales": 0, "cogs": 0, "expenses": 0, "losses": 0}
+        by_day_data[day]["losses"] += l.total_value
+    
+    by_day = []
+    for day in sorted(by_day_data.keys()):
+        d = by_day_data[day]
+        gp = d["sales"] - d["cogs"]
+        np_ = gp - d["expenses"] - d["losses"]
+        by_day.append(ProfitabilityByDay(
+            date=day,
+            sales=d["sales"],
+            cost_of_goods=d["cogs"],
+            expenses=d["expenses"],
+            losses=d["losses"],
+            gross_profit=gp,
+            net_profit=np_
+        ))
+    
+    return ProfitabilityReportResponse(
+        start_date=start_date,
+        end_date=end_date,
+        location_name=location_name or "Todas las ubicaciones",
+        summary=ProfitabilitySummary(
+            total_sales=total_sales,
+            total_cost_of_goods=round(total_cogs, 2),
+            gross_profit=round(gross_profit, 2),
+            gross_margin_pct=round(gross_margin_pct, 1),
+            total_expenses=total_expenses,
+            total_losses=total_losses,
+            net_profit=round(net_profit, 2),
+            net_margin_pct=round(net_margin_pct, 1),
+            total_transactions=total_transactions,
+            expenses_by_category=expenses_by_category,
+            losses_by_type=losses_by_type
+        ),
+        by_day=by_day
     )
 
 
