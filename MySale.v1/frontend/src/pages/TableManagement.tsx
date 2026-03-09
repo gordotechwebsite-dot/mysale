@@ -94,7 +94,7 @@ export default function TableManagement() {
   const [zoneColor, setZoneColor] = useState('#64748b');
   const [tableName, setTableName] = useState('');
   const [tableCapacity, setTableCapacity] = useState(4);
-  const [tableShape, setTableShape] = useState<'square' | 'round' | 'rectangle'>('square');
+  const [tableShape, setTableShape] = useState<'square' | 'pair' | 'rectangle'>('square');
 
   const [customerName, setCustomerName] = useState('');
   const [numPeople, setNumPeople] = useState(1);
@@ -119,17 +119,17 @@ export default function TableManagement() {
   const [draggingTable, setDraggingTable] = useState<number | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
-  const getTableImage = (capacity: number): string => {
-    if (capacity <= 2) return '/tables/table-2.png';
-    if (capacity <= 4) return '/tables/table-4.png';
-    return '/tables/table-6.png';
-  };
+    const getTableImage = (shape: string): string => {
+      if (shape === 'pair') return '/tables/table-2.png';
+      if (shape === 'square') return '/tables/table-4.png';
+      return '/tables/table-6.png';
+    };
 
-  const getTableSize = (capacity: number): { w: number; h: number } => {
-    if (capacity <= 2) return { w: 100, h: 120 };
-    if (capacity <= 4) return { w: 130, h: 130 };
-    return { w: 200, h: 120 };
-  };
+    const getTableSize = (shape: string): { w: number; h: number } => {
+      if (shape === 'pair') return { w: 100, h: 120 };
+      if (shape === 'square') return { w: 130, h: 130 };
+      return { w: 200, h: 120 };
+    };
 
   const statusOverlay: Record<string, { color: string; label: string }> = {
     free: { color: '#10b981', label: 'Libre' },
@@ -1190,7 +1190,7 @@ export default function TableManagement() {
           onMouseLeave={handleFloorMouseUp}
         >
           {currentZone?.tables.map(table => {
-            const size = getTableSize(table.capacity);
+            const size = getTableSize(table.shape);
             const overlay = statusOverlay[table.status] || statusOverlay.free;
             const rotation = table.rotation || 0;
 
@@ -1220,7 +1220,7 @@ export default function TableManagement() {
               >
                 {/* Table image */}
                 <img
-                  src={getTableImage(table.capacity)}
+                  src={getTableImage(table.shape)}
                   alt={table.name}
                   className="w-full h-auto pointer-events-none"
                   draggable={false}
@@ -1417,14 +1417,14 @@ export default function TableManagement() {
             </div>
             <div>
               <Label className="text-gray-700 text-sm font-medium">Forma</Label>
-              <Select value={tableShape} onValueChange={(v) => setTableShape(v as 'square' | 'round' | 'rectangle')}>
+              <Select value={tableShape} onValueChange={(v) => setTableShape(v as 'square' | 'pair' | 'rectangle')}>
                 <SelectTrigger className="mt-1.5 bg-gray-50 border-gray-300 text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="square">Cuadrada</SelectItem>
-                  <SelectItem value="round">Redonda</SelectItem>
-                  <SelectItem value="rectangle">Rectangular</SelectItem>
+                                    <SelectItem value="square">Cuadrada</SelectItem>
+                                    <SelectItem value="pair">Pareja</SelectItem>
+                                    <SelectItem value="rectangle">Rectangular</SelectItem>
                 </SelectContent>
               </Select>
             </div>

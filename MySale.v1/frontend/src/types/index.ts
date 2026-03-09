@@ -345,7 +345,7 @@ export interface Table {
   zone_id: number;
   zone_name?: string;
   capacity: number;
-  shape: 'square' | 'round' | 'rectangle';
+  shape: 'square' | 'pair' | 'rectangle';
   status: 'free' | 'occupied' | 'bill_open' | 'to_pay' | 'paid';
   position_x: number;
   position_y: number;
