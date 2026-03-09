@@ -74,6 +74,11 @@ def run_migrations():
             db.commit()
             print("Migration: Added pin_hash column to users table")
         
+        if 'pin' not in user_columns:
+            db.execute(text("ALTER TABLE users ADD COLUMN pin VARCHAR(10)"))
+            db.commit()
+            print("Migration: Added pin column to users table")
+        
         if 'phone' not in user_columns:
             db.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(50)"))
             db.commit()
