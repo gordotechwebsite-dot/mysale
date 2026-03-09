@@ -336,118 +336,139 @@ const Users: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* User Detail Modal */}
+      {/* User Detail Modal - ID Card Style */}
       <Dialog open={showUserDetail} onOpenChange={(open) => { setShowUserDetail(open); if (!open) { setResetPinResult(null); } }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserIcon className="w-5 h-5" />Detalles del Empleado
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden rounded-2xl border-0 shadow-2xl">
           {selectedUser && (
-            <div className="py-4">
-              {/* User Photo & Name Header */}
-              <div className="flex items-center gap-4 mb-6 pb-4 border-b">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg">
-                  {selectedUser.photo_url ? (
-                    <img src={selectedUser.photo_url} alt={selectedUser.full_name} className="w-full h-full object-cover rounded-full" />
-                  ) : (
-                    <UserIcon className="w-8 h-8 text-white" />
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">{selectedUser.full_name}</h3>
-                  <p className="text-sm text-gray-500 font-mono">@{selectedUser.username}</p>
-                  <div className="mt-1">
-                    {selectedUser.is_active ? <Badge className="bg-green-500">Activo</Badge> : <Badge className="bg-red-500">Inactivo</Badge>}
-                  </div>
-                </div>
-              </div>
-
-              {/* Info Grid */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Shield className="w-5 h-5 text-purple-500" />
-                  <div>
-                    <p className="text-xs text-gray-500">Rol</p>
-                    <div>{selectedUser.role ? getRoleBadge(selectedUser.role.role_type) : <span className="text-gray-400">Sin rol</span>}</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Phone className="w-5 h-5 text-green-500" />
-                  <div>
-                    <p className="text-xs text-gray-500">Telefono</p>
-                    <p className="font-medium">{selectedUser.phone || <span className="text-gray-400">No registrado</span>}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <CreditCard className="w-5 h-5 text-blue-500" />
-                  <div>
-                    <p className="text-xs text-gray-500">Cedula</p>
-                    <p className="font-medium">{selectedUser.cedula || <span className="text-gray-400">No registrada</span>}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <MapPin className="w-5 h-5 text-orange-500" />
-                  <div>
-                    <p className="text-xs text-gray-500">Sucursal</p>
-                    <p className="font-medium">
-                      {selectedUser.location_id === -1 
-                        ? <Badge className="bg-orange-500">Rotativo (todas)</Badge>
-                        : (locations.find(l => l.id === selectedUser.location_id)?.name || <span className="text-gray-400">Sin asignar</span>)
+            <div>
+              {/* ID Card - Horizontal Layout */}
+              <div className="flex flex-col md:flex-row">
+                {/* Left: Photo Section with gradient */}
+                <div className="md:w-64 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-8 relative overflow-hidden">
+                  {/* Subtle pattern overlay */}
+                  <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+                  <div className="relative z-10 flex flex-col items-center">
+                    <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-xl ring-4 ring-white/20">
+                      {selectedUser.photo_url ? (
+                        <img src={selectedUser.photo_url} alt={selectedUser.full_name} className="w-full h-full object-cover rounded-2xl" />
+                      ) : (
+                        <UserIcon className="w-14 h-14 text-white" />
+                      )}
+                    </div>
+                    <h3 className="text-white text-lg font-bold mt-4 text-center leading-tight">{selectedUser.full_name}</h3>
+                    <p className="text-blue-300 text-sm font-mono mt-1">@{selectedUser.username}</p>
+                    <div className="mt-3">
+                      {selectedUser.is_active 
+                        ? <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 text-xs font-semibold rounded-full border border-emerald-500/30">Activo</span>
+                        : <span className="px-3 py-1 bg-red-500/20 text-red-300 text-xs font-semibold rounded-full border border-red-500/30">Inactivo</span>
                       }
-                    </p>
+                    </div>
+                  </div>
+                  {/* Company branding */}
+                  <div className="absolute bottom-3 left-0 right-0 text-center">
+                    <p className="text-white/30 text-[10px] font-semibold tracking-widest uppercase">MySale POS</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Calendar className="w-5 h-5 text-gray-500" />
-                  <div>
-                    <p className="text-xs text-gray-500">Trabajando desde</p>
-                    <p className="font-medium">{new Date(selectedUser.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                {/* Right: Data Section */}
+                <div className="flex-1 p-6 bg-white">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Carnet de Empleado</h4>
+                    <button onClick={() => setShowUserDetail(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
                   </div>
-                </div>
 
-                {/* PIN Section */}
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <KeyRound className="w-5 h-5 text-blue-600" />
-                      <div>
-                        <p className="text-xs text-gray-500">PIN (Reloj de asistencia)</p>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-xl text-blue-700">{resetPinResult || selectedUser.pin || 'Sin PIN'}</span>
-                          {(resetPinResult || selectedUser.pin) && (
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => copyToClipboard(resetPinResult || selectedUser.pin || '', 'detail-pin')}>
-                              {copiedField === 'detail-pin' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                            </Button>
-                          )}
-                        </div>
+                  {/* Data Grid - 2 columns */}
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Shield className="w-3.5 h-3.5 text-purple-500" />
+                        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Rol</p>
+                      </div>
+                      <div className="pl-5">{selectedUser.role ? getRoleBadge(selectedUser.role.role_type) : <span className="text-gray-400 text-sm">Sin rol</span>}</div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-orange-500" />
+                        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Sucursal</p>
+                      </div>
+                      <div className="pl-5 text-sm font-medium">
+                        {selectedUser.location_id === -1 
+                          ? <Badge className="bg-orange-500 text-xs">Rotativo (todas)</Badge>
+                          : (locations.find(l => l.id === selectedUser.location_id)?.name || <span className="text-gray-400">Sin asignar</span>)
+                        }
                       </div>
                     </div>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={handleResetPin} 
-                      disabled={isResettingPin}
-                      className="border-blue-300 text-blue-600 hover:bg-blue-100"
-                    >
-                      {isResettingPin ? <Loader2 className="w-4 h-4 animate-spin" /> : <><RefreshCw className="w-4 h-4 mr-1" />Nuevo PIN</>}
+
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-green-500" />
+                        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Telefono</p>
+                      </div>
+                      <p className="pl-5 text-sm font-medium">{selectedUser.phone || <span className="text-gray-400">No registrado</span>}</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <CreditCard className="w-3.5 h-3.5 text-blue-500" />
+                        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Cedula</p>
+                      </div>
+                      <p className="pl-5 text-sm font-medium font-mono">{selectedUser.cedula || <span className="text-gray-400 font-sans">No registrada</span>}</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-gray-500" />
+                        <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Trabajando desde</p>
+                      </div>
+                      <p className="pl-5 text-sm font-medium">{new Date(selectedUser.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    </div>
+                  </div>
+
+                  {/* PIN Section - highlighted card */}
+                  <div className="mt-5 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <KeyRound className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">PIN de Asistencia</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="font-mono font-bold text-2xl text-blue-700 tracking-wider">{resetPinResult || selectedUser.pin || 'Sin PIN'}</span>
+                            {(resetPinResult || selectedUser.pin) && (
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => copyToClipboard(resetPinResult || selectedUser.pin || '', 'detail-pin')}>
+                                {copiedField === 'detail-pin' ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={handleResetPin} 
+                        disabled={isResettingPin}
+                        className="border-blue-200 text-blue-600 hover:bg-blue-100 rounded-lg"
+                      >
+                        {isResettingPin ? <Loader2 className="w-4 h-4 animate-spin" /> : <><RefreshCw className="w-4 h-4 mr-1" />Nuevo PIN</>}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-3 mt-5 pt-4 border-t border-gray-100">
+                    <Button variant="outline" className="rounded-lg" onClick={() => setShowUserDetail(false)}>Cerrar</Button>
+                    <Button variant="destructive" className="rounded-lg" onClick={() => { setShowUserDetail(false); if (selectedUser) { setUserToDelete(selectedUser); setShowDeleteConfirm(true); } }}>
+                      <Trash2 className="w-4 h-4 mr-1" />Eliminar
                     </Button>
                   </div>
                 </div>
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowUserDetail(false)}>Cerrar</Button>
-            <Button variant="destructive" onClick={() => { setShowUserDetail(false); if (selectedUser) { setUserToDelete(selectedUser); setShowDeleteConfirm(true); } }}>
-              <Trash2 className="w-4 h-4 mr-1" />Eliminar
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
