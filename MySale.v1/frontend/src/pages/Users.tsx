@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users as UsersIcon, Plus, Loader2, Trash2, User as UserIcon, Copy, Check, Camera, Eye, KeyRound, RefreshCw, Phone, CreditCard, MapPin, Shield, ShieldCheck, Calendar, Ban, UserCheck } from 'lucide-react';
+import { Users as UsersIcon, Plus, Loader2, Trash2, User as UserIcon, Copy, Check, Camera, Eye, KeyRound, RefreshCw, Phone, CreditCard, MapPin, Shield, Calendar, Ban, UserCheck } from 'lucide-react';
 
 const generateUsername = (fullName: string): string => {
   if (!fullName.trim()) return '';
@@ -148,24 +148,6 @@ const Users: React.FC = () => {
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  const generateBarcode = (seed: string) => {
-    const bars: { x: number; w: number }[] = [];
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) {
-      hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
-    }
-    let x = 0;
-    const totalBars = 60;
-    for (let i = 0; i < totalBars; i++) {
-      hash = ((hash * 1103515245 + 12345) & 0x7fffffff);
-      const w = (hash % 3) + 1;
-      const gap = (hash >> 8) % 2 === 0;
-      if (!gap) bars.push({ x, w });
-      x += w + 1;
-    }
-    return { bars, width: x };
   };
 
   const getRoleBadge = (roleType: string) => {
