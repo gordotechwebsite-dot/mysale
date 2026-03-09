@@ -363,7 +363,7 @@ const Users: React.FC = () => {
               {/* ID Card - Horizontal Layout */}
               <div className="flex flex-col md:flex-row">
                 {/* Left: Photo Section with gradient */}
-                <div className="md:w-64 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-8 pb-20 relative overflow-hidden">
+                <div className="md:w-64 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 flex flex-col items-center justify-center p-8 relative overflow-hidden">
                   {/* Subtle pattern overlay */}
                   <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
                   <div className="relative z-10 flex flex-col items-center">
@@ -382,23 +382,9 @@ const Users: React.FC = () => {
                       }
                     </div>
                   </div>
-                  {/* Dynamic Barcode at bottom */}
-                  <div className="absolute bottom-3 left-0 right-0 px-4">
-                    {(() => {
-                      const { bars, width } = generateBarcode(selectedUser.cedula || selectedUser.username || String(selectedUser.id));
-                      return (
-                        <div className="flex flex-col items-center">
-                          <svg viewBox={`0 0 ${width} 28`} className="w-full h-8" preserveAspectRatio="none">
-                            {bars.map((b, i) => (
-                              <rect key={i} x={b.x} y={0} width={b.w} height={28} fill="white" opacity={0.7} />
-                            ))}
-                          </svg>
-                          <p className="text-white/40 text-[8px] font-mono mt-0.5 tracking-[0.2em]">
-                            {(selectedUser.cedula || `EMP-${String(selectedUser.id).padStart(6, '0')}`)}
-                          </p>
-                        </div>
-                      );
-                    })()}
+                  {/* Company branding */}
+                  <div className="absolute bottom-3 left-0 right-0 text-center">
+                    <p className="text-white/30 text-[10px] font-semibold tracking-widest uppercase">MySale POS</p>
                   </div>
                 </div>
 
@@ -499,12 +485,31 @@ const Users: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex justify-end gap-3 mt-5 pt-4 border-t border-gray-100">
-                    <Button variant="outline" className="rounded-lg" onClick={() => setShowUserDetail(false)}>Cerrar</Button>
-                    <Button variant="destructive" className="rounded-lg" onClick={() => { setShowUserDetail(false); if (selectedUser) { setUserToDelete(selectedUser); setShowDeleteConfirm(true); } }}>
-                      <Trash2 className="w-4 h-4 mr-1" />Eliminar
-                    </Button>
+                  {/* Barcode + Action Buttons */}
+                  <div className="flex items-end justify-between mt-5 pt-4 border-t border-gray-100">
+                    <div className="flex flex-col items-center">
+                      {(() => {
+                        const { bars, width } = generateBarcode(selectedUser.cedula || selectedUser.username || String(selectedUser.id));
+                        return (
+                          <>
+                            <svg viewBox={`0 0 ${width} 28`} className="w-36 h-9" preserveAspectRatio="none">
+                              {bars.map((b, i) => (
+                                <rect key={i} x={b.x} y={0} width={b.w} height={28} fill="black" opacity={0.75} />
+                              ))}
+                            </svg>
+                            <p className="text-gray-400 text-[7px] font-mono mt-0.5 tracking-[0.15em]">
+                              {(selectedUser.cedula || `EMP-${String(selectedUser.id).padStart(6, '0')}`)}
+                            </p>
+                          </>
+                        );
+                      })()}
+                    </div>
+                    <div className="flex gap-3">
+                      <Button variant="outline" className="rounded-lg" onClick={() => setShowUserDetail(false)}>Cerrar</Button>
+                      <Button variant="destructive" className="rounded-lg" onClick={() => { setShowUserDetail(false); if (selectedUser) { setUserToDelete(selectedUser); setShowDeleteConfirm(true); } }}>
+                        <Trash2 className="w-4 h-4 mr-1" />Eliminar
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
