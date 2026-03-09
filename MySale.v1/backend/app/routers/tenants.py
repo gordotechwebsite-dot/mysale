@@ -644,10 +644,12 @@ async def migrate_tenant_users(
             skipped.append({"tenant": tenant.name, "reason": "no credentials"})
             continue
         
-        # Check if user already exists
+        # Check if user already exists - if so, fix password to match tenant record
         existing_user = db.query(User).filter(User.username == tenant.pos_username).first()
         if existing_user:
-            skipped.append({"tenant": tenant.name, "reason": "user already exists"})
+            existing_user.hashed_password = get_password_hash(tenant.pos_password)
+            db.commit()
+            created.append({"tenant": tenant.name, "username": tenant.pos_username, "action": "password_fixed"})
             continue
         
         # Check if role exists for this tenant, create if not
