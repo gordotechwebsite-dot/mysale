@@ -223,7 +223,7 @@ async def create_tenant(
     # Generate POS URL automatically if not provided
     pos_url = data.pos_url
     if not pos_url:
-        pos_url = "https://galia-address-app-hhgq2rtr.devinapps.com"
+        pos_url = "https://www.pos-mysale.co"
     
     tenant = Tenant(
         name=data.name,
