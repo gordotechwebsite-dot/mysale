@@ -403,7 +403,7 @@ const Users: React.FC = () => {
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                   <Calendar className="w-5 h-5 text-gray-500" />
                   <div>
-                    <p className="text-xs text-gray-500">Fecha de creacion</p>
+                    <p className="text-xs text-gray-500">Trabajando desde</p>
                     <p className="font-medium">{new Date(selectedUser.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                   </div>
                 </div>
@@ -415,16 +415,14 @@ const Users: React.FC = () => {
                       <KeyRound className="w-5 h-5 text-blue-600" />
                       <div>
                         <p className="text-xs text-gray-500">PIN (Reloj de asistencia)</p>
-                        {resetPinResult ? (
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-xl text-blue-700">{resetPinResult}</span>
-                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => copyToClipboard(resetPinResult, 'detail-pin')}>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-xl text-blue-700">{resetPinResult || selectedUser.pin || 'Sin PIN'}</span>
+                          {(resetPinResult || selectedUser.pin) && (
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => copyToClipboard(resetPinResult || selectedUser.pin || '', 'detail-pin')}>
                               {copiedField === 'detail-pin' ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                             </Button>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-gray-500 italic">Encriptado - use el boton para generar uno nuevo</p>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
                     <Button 
@@ -437,9 +435,6 @@ const Users: React.FC = () => {
                       {isResettingPin ? <Loader2 className="w-4 h-4 animate-spin" /> : <><RefreshCw className="w-4 h-4 mr-1" />Nuevo PIN</>}
                     </Button>
                   </div>
-                  {resetPinResult && (
-                    <p className="text-xs text-amber-600 mt-2 font-medium">Guarde este PIN. No se podra ver de nuevo al cerrar este dialogo.</p>
-                  )}
                 </div>
               </div>
             </div>

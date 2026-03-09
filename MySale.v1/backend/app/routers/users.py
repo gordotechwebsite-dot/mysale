@@ -72,6 +72,7 @@ async def get_users(
             phone=u.phone,
             cedula=u.cedula,
             photo_url=u.photo_url,
+            pin=u.pin,
             role_id=u.role_id,
             role=u.role,
             location_id=u.location_id,
@@ -118,6 +119,7 @@ async def create_user(
         photo_url=user.photo_url,
         hashed_password=hashed_password,
         pin_hash=pin_hash,
+        pin=user.pin,
         role_id=user.role_id,
         location_id=user.location_id,
         tenant_id=current_user.tenant_id  # Assign same tenant as creator
@@ -133,6 +135,7 @@ async def create_user(
         phone=db_user.phone,
         cedula=db_user.cedula,
         photo_url=db_user.photo_url,
+        pin=db_user.pin,
         role_id=db_user.role_id,
         location_id=db_user.location_id,
         is_active=db_user.is_active,
@@ -163,6 +166,7 @@ async def get_user(
         phone=user.phone,
         cedula=user.cedula,
         photo_url=user.photo_url,
+        pin=user.pin,
         role_id=user.role_id,
         role=user.role,
         location_id=user.location_id,
@@ -203,6 +207,7 @@ async def update_user(
         phone=user.phone,
         cedula=user.cedula,
         photo_url=user.photo_url,
+        pin=user.pin,
         role_id=user.role_id,
         location_id=user.location_id,
         is_active=user.is_active,
@@ -262,6 +267,7 @@ async def reset_user_pin(
     import random
     new_pin = str(random.randint(100000, 999999))
     user.pin_hash = get_pin_hash(new_pin)
+    user.pin = new_pin
     db.commit()
     
     return {"pin": new_pin, "message": "PIN actualizado exitosamente"}

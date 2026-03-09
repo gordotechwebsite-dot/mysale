@@ -63,6 +63,7 @@ class UserResponse(BaseModel):
     phone: Optional[str] = None
     cedula: Optional[str] = None
     photo_url: Optional[str] = None
+    pin: Optional[str] = None
     role_id: int
     role: Optional[RoleResponse] = None
     location_id: Optional[int]
