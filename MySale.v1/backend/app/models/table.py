@@ -15,6 +15,7 @@ class TableStatus(str, enum.Enum):
 
 class TableShape(str, enum.Enum):
     SQUARE = "square"
+    PAIR = "pair"
     ROUND = "round"
     RECTANGLE = "rectangle"
 

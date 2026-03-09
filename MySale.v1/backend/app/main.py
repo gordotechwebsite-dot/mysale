@@ -125,6 +125,10 @@ def run_migrations():
                 db.execute(text("ALTER TABLE tables ADD COLUMN rotation INTEGER DEFAULT 0"))
                 db.commit()
                 print("Migration: Added rotation column to tables table")
+            
+            # Migrate old 'round' shape values to 'pair'
+            db.execute(text("UPDATE tables SET shape = 'PAIR' WHERE shape = 'ROUND'"))
+            db.commit()
         
         # Ensure all tenants have access to all modules (assign missing modules)
         from app.models.tenant import Tenant, TenantModule
