@@ -115,6 +115,17 @@ def run_migrations():
                 db.commit()
                 print("Migration: Added pos_password column to tenants table")
         
+        # Add rotation column to tables table
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='tables'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(tables)"))
+            table_cols = [row[1] for row in result.fetchall()]
+            
+            if 'rotation' not in table_cols:
+                db.execute(text("ALTER TABLE tables ADD COLUMN rotation INTEGER DEFAULT 0"))
+                db.commit()
+                print("Migration: Added rotation column to tables table")
+        
         # Ensure all tenants have access to all modules (assign missing modules)
         from app.models.tenant import Tenant, TenantModule
         tenants = db.query(Tenant).all()
