@@ -382,25 +382,7 @@ const Users: React.FC = () => {
                       }
                     </div>
                   </div>
-                  {/* Dynamic Barcode */}
-                  <div className="relative z-10 mt-5 w-full px-2">
-                    {(() => {
-                      const { bars, width } = generateBarcode(selectedUser.cedula || selectedUser.username || String(selectedUser.id));
-                      return (
-                        <div className="flex flex-col items-center">
-                          <svg viewBox={`0 0 ${width} 32`} className="w-full h-8" preserveAspectRatio="none">
-                            {bars.map((b, i) => (
-                              <rect key={i} x={b.x} y={0} width={b.w} height={32} fill="white" opacity={0.85} />
-                            ))}
-                          </svg>
-                          <p className="text-white/50 text-[9px] font-mono mt-1 tracking-[0.25em]">
-                            {(selectedUser.cedula || `EMP-${String(selectedUser.id).padStart(6, '0')}`)}
-                          </p>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  {/* Company branding */}
+                  {/* Company branding */
                   <div className="absolute bottom-3 left-0 right-0 text-center">
                     <p className="text-white/30 text-[10px] font-semibold tracking-widest uppercase">MySale POS</p>
                   </div>
@@ -501,6 +483,25 @@ const Users: React.FC = () => {
                         {isResettingPin ? <Loader2 className="w-4 h-4 animate-spin" /> : <><RefreshCw className="w-4 h-4 mr-1" />Nuevo PIN</>}
                       </Button>
                     </div>
+                  </div>
+
+                  {/* Dynamic Barcode */}
+                  <div className="mt-5 flex flex-col items-center">
+                    {(() => {
+                      const { bars, width } = generateBarcode(selectedUser.cedula || selectedUser.username || String(selectedUser.id));
+                      return (
+                        <>
+                          <svg viewBox={`0 0 ${width} 28`} className="w-full h-10" preserveAspectRatio="none">
+                            {bars.map((b, i) => (
+                              <rect key={i} x={b.x} y={0} width={b.w} height={28} fill="black" opacity={0.8} />
+                            ))}
+                          </svg>
+                          <p className="text-gray-400 text-[9px] font-mono mt-1 tracking-[0.25em]">
+                            {(selectedUser.cedula || `EMP-${String(selectedUser.id).padStart(6, '0')}`)}
+                          </p>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Action Buttons */}
