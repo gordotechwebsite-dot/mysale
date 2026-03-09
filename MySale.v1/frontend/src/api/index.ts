@@ -43,6 +43,11 @@ export const resetUserPin = async (userId: number): Promise<{ pin: string; messa
   return response.data;
 };
 
+export const toggleUserActive = async (userId: number, isActive: boolean): Promise<{ message: string }> => {
+  const response = await api.put(`/api/users/${userId}`, { is_active: isActive });
+  return response.data;
+};
+
 export const getRoles = async (): Promise<Role[]> => {
   const response = await api.get('/api/users/roles');
   return response.data;

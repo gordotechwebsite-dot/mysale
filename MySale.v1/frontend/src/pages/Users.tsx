@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getUsers, createUser, deleteUser, getRoles, getLocations, resetUserPin } from '../api';
+import { getUsers, createUser, deleteUser, getRoles, getLocations, resetUserPin, toggleUserActive } from '../api';
 import type { User, Role, Location } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users as UsersIcon, Plus, Loader2, Trash2, User as UserIcon, Copy, Check, Camera, Eye, KeyRound, RefreshCw, Phone, CreditCard, MapPin, Shield, ShieldCheck, Calendar } from 'lucide-react';
+import { Users as UsersIcon, Plus, Loader2, Trash2, User as UserIcon, Copy, Check, Camera, Eye, KeyRound, RefreshCw, Phone, CreditCard, MapPin, Shield, ShieldCheck, Calendar, Ban, UserCheck } from 'lucide-react';
 
 const generateUsername = (fullName: string): string => {
   if (!fullName.trim()) return '';
@@ -132,6 +132,21 @@ const Users: React.FC = () => {
       alert(error.response?.data?.detail || 'Error al resetear PIN');
     } finally {
       setIsResettingPin(false);
+    }
+  };
+
+  const handleToggleActive = async () => {
+    if (!selectedUser) return;
+    setIsProcessing(true);
+    try {
+      const newStatus = !selectedUser.is_active;
+      await toggleUserActive(selectedUser.id, newStatus);
+      setSelectedUser({ ...selectedUser, is_active: newStatus });
+      setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, is_active: newStatus } : u));
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Error al cambiar estado del usuario');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -510,7 +525,18 @@ const Users: React.FC = () => {
                         <span className="text-[7px] text-emerald-600 font-semibold uppercase tracking-wider">Protegido</span>
                       </div>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        className={`rounded-lg ${selectedUser.is_active ? 'border-amber-300 text-amber-600 hover:bg-amber-50' : 'border-emerald-300 text-emerald-600 hover:bg-emerald-50'}`}
+                        onClick={handleToggleActive}
+                        disabled={isProcessing}
+                      >
+                        {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : selectedUser.is_active 
+                          ? <><Ban className="w-4 h-4 mr-1" />Inhabilitar</>
+                          : <><UserCheck className="w-4 h-4 mr-1" />Reactivar</>
+                        }
+                      </Button>
                       <Button variant="outline" className="rounded-lg" onClick={() => setShowUserDetail(false)}>Cerrar</Button>
                       <Button variant="destructive" className="rounded-lg" onClick={() => { setShowUserDetail(false); if (selectedUser) { setUserToDelete(selectedUser); setShowDeleteConfirm(true); } }}>
                         <Trash2 className="w-4 h-4 mr-1" />Eliminar
