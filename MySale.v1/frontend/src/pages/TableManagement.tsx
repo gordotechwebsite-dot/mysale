@@ -316,15 +316,22 @@ export default function TableManagement() {
   };
 
   const handleCreateTable = async () => {
-    if (!tableName || !selectedZone) return;
+    if (!tableName.trim()) {
+      toast.error('Ingrese un nombre para la mesa');
+      return;
+    }
+    if (!selectedZone) {
+      toast.error('Seleccione una zona primero');
+      return;
+    }
     try {
       await createTable({
         name: tableName,
         zone_id: selectedZone,
         capacity: tableCapacity,
         shape: tableShape,
-        position_x: Math.random() * 400,
-        position_y: Math.random() * 300
+        position_x: Math.round(Math.random() * 400),
+        position_y: Math.round(Math.random() * 300)
       });
       toast.success('Mesa creada exitosamente');
       setShowTableDialog(false);
