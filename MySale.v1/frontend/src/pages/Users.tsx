@@ -500,32 +500,8 @@ const Users: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Barcode + Action Buttons */}
-                  <div className="flex items-end justify-between mt-5 pt-4 border-t border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col items-center">
-                        {(() => {
-                          const { bars, width } = generateBarcode(selectedUser.cedula || selectedUser.username || String(selectedUser.id));
-                          return (
-                            <>
-                              <svg viewBox={`0 0 ${width} 28`} className="w-48 h-12" preserveAspectRatio="none">
-                                {bars.map((b, i) => (
-                                  <rect key={i} x={b.x} y={0} width={b.w} height={28} fill="black" opacity={0.75} />
-                                ))}
-                              </svg>
-                              <p className="text-gray-400 text-[7px] font-mono mt-0.5 tracking-[0.15em]">
-                                {(selectedUser.cedula || `EMP-${String(selectedUser.id).padStart(6, '0')}`)}
-                              </p>
-                            </>
-                          );
-                        })()}
-                      </div>
-                      <div className="flex flex-col items-center gap-0.5" title="Datos protegidos">
-                        <ShieldCheck className="w-7 h-7 text-emerald-500" />
-                        <span className="text-[7px] text-emerald-600 font-semibold uppercase tracking-wider">Protegido</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
+                  {/* Action Buttons */}
+                  <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-gray-100">
                       <Button 
                         variant="outline" 
                         className={`rounded-lg ${selectedUser.is_active ? 'border-amber-300 text-amber-600 hover:bg-amber-50' : 'border-emerald-300 text-emerald-600 hover:bg-emerald-50'}`}
@@ -541,7 +517,6 @@ const Users: React.FC = () => {
                       <Button variant="destructive" className="rounded-lg" onClick={() => { setShowUserDetail(false); if (selectedUser) { setUserToDelete(selectedUser); setShowDeleteConfirm(true); } }}>
                         <Trash2 className="w-4 h-4 mr-1" />Eliminar
                       </Button>
-                    </div>
                   </div>
                 </div>
               </div>
