@@ -124,6 +124,9 @@ const Users: React.FC = () => {
     try {
       const result = await resetUserPin(selectedUser.id);
       setResetPinResult(result.pin);
+      // Update local state so PIN persists when reopening modal
+      setSelectedUser({ ...selectedUser, pin: result.pin });
+      setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, pin: result.pin } : u));
     } catch (error: any) {
       alert(error.response?.data?.detail || 'Error al resetear PIN');
     } finally {
