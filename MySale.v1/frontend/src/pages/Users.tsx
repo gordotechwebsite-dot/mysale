@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users as UsersIcon, Plus, Loader2, Trash2, User as UserIcon, Copy, Check, Camera, Eye, KeyRound, RefreshCw, Phone, CreditCard, MapPin, Shield, Calendar } from 'lucide-react';
+import { Users as UsersIcon, Plus, Loader2, Trash2, User as UserIcon, Copy, Check, Camera, Eye, KeyRound, RefreshCw, Phone, CreditCard, MapPin, Shield, ShieldCheck, Calendar } from 'lucide-react';
 
 const generateUsername = (fullName: string): string => {
   if (!fullName.trim()) return '';
@@ -487,22 +487,28 @@ const Users: React.FC = () => {
 
                   {/* Barcode + Action Buttons */}
                   <div className="flex items-end justify-between mt-5 pt-4 border-t border-gray-100">
-                    <div className="flex flex-col items-center">
-                      {(() => {
-                        const { bars, width } = generateBarcode(selectedUser.cedula || selectedUser.username || String(selectedUser.id));
-                        return (
-                          <>
-                            <svg viewBox={`0 0 ${width} 28`} className="w-48 h-12" preserveAspectRatio="none">
-                              {bars.map((b, i) => (
-                                <rect key={i} x={b.x} y={0} width={b.w} height={28} fill="black" opacity={0.75} />
-                              ))}
-                            </svg>
-                            <p className="text-gray-400 text-[7px] font-mono mt-0.5 tracking-[0.15em]">
-                              {(selectedUser.cedula || `EMP-${String(selectedUser.id).padStart(6, '0')}`)}
-                            </p>
-                          </>
-                        );
-                      })()}
+                    <div className="flex items-center gap-3">
+                      <div className="flex flex-col items-center">
+                        {(() => {
+                          const { bars, width } = generateBarcode(selectedUser.cedula || selectedUser.username || String(selectedUser.id));
+                          return (
+                            <>
+                              <svg viewBox={`0 0 ${width} 28`} className="w-48 h-12" preserveAspectRatio="none">
+                                {bars.map((b, i) => (
+                                  <rect key={i} x={b.x} y={0} width={b.w} height={28} fill="black" opacity={0.75} />
+                                ))}
+                              </svg>
+                              <p className="text-gray-400 text-[7px] font-mono mt-0.5 tracking-[0.15em]">
+                                {(selectedUser.cedula || `EMP-${String(selectedUser.id).padStart(6, '0')}`)}
+                              </p>
+                            </>
+                          );
+                        })()}
+                      </div>
+                      <div className="flex flex-col items-center gap-0.5" title="Datos protegidos">
+                        <ShieldCheck className="w-7 h-7 text-emerald-500" />
+                        <span className="text-[7px] text-emerald-600 font-semibold uppercase tracking-wider">Protegido</span>
+                      </div>
                     </div>
                     <div className="flex gap-3">
                       <Button variant="outline" className="rounded-lg" onClick={() => setShowUserDetail(false)}>Cerrar</Button>
