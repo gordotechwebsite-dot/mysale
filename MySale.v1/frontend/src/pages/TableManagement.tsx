@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import {
@@ -50,16 +50,10 @@ import {
   Edit,
   X,
   Minus,
-  Send
+  Send,
+  RotateCw,
+  Move
 } from 'lucide-react';
-
-const statusColors: Record<string, { bg: string; border: string; text: string }> = {
-  free: { bg: 'bg-emerald-500', border: 'border-emerald-600', text: 'Libre' },
-  occupied: { bg: 'bg-emerald-700', border: 'border-emerald-800', text: 'Ocupada' },
-  bill_open: { bg: 'bg-emerald-600', border: 'border-emerald-700', text: 'Cuenta Abierta' },
-  to_pay: { bg: 'bg-amber-500', border: 'border-amber-600', text: 'Por Cobrar' },
-  paid: { bg: 'bg-rose-400', border: 'border-rose-500', text: 'Pagada' },
-};
 
 
 interface CartItem {
@@ -119,6 +113,89 @@ export default function TableManagement() {
   const [tip, setTip] = useState(0);
 
   const [moveTargetTable, setMoveTargetTable] = useState<number | null>(null);
+
+  // Floor plan drag state
+  const floorPlanRef = useRef<HTMLDivElement>(null);
+  const [draggingTable, setDraggingTable] = useState<number | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  const getTableImage = (capacity: number): string => {
+    if (capacity <= 2) return '/tables/table-2.png';
+    if (capacity <= 4) return '/tables/table-4.png';
+    return '/tables/table-6.png';
+  };
+
+  const getTableSize = (capacity: number): { w: number; h: number } => {
+    if (capacity <= 2) return { w: 100, h: 120 };
+    if (capacity <= 4) return { w: 130, h: 130 };
+    return { w: 200, h: 120 };
+  };
+
+  const statusOverlay: Record<string, { color: string; label: string }> = {
+    free: { color: '#10b981', label: 'Libre' },
+    occupied: { color: '#f59e0b', label: 'Ocupada' },
+    bill_open: { color: '#3b82f6', label: 'Cuenta Abierta' },
+    to_pay: { color: '#f59e0b', label: 'Por Cobrar' },
+    paid: { color: '#ef4444', label: 'Pagada' },
+  };
+
+  const handleFloorMouseDown = useCallback((e: React.MouseEvent, table: Table) => {
+    if (!editMode || !isSuperuser) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = floorPlanRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setDraggingTable(table.id);
+    setDragOffset({
+      x: e.clientX - rect.left - table.position_x,
+      y: e.clientY - rect.top - table.position_y,
+    });
+  }, [editMode, isSuperuser]);
+
+  const handleFloorMouseMove = useCallback((e: React.MouseEvent) => {
+    if (draggingTable === null || !floorPlanRef.current) return;
+    const rect = floorPlanRef.current.getBoundingClientRect();
+    const newX = Math.max(0, Math.round(e.clientX - rect.left - dragOffset.x));
+    const newY = Math.max(0, Math.round(e.clientY - rect.top - dragOffset.y));
+
+    setZones(prev => prev.map(zone => ({
+      ...zone,
+      tables: zone.tables.map(t =>
+        t.id === draggingTable ? { ...t, position_x: newX, position_y: newY } : t
+      )
+    })));
+  }, [draggingTable, dragOffset]);
+
+  const handleFloorMouseUp = useCallback(async () => {
+    if (draggingTable === null) return;
+    const table = currentZone?.tables.find(t => t.id === draggingTable);
+    if (table) {
+      try {
+        await updateTable(table.id, {
+          position_x: table.position_x,
+          position_y: table.position_y,
+        });
+      } catch {
+        toast.error('Error al guardar posición');
+      }
+    }
+    setDraggingTable(null);
+  }, [draggingTable, zones]);
+
+  const handleRotateTable = async (table: Table) => {
+    const newRotation = ((table.rotation || 0) + 90) % 360;
+    try {
+      await updateTable(table.id, { rotation: newRotation });
+      setZones(prev => prev.map(zone => ({
+        ...zone,
+        tables: zone.tables.map(t =>
+          t.id === table.id ? { ...t, rotation: newRotation } : t
+        )
+      })));
+    } catch {
+      toast.error('Error al rotar mesa');
+    }
+  };
 
   useEffect(() => {
     loadLocations();
@@ -1053,9 +1130,10 @@ export default function TableManagement() {
         </div>
       )}
 
-      <div className="flex-1 p-6 overflow-auto">
+      <div className="flex-1 overflow-auto relative">
+        {/* Edit mode toolbar */}
         {editMode && isSuperuser && selectedZone && (
-          <div className="mb-4 flex gap-2">
+          <div className="absolute top-4 left-4 z-10 flex gap-2">
             <Button
               size="sm"
               onClick={() => {
@@ -1065,6 +1143,7 @@ export default function TableManagement() {
                 setTableShape('square');
                 setShowTableDialog(true);
               }}
+              className="bg-gray-900 hover:bg-gray-800 text-white shadow-lg"
             >
               <Plus className="w-4 h-4 mr-2" />
               Nueva Mesa
@@ -1073,6 +1152,7 @@ export default function TableManagement() {
               size="sm"
               variant="destructive"
               onClick={() => handleDeleteZone(selectedZone)}
+              className="shadow-lg"
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Eliminar Zona
@@ -1080,71 +1160,171 @@ export default function TableManagement() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {editMode && isSuperuser && (
+          <div className="absolute top-4 right-4 z-10 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg shadow text-xs text-gray-500 flex items-center gap-2">
+            <Move className="w-3.5 h-3.5" />
+            Arrastra para mover · Clic en
+            <RotateCw className="w-3 h-3 inline" />
+            para rotar
+          </div>
+        )}
+
+        {/* 2D Floor Plan */}
+        <div
+          ref={floorPlanRef}
+          className="relative w-full h-full min-h-[600px]"
+          style={{
+            backgroundImage: 'radial-gradient(circle, #e5e7eb 1px, transparent 1px)',
+            backgroundSize: '30px 30px',
+            cursor: draggingTable !== null ? 'grabbing' : 'default',
+          }}
+          onMouseMove={handleFloorMouseMove}
+          onMouseUp={handleFloorMouseUp}
+          onMouseLeave={handleFloorMouseUp}
+        >
           {currentZone?.tables.map(table => {
-            const status = statusColors[table.status] || statusColors.free;
-            const isRound = table.shape === 'round';
+            const size = getTableSize(table.capacity);
+            const overlay = statusOverlay[table.status] || statusOverlay.free;
+            const rotation = table.rotation || 0;
 
             return (
               <div
                 key={table.id}
-                onClick={() => handleTableClick(table)}
-                className={`
-                  relative cursor-pointer transition-all transform hover:scale-105
-                  ${isRound ? 'rounded-full' : 'rounded-xl'}
-                  ${status.bg} ${status.border} border-2
-                  shadow-lg hover:shadow-xl
-                  min-h-[120px] flex flex-col items-center justify-center p-4
-                `}
+                className={`absolute select-none ${
+                  editMode && isSuperuser ? 'cursor-grab' : 'cursor-pointer'
+                } ${draggingTable === table.id ? 'z-20 opacity-90' : 'z-10'}`}
+                style={{
+                  left: table.position_x,
+                  top: table.position_y,
+                  width: size.w,
+                  transform: `rotate(${rotation}deg)`,
+                  transformOrigin: 'center center',
+                }}
+                onMouseDown={(e) => {
+                  if (editMode && isSuperuser) {
+                    handleFloorMouseDown(e, table);
+                  }
+                }}
+                onClick={() => {
+                  if (!editMode && draggingTable === null) {
+                    handleTableClick(table);
+                  }
+                }}
               >
+                {/* Table image */}
+                <img
+                  src={getTableImage(table.capacity)}
+                  alt={table.name}
+                  className="w-full h-auto pointer-events-none"
+                  draggable={false}
+                  style={{
+                    filter: table.status === 'free' ? 'none' : `drop-shadow(0 0 6px ${overlay.color})`,
+                  }}
+                />
+
+                {/* Table name label */}
+                <div
+                  className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+                  style={{ transform: `rotate(${-rotation}deg)` }}
+                >
+                  <span className="bg-white/90 backdrop-blur-sm text-gray-900 font-bold text-sm px-2 py-0.5 rounded shadow-sm">
+                    {table.name}
+                  </span>
+
+                  {/* Status badge */}
+                  {table.status !== 'free' && (
+                    <span
+                      className="mt-1 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                      style={{ backgroundColor: overlay.color }}
+                    >
+                      {overlay.label}
+                    </span>
+                  )}
+
+                  {/* Time indicator */}
+                  {table.status !== 'free' && table.ticket_time && (
+                    <span className="mt-0.5 text-gray-600 text-[10px] flex items-center gap-0.5 bg-white/80 px-1 rounded">
+                      <Clock className="w-2.5 h-2.5" />
+                      {table.ticket_time}
+                    </span>
+                  )}
+                </div>
+
+                {/* Pending comandas badge */}
                 {(table.pending_comandas ?? 0) > 0 && (
-                  <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                  <div
+                    className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow"
+                    style={{ transform: `rotate(${-rotation}deg)` }}
+                  >
                     {table.pending_comandas}
                   </div>
                 )}
 
-                <span className="text-white font-bold text-xl">{table.name}</span>
-
-                {table.status !== 'free' && table.ticket_time && (
-                  <div className="mt-2 text-center">
-                    <span className="text-white/80 text-xs flex items-center justify-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {table.ticket_time}
-                    </span>
-                  </div>
-                )}
-
+                {/* Edit mode controls */}
                 {editMode && isSuperuser && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteTable(table.id);
-                    }}
-                    className="absolute top-1 right-1 text-white/50 hover:text-white"
+                  <div
+                    className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-1"
+                    style={{ transform: `translateX(-50%) rotate(${-rotation}deg)` }}
                   >
-                    <X className="w-4 h-4" />
-                  </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRotateTable(table);
+                      }}
+                      className="bg-white shadow-md rounded-full p-1 hover:bg-gray-100 transition-colors"
+                      title="Rotar 90°"
+                    >
+                      <RotateCw className="w-3.5 h-3.5 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingTable(table);
+                        setTableName(table.name);
+                        setTableCapacity(table.capacity);
+                        setTableShape(table.shape);
+                        setShowTableDialog(true);
+                      }}
+                      className="bg-white shadow-md rounded-full p-1 hover:bg-gray-100 transition-colors"
+                      title="Editar"
+                    >
+                      <Settings className="w-3.5 h-3.5 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteTable(table.id);
+                      }}
+                      className="bg-white shadow-md rounded-full p-1 hover:bg-red-50 transition-colors"
+                      title="Eliminar"
+                    >
+                      <X className="w-3.5 h-3.5 text-red-500" />
+                    </button>
+                  </div>
                 )}
               </div>
             );
           })}
-        </div>
 
-        {(!currentZone || currentZone.tables.length === 0) && (
-          <div className="text-center text-gray-400 py-16">
-            {zones.length === 0 ? (
-              <div>
-                <p className="text-lg font-medium text-gray-500">No hay zonas creadas</p>
-                <p className="text-sm text-gray-400 mt-1">{isSuperuser && 'Crea una zona para comenzar.'}</p>
+          {/* Empty state */}
+          {(!currentZone || currentZone.tables.length === 0) && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                {zones.length === 0 ? (
+                  <>
+                    <p className="text-lg font-medium text-gray-400">No hay zonas creadas</p>
+                    <p className="text-sm text-gray-300 mt-1">{isSuperuser && 'Crea una zona para comenzar.'}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg font-medium text-gray-400">No hay mesas en esta zona</p>
+                    <p className="text-sm text-gray-300 mt-1">{isSuperuser && editMode && 'Agrega mesas usando el botón + Nueva Mesa.'}</p>
+                  </>
+                )}
               </div>
-            ) : (
-              <div>
-                <p className="text-lg font-medium text-gray-500">No hay mesas en esta zona</p>
-                <p className="text-sm text-gray-400 mt-1">{isSuperuser && editMode && 'Agrega mesas usando el botón de arriba.'}</p>
-              </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       <Dialog open={showZoneDialog} onOpenChange={setShowZoneDialog}>

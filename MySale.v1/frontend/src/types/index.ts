@@ -351,6 +351,7 @@ export interface Table {
   position_y: number;
   width: number;
   height: number;
+  rotation: number;
   is_active: boolean;
   created_at: string;
   current_ticket_id?: number | null;

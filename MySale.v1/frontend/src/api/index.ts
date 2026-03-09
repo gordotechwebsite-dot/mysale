@@ -602,6 +602,7 @@ export const createTable = async (data: {
   position_y?: number;
   width?: number;
   height?: number;
+  rotation?: number;
 }): Promise<Table> => {
   const response = await api.post('/api/tables/', data);
   return response.data;
@@ -617,6 +618,7 @@ export const updateTable = async (id: number, data: {
   position_y?: number;
   width?: number;
   height?: number;
+  rotation?: number;
   is_active?: boolean;
 }): Promise<Table> => {
   const response = await api.put(`/api/tables/${id}`, data);

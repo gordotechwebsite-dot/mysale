@@ -81,6 +81,7 @@ class Table(Base):
     position_y = Column(Integer, default=0)
     width = Column(Integer, default=100)
     height = Column(Integer, default=100)
+    rotation = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

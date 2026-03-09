@@ -72,6 +72,7 @@ def get_table_response(table: Table, db: Session) -> TableResponse:
         position_y=table.position_y,
         width=table.width,
         height=table.height,
+        rotation=table.rotation or 0,
         is_active=table.is_active,
         created_at=table.created_at,
         current_ticket_id=current_ticket.id if current_ticket else None,
@@ -258,7 +259,8 @@ async def create_table(
         position_x=data.position_x or 0,
         position_y=data.position_y or 0,
         width=data.width or 100,
-        height=data.height or 100
+        height=data.height or 100,
+        rotation=data.rotation or 0
     )
     db.add(table)
     db.commit()
@@ -302,6 +304,8 @@ async def update_table(
         table.width = data.width
     if data.height is not None:
         table.height = data.height
+    if data.rotation is not None:
+        table.rotation = data.rotation
     if data.is_active is not None:
         table.is_active = data.is_active
     
