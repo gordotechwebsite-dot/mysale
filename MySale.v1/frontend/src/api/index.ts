@@ -377,6 +377,29 @@ export const getProfitabilityReport = async (params: {
   return response.data;
 };
 
+export const exportEmployeesExcel = async (params: {
+  start_date: string;
+  end_date: string;
+}): Promise<Blob> => {
+  const response = await api.get('/api/reports/export/employees/excel', {
+    params,
+    responseType: 'blob',
+  });
+  return response.data;
+};
+
+export const exportProfitabilityExcel = async (params: {
+  start_date: string;
+  end_date: string;
+  location_id?: number;
+}): Promise<Blob> => {
+  const response = await api.get('/api/reports/export/profitability/excel', {
+    params,
+    responseType: 'blob',
+  });
+  return response.data;
+};
+
 export interface LocationDashboard {
   id: number;
   name: string;

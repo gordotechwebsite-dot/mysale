@@ -351,6 +351,260 @@ async def export_inventory_excel(
     )
 
 
+@router.get("/export/employees/excel")
+async def export_employees_excel(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill
+    
+    if not start_date:
+        start_date = date.today() - timedelta(days=30)
+    if not end_date:
+        end_date = date.today()
+    
+    start_dt = datetime.combine(start_date, datetime.min.time())
+    end_dt = datetime.combine(end_date, datetime.max.time())
+    
+    query = db.query(User)
+    if current_user.tenant_id:
+        query = query.filter(User.tenant_id == current_user.tenant_id)
+    users = query.all()
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Empleados"
+    
+    # Title
+    ws.append([f"Reporte de Empleados - {start_date} a {end_date}"])
+    ws.append([])
+    
+    headers = ["#", "Empleado", "Usuario", "Rol", "Turnos", "Horas Totales",
+               "Prom. Hrs/Turno", "Ventas Totales", "Transacciones",
+               "Prom. Venta/Turno", "Puntos", "Estado"]
+    ws.append(headers)
+    
+    # Bold headers
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=3, column=col).font = Font(bold=True)
+    
+    row_num = 0
+    for user in users:
+        shifts = db.query(Shift).filter(
+            Shift.user_id == user.id,
+            Shift.start_time >= start_dt,
+            Shift.start_time <= end_dt
+        ).all()
+        
+        total_hours = 0.0
+        total_sales = 0.0
+        total_transactions = 0
+        
+        for shift in shifts:
+            if shift.end_time:
+                delta = shift.end_time - shift.start_time
+                total_hours += delta.total_seconds() / 3600
+            total_sales += shift.total_sales
+            sales_count = db.query(Sale).filter(Sale.shift_id == shift.id).count()
+            total_transactions += sales_count
+        
+        num_shifts = len(shifts)
+        role_name = user.role.name if user.role else "Sin rol"
+        avg_sales = round(total_sales / num_shifts, 2) if num_shifts > 0 else 0
+        avg_hours = round(total_hours / num_shifts, 2) if num_shifts > 0 else 0
+        
+        row_num += 1
+        ws.append([
+            row_num,
+            user.full_name,
+            user.username,
+            role_name,
+            num_shifts,
+            round(total_hours, 2),
+            avg_hours,
+            total_sales,
+            total_transactions,
+            avg_sales,
+            user.points,
+            "Activo" if user.is_active else "Inactivo"
+        ])
+    
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    filename = f"empleados_{start_date}_{end_date}.xlsx"
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/export/profitability/excel")
+async def export_profitability_excel(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    location_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    from openpyxl import Workbook
+    from openpyxl.styles import Font
+    
+    if not start_date:
+        start_date = date.today() - timedelta(days=30)
+    if not end_date:
+        end_date = date.today()
+    
+    start_dt = datetime.combine(start_date, datetime.min.time())
+    end_dt = datetime.combine(end_date, datetime.max.time())
+    
+    location_name = "Todas las ubicaciones"
+    if location_id:
+        location = db.query(Location).filter(Location.id == location_id).first()
+        location_name = location.name if location else "Todas las ubicaciones"
+    
+    # Sales
+    sales_query = db.query(Sale).filter(Sale.created_at >= start_dt, Sale.created_at <= end_dt)
+    if location_id:
+        sales_query = sales_query.filter(Sale.location_id == location_id)
+    sales = sales_query.all()
+    total_sales = sum(s.total for s in sales)
+    
+    # COGS
+    total_cogs = 0.0
+    for sale in sales:
+        for item in sale.items:
+            product = db.query(Product).filter(Product.id == item.product_id).first()
+            if product:
+                total_cogs += item.quantity * product.weighted_cost
+    
+    # Expenses
+    expenses_query = db.query(Expense).filter(Expense.expense_date >= start_dt, Expense.expense_date <= end_dt)
+    if location_id:
+        expenses_query = expenses_query.filter(Expense.location_id == location_id)
+    expenses = expenses_query.all()
+    total_expenses = sum(e.amount for e in expenses)
+    
+    expenses_by_cat = {}
+    for e in expenses:
+        cat = e.category.value if hasattr(e.category, 'value') else str(e.category)
+        cat_labels = {'purchase': 'Compras', 'utilities': 'Servicios', 'rent': 'Arriendo',
+                      'salary': 'Salarios', 'maintenance': 'Mantenimiento', 'supplies': 'Insumos', 'other': 'Otros'}
+        label = cat_labels.get(cat, cat)
+        expenses_by_cat[label] = expenses_by_cat.get(label, 0) + e.amount
+    
+    # Losses
+    losses_query = db.query(Loss).filter(Loss.created_at >= start_dt, Loss.created_at <= end_dt)
+    if location_id:
+        losses_query = losses_query.filter(Loss.location_id == location_id)
+    losses = losses_query.all()
+    total_losses = sum(l.total_value for l in losses)
+    
+    losses_by_type = {}
+    for l in losses:
+        lt = l.loss_type.value if hasattr(l.loss_type, 'value') else str(l.loss_type)
+        type_labels = {'breakage': 'Rotura', 'expiration': 'Vencimiento', 'theft': 'Robo',
+                       'damage': 'Dano', 'other': 'Otros'}
+        label = type_labels.get(lt, lt)
+        losses_by_type[label] = losses_by_type.get(label, 0) + l.total_value
+    
+    gross_profit = total_sales - total_cogs
+    net_profit = gross_profit - total_expenses - total_losses
+    gross_margin = (gross_profit / total_sales * 100) if total_sales > 0 else 0
+    net_margin = (net_profit / total_sales * 100) if total_sales > 0 else 0
+    
+    wb = Workbook()
+    
+    # Sheet 1: Summary
+    ws1 = wb.active
+    ws1.title = "Resumen"
+    ws1.append([f"Reporte de Rentabilidad - {start_date} a {end_date}"])
+    ws1.append([f"Ubicacion: {location_name}"])
+    ws1.append([])
+    
+    ws1.append(["Concepto", "Monto", "% sobre Ventas"])
+    for col in range(1, 4):
+        ws1.cell(row=4, column=col).font = Font(bold=True)
+    
+    ws1.append(["Ventas Totales", total_sales, "100%"])
+    ws1.append(["(-) Costo de Productos", round(total_cogs, 2), f"{round(total_cogs/total_sales*100, 1) if total_sales > 0 else 0}%"])
+    ws1.append(["= Utilidad Bruta", round(gross_profit, 2), f"{round(gross_margin, 1)}%"])
+    ws1.append(["(-) Gastos Operacionales", total_expenses, f"{round(total_expenses/total_sales*100, 1) if total_sales > 0 else 0}%"])
+    
+    for cat, amount in expenses_by_cat.items():
+        ws1.append([f"    {cat}", amount, f"{round(amount/total_sales*100, 1) if total_sales > 0 else 0}%"])
+    
+    ws1.append(["(-) Mermas / Perdidas", total_losses, f"{round(total_losses/total_sales*100, 1) if total_sales > 0 else 0}%"])
+    
+    for lt, amount in losses_by_type.items():
+        ws1.append([f"    {lt}", amount, f"{round(amount/total_sales*100, 1) if total_sales > 0 else 0}%"])
+    
+    ws1.append([])
+    ws1.append(["= UTILIDAD NETA", round(net_profit, 2), f"{round(net_margin, 1)}%"])
+    last_row = ws1.max_row
+    for col in range(1, 4):
+        ws1.cell(row=last_row, column=col).font = Font(bold=True)
+    
+    # Sheet 2: Daily detail
+    ws2 = wb.create_sheet("Detalle Diario")
+    ws2.append(["Fecha", "Ventas", "Costo Prod.", "Gastos", "Mermas", "Utilidad Bruta", "Utilidad Neta"])
+    for col in range(1, 8):
+        ws2.cell(row=1, column=col).font = Font(bold=True)
+    
+    by_day_data = {}
+    for sale in sales:
+        day = sale.created_at.date().isoformat()
+        if day not in by_day_data:
+            by_day_data[day] = {"sales": 0, "cogs": 0, "expenses": 0, "losses": 0}
+        by_day_data[day]["sales"] += sale.total
+        for item in sale.items:
+            product = db.query(Product).filter(Product.id == item.product_id).first()
+            if product:
+                by_day_data[day]["cogs"] += item.quantity * product.weighted_cost
+    
+    for e in expenses:
+        day = e.expense_date.date().isoformat() if isinstance(e.expense_date, datetime) else str(e.expense_date)
+        if day not in by_day_data:
+            by_day_data[day] = {"sales": 0, "cogs": 0, "expenses": 0, "losses": 0}
+        by_day_data[day]["expenses"] += e.amount
+    
+    for l in losses:
+        day = l.created_at.date().isoformat()
+        if day not in by_day_data:
+            by_day_data[day] = {"sales": 0, "cogs": 0, "expenses": 0, "losses": 0}
+        by_day_data[day]["losses"] += l.total_value
+    
+    for day in sorted(by_day_data.keys()):
+        d = by_day_data[day]
+        gp = d["sales"] - d["cogs"]
+        np_ = gp - d["expenses"] - d["losses"]
+        ws2.append([day, d["sales"], round(d["cogs"], 2), d["expenses"], d["losses"], round(gp, 2), round(np_, 2)])
+    
+    # Totals row
+    ws2.append(["TOTAL", total_sales, round(total_cogs, 2), total_expenses, total_losses, round(gross_profit, 2), round(net_profit, 2)])
+    last_row = ws2.max_row
+    for col in range(1, 8):
+        ws2.cell(row=last_row, column=col).font = Font(bold=True)
+    
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    filename = f"rentabilidad_{start_date}_{end_date}.xlsx"
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 @router.get("/employees-summary", response_model=EmployeesReportResponse)
 async def get_employees_summary_report(
     start_date: Optional[date] = None,

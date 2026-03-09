@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSalesReport, getInventoryReport, exportSalesExcel, exportInventoryExcel, getLocations, getEmployeesSummaryReport, getProfitabilityReport } from '../api';
+import { getSalesReport, getInventoryReport, exportSalesExcel, exportInventoryExcel, getLocations, getEmployeesSummaryReport, getProfitabilityReport, exportEmployeesExcel, exportProfitabilityExcel } from '../api';
 import type { Location } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -198,6 +198,43 @@ const Reports: React.FC = () => {
       const a = document.createElement('a');
       a.href = url;
       a.download = `inventario_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting:', error);
+      alert('Error al exportar el reporte');
+    }
+  };
+
+  const handleExportEmployeesExcel = async () => {
+    try {
+      const blob = await exportEmployeesExcel({
+        start_date: startDate,
+        end_date: endDate,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `empleados_${startDate}_${endDate}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting:', error);
+      alert('Error al exportar el reporte');
+    }
+  };
+
+  const handleExportProfitabilityExcel = async () => {
+    try {
+      const blob = await exportProfitabilityExcel({
+        start_date: startDate,
+        end_date: endDate,
+        location_id: selectedLocation ? parseInt(selectedLocation) : undefined
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rentabilidad_${startDate}_${endDate}.xlsx`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -533,7 +570,16 @@ const Reports: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <DateFilters onGenerate={loadEmployeesReport} showLocation={false} />
+              <DateFilters
+                onGenerate={loadEmployeesReport}
+                showLocation={false}
+                extraButtons={
+                  <Button variant="outline" onClick={handleExportEmployeesExcel} disabled={!employeesReport}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Excel
+                  </Button>
+                }
+              />
 
               {employeesReport && (
                 <>
@@ -638,7 +684,15 @@ const Reports: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <DateFilters onGenerate={loadProfitabilityReport} />
+              <DateFilters
+                onGenerate={loadProfitabilityReport}
+                extraButtons={
+                  <Button variant="outline" onClick={handleExportProfitabilityExcel} disabled={!profitabilityReport}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Excel
+                  </Button>
+                }
+              />
 
               {profitabilityReport && (
                 <>
