@@ -363,6 +363,7 @@ export const exportInventoryExcel = async (locationId?: number): Promise<Blob> =
 export const getEmployeesSummaryReport = async (params: {
   start_date: string;
   end_date: string;
+  user_id?: number;
 }): Promise<any> => {
   const response = await api.get('/api/reports/employees-summary', { params });
   return response.data;
@@ -380,6 +381,7 @@ export const getProfitabilityReport = async (params: {
 export const exportEmployeesExcel = async (params: {
   start_date: string;
   end_date: string;
+  user_id?: number;
 }): Promise<Blob> => {
   const response = await api.get('/api/reports/export/employees/excel', {
     params,

@@ -355,6 +355,7 @@ async def export_inventory_excel(
 async def export_employees_excel(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
+    user_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
@@ -372,6 +373,8 @@ async def export_employees_excel(
     query = db.query(User)
     if current_user.tenant_id:
         query = query.filter(User.tenant_id == current_user.tenant_id)
+    if user_id:
+        query = query.filter(User.id == user_id)
     users = query.all()
     
     wb = Workbook()
@@ -609,6 +612,7 @@ async def export_profitability_excel(
 async def get_employees_summary_report(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
+    user_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
@@ -625,6 +629,8 @@ async def get_employees_summary_report(
     query = db.query(User)
     if current_user.tenant_id:
         query = query.filter(User.tenant_id == current_user.tenant_id)
+    if user_id:
+        query = query.filter(User.id == user_id)
     users = query.all()
     
     employees = []

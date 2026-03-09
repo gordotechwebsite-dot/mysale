@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSalesReport, getInventoryReport, exportSalesExcel, exportInventoryExcel, getLocations, getEmployeesSummaryReport, getProfitabilityReport, exportEmployeesExcel, exportProfitabilityExcel } from '../api';
+import { getSalesReport, getInventoryReport, exportSalesExcel, exportInventoryExcel, getLocations, getEmployeesSummaryReport, getProfitabilityReport, exportEmployeesExcel, exportProfitabilityExcel, getUsers } from '../api';
 import type { Location } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -86,6 +86,7 @@ interface ProfitabilityReport {
 
 const Reports: React.FC = () => {
   const [locations, setLocations] = useState<Location[]>([]);
+  const [users, setUsers] = useState<Array<{ id: number; full_name: string; username: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [salesReport, setSalesReport] = useState<any>(null);
   const [inventoryReport, setInventoryReport] = useState<any>(null);
@@ -99,9 +100,11 @@ const Reports: React.FC = () => {
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
 
   useEffect(() => {
     loadLocations();
+    loadUsers();
   }, []);
 
   const loadLocations = async () => {
@@ -110,6 +113,15 @@ const Reports: React.FC = () => {
       setLocations(data);
     } catch (error) {
       console.error('Error loading locations:', error);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      const data = await getUsers();
+      setUsers(data);
+    } catch (error) {
+      console.error('Error loading users:', error);
     }
   };
 
@@ -147,6 +159,7 @@ const Reports: React.FC = () => {
       const data = await getEmployeesSummaryReport({
         start_date: startDate,
         end_date: endDate,
+        user_id: selectedEmployee ? parseInt(selectedEmployee) : undefined,
       });
       setEmployeesReport(data);
     } catch (error) {
@@ -211,6 +224,7 @@ const Reports: React.FC = () => {
       const blob = await exportEmployeesExcel({
         start_date: startDate,
         end_date: endDate,
+        user_id: selectedEmployee ? parseInt(selectedEmployee) : undefined,
       });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -580,6 +594,22 @@ const Reports: React.FC = () => {
                   </Button>
                 }
               />
+              <div className="flex flex-wrap gap-4 mb-6 items-end -mt-3">
+                <div>
+                  <label className="text-sm text-gray-500">Empleado</label>
+                  <Select value={selectedEmployee || "all"} onValueChange={(v) => setSelectedEmployee(v === "all" ? "" : v)}>
+                    <SelectTrigger className="w-56">
+                      <SelectValue placeholder="Todos los empleados" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los empleados</SelectItem>
+                      {users.map(u => (
+                        <SelectItem key={u.id} value={u.id.toString()}>{u.full_name} (@{u.username})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
               {employeesReport && (
                 <>
