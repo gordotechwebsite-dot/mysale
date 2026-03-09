@@ -139,3 +139,26 @@ class ProfitabilityReportResponse(BaseModel):
     location_name: Optional[str]
     summary: ProfitabilitySummary
     by_day: List[ProfitabilityByDay] = []
+
+
+class PurchaseDetail(BaseModel):
+    id: int
+    date: str
+    product_code: str
+    product_name: str
+    location_name: str
+    quantity: float
+    unit_cost: float
+    total_cost: float
+    registered_by: str
+    notes: Optional[str] = None
+
+
+class PurchasesReportResponse(BaseModel):
+    start_date: date
+    end_date: date
+    location_name: Optional[str]
+    total_purchases: int
+    total_quantity: float
+    total_cost: float
+    purchases: List[PurchaseDetail] = []

@@ -402,6 +402,29 @@ export const exportProfitabilityExcel = async (params: {
   return response.data;
 };
 
+export const getPurchasesReport = async (params: {
+  start_date: string;
+  end_date: string;
+  location_id?: number;
+  product_id?: number;
+}): Promise<any> => {
+  const response = await api.get('/api/reports/purchases', { params });
+  return response.data;
+};
+
+export const exportPurchasesExcel = async (params: {
+  start_date: string;
+  end_date: string;
+  location_id?: number;
+  product_id?: number;
+}): Promise<Blob> => {
+  const response = await api.get('/api/reports/export/purchases/excel', {
+    params,
+    responseType: 'blob',
+  });
+  return response.data;
+};
+
 export interface LocationDashboard {
   id: number;
   name: string;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSalesReport, getInventoryReport, exportSalesExcel, exportInventoryExcel, getLocations, getEmployeesSummaryReport, getProfitabilityReport, exportEmployeesExcel, exportProfitabilityExcel, getUsers } from '../api';
+import { getSalesReport, getInventoryReport, exportSalesExcel, exportInventoryExcel, getLocations, getEmployeesSummaryReport, getProfitabilityReport, exportEmployeesExcel, exportProfitabilityExcel, getUsers, getPurchasesReport, exportPurchasesExcel } from '../api';
 import type { Location } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Download, Loader2, TrendingUp, Package, Users, DollarSign } from 'lucide-react';
+import { Download, Loader2, TrendingUp, Package, Users, DollarSign, ShoppingCart } from 'lucide-react';
 
 interface EmployeeSummary {
   user_id: number;
@@ -92,6 +92,7 @@ const Reports: React.FC = () => {
   const [inventoryReport, setInventoryReport] = useState<any>(null);
   const [employeesReport, setEmployeesReport] = useState<EmployeesReport | null>(null);
   const [profitabilityReport, setProfitabilityReport] = useState<ProfitabilityReport | null>(null);
+  const [purchasesReport, setPurchasesReport] = useState<any>(null);
 
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
@@ -238,6 +239,41 @@ const Reports: React.FC = () => {
     }
   };
 
+  const loadPurchasesReport = async () => {
+    setIsLoading(true);
+    try {
+      const data = await getPurchasesReport({
+        start_date: startDate,
+        end_date: endDate,
+        location_id: selectedLocation ? parseInt(selectedLocation) : undefined,
+      });
+      setPurchasesReport(data);
+    } catch (error) {
+      console.error('Error loading purchases report:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleExportPurchasesExcel = async () => {
+    try {
+      const blob = await exportPurchasesExcel({
+        start_date: startDate,
+        end_date: endDate,
+        location_id: selectedLocation ? parseInt(selectedLocation) : undefined,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `compras_${startDate}_${endDate}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting:', error);
+      alert('Error al exportar el reporte');
+    }
+  };
+
   const handleExportProfitabilityExcel = async () => {
     try {
       const blob = await exportProfitabilityExcel({
@@ -327,6 +363,7 @@ const Reports: React.FC = () => {
           <TabsTrigger value="sales">Ventas</TabsTrigger>
           <TabsTrigger value="inventory">Inventario</TabsTrigger>
           <TabsTrigger value="employees">Empleados</TabsTrigger>
+          <TabsTrigger value="purchases">Compras</TabsTrigger>
           <TabsTrigger value="profitability">Rentabilidad</TabsTrigger>
         </TabsList>
 
@@ -704,6 +741,100 @@ const Reports: React.FC = () => {
         </TabsContent>
 
         {/* ===== RENTABILIDAD ===== */}
+        <TabsContent value="purchases">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5" />
+                Reporte de Compras
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DateFilters
+                onGenerate={loadPurchasesReport}
+                showLocation={true}
+                extraButtons={
+                  <Button variant="outline" onClick={handleExportPurchasesExcel} disabled={!purchasesReport}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Excel
+                  </Button>
+                }
+              />
+              {isLoading ? (
+                <div className="text-center py-8">Cargando...</div>
+              ) : (
+                <>
+                  {purchasesReport && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <Card>
+                          <CardContent className="pt-4">
+                            <div className="text-sm text-gray-500">Total Compras</div>
+                            <div className="text-2xl font-bold">{purchasesReport.total_purchases}</div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="pt-4">
+                            <div className="text-sm text-gray-500">Cantidad Total</div>
+                            <div className="text-2xl font-bold">{purchasesReport.total_quantity}</div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="pt-4">
+                            <div className="text-sm text-gray-500">Costo Total</div>
+                            <div className="text-2xl font-bold text-blue-600">{formatCurrency(purchasesReport.total_cost)}</div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>#</TableHead>
+                              <TableHead>Fecha</TableHead>
+                              <TableHead>Codigo</TableHead>
+                              <TableHead>Producto</TableHead>
+                              <TableHead>Ubicacion</TableHead>
+                              <TableHead className="text-right">Cantidad</TableHead>
+                              <TableHead className="text-right">Costo Unit.</TableHead>
+                              <TableHead className="text-right">Costo Total</TableHead>
+                              <TableHead>Registrado por</TableHead>
+                              <TableHead>Notas</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {purchasesReport.purchases.map((p: any, idx: number) => (
+                              <TableRow key={p.id}>
+                                <TableCell>{idx + 1}</TableCell>
+                                <TableCell>{p.date}</TableCell>
+                                <TableCell className="font-mono">{p.product_code}</TableCell>
+                                <TableCell>{p.product_name}</TableCell>
+                                <TableCell>{p.location_name}</TableCell>
+                                <TableCell className="text-right">{p.quantity}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(p.unit_cost)}</TableCell>
+                                <TableCell className="text-right font-semibold">{formatCurrency(p.total_cost)}</TableCell>
+                                <TableCell>{p.registered_by}</TableCell>
+                                <TableCell className="text-gray-500 text-sm">{p.notes || '-'}</TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow className="bg-gray-50 font-bold">
+                              <TableCell colSpan={5}>TOTAL</TableCell>
+                              <TableCell className="text-right">{purchasesReport.total_quantity}</TableCell>
+                              <TableCell></TableCell>
+                              <TableCell className="text-right text-blue-700">{formatCurrency(purchasesReport.total_cost)}</TableCell>
+                              <TableCell colSpan={2}></TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="profitability">
           <Card>
             <CardHeader>

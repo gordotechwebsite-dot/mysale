@@ -9,7 +9,7 @@ from app.database import get_db
 from app.models.user import User, RoleType
 from app.models.sale import Sale, SaleItem, PaymentMethod
 from app.models.shift import Shift
-from app.models.inventory import Product, ProductStock, Group, Family, SubFamily
+from app.models.inventory import Product, ProductStock, Group, Family, SubFamily, StockMovement, MovementType
 from app.models.location import Location
 from app.models.loss import Loss
 from app.models.expense import Expense
@@ -18,7 +18,8 @@ from app.schemas.reports import (
     InventoryReportResponse, ProductStockReport,
     EmployeeReportResponse, EmployeeShiftReport,
     EmployeesReportResponse, EmployeeSummary,
-    ProfitabilityReportResponse, ProfitabilitySummary, ProfitabilityByDay
+    ProfitabilityReportResponse, ProfitabilitySummary, ProfitabilityByDay,
+    PurchasesReportResponse, PurchaseDetail
 )
 from app.utils.auth import get_current_user, require_role
 
@@ -601,6 +602,168 @@ async def export_profitability_excel(
     
     filename = f"rentabilidad_{start_date}_{end_date}.xlsx"
     
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/purchases", response_model=PurchasesReportResponse)
+async def get_purchases_report(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    location_id: Optional[int] = None,
+    product_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Get purchases report from stock movements of type purchase."""
+    if not start_date:
+        start_date = date.today() - timedelta(days=30)
+    if not end_date:
+        end_date = date.today()
+
+    start_dt = datetime.combine(start_date, datetime.min.time())
+    end_dt = datetime.combine(end_date, datetime.max.time())
+
+    location_name = None
+    if location_id:
+        location = db.query(Location).filter(Location.id == location_id).first()
+        location_name = location.name if location else None
+
+    query = db.query(StockMovement).filter(
+        StockMovement.movement_type == MovementType.PURCHASE,
+        StockMovement.created_at >= start_dt,
+        StockMovement.created_at <= end_dt
+    )
+    if location_id:
+        query = query.filter(StockMovement.location_id == location_id)
+    if product_id:
+        query = query.filter(StockMovement.product_id == product_id)
+
+    movements = query.order_by(StockMovement.created_at.desc()).all()
+
+    total_quantity = 0.0
+    total_cost = 0.0
+    purchases = []
+
+    for m in movements:
+        product = db.query(Product).filter(Product.id == m.product_id).first()
+        loc = db.query(Location).filter(Location.id == m.location_id).first()
+        user = db.query(User).filter(User.id == m.created_by_id).first() if m.created_by_id else None
+        unit_cost = m.unit_cost or 0
+        item_total = m.quantity * unit_cost
+        total_quantity += m.quantity
+        total_cost += item_total
+
+        purchases.append(PurchaseDetail(
+            id=m.id,
+            date=m.created_at.strftime("%Y-%m-%d %H:%M"),
+            product_code=product.code if product else "N/A",
+            product_name=product.name if product else "N/A",
+            location_name=loc.name if loc else "N/A",
+            quantity=m.quantity,
+            unit_cost=unit_cost,
+            total_cost=round(item_total, 2),
+            registered_by=user.full_name if user else "Sistema",
+            notes=m.notes
+        ))
+
+    return PurchasesReportResponse(
+        start_date=start_date,
+        end_date=end_date,
+        location_name=location_name or "Todas las ubicaciones",
+        total_purchases=len(purchases),
+        total_quantity=round(total_quantity, 2),
+        total_cost=round(total_cost, 2),
+        purchases=purchases
+    )
+
+
+@router.get("/export/purchases/excel")
+async def export_purchases_excel(
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+    location_id: Optional[int] = None,
+    product_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    from openpyxl import Workbook
+    from openpyxl.styles import Font
+
+    if not start_date:
+        start_date = date.today() - timedelta(days=30)
+    if not end_date:
+        end_date = date.today()
+
+    start_dt = datetime.combine(start_date, datetime.min.time())
+    end_dt = datetime.combine(end_date, datetime.max.time())
+
+    query = db.query(StockMovement).filter(
+        StockMovement.movement_type == MovementType.PURCHASE,
+        StockMovement.created_at >= start_dt,
+        StockMovement.created_at <= end_dt
+    )
+    if location_id:
+        query = query.filter(StockMovement.location_id == location_id)
+    if product_id:
+        query = query.filter(StockMovement.product_id == product_id)
+
+    movements = query.order_by(StockMovement.created_at.desc()).all()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Compras"
+
+    ws.append([f"Reporte de Compras - {start_date} a {end_date}"])
+    ws.append([])
+
+    headers = ["#", "Fecha", "Codigo", "Producto", "Ubicacion", "Cantidad",
+               "Costo Unit.", "Costo Total", "Registrado por", "Notas"]
+    ws.append(headers)
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=3, column=col).font = Font(bold=True)
+
+    row_num = 0
+    grand_qty = 0.0
+    grand_cost = 0.0
+    for m in movements:
+        product = db.query(Product).filter(Product.id == m.product_id).first()
+        loc = db.query(Location).filter(Location.id == m.location_id).first()
+        user = db.query(User).filter(User.id == m.created_by_id).first() if m.created_by_id else None
+        unit_cost = m.unit_cost or 0
+        item_total = m.quantity * unit_cost
+        grand_qty += m.quantity
+        grand_cost += item_total
+        row_num += 1
+        ws.append([
+            row_num,
+            m.created_at.strftime("%Y-%m-%d %H:%M"),
+            product.code if product else "N/A",
+            product.name if product else "N/A",
+            loc.name if loc else "N/A",
+            m.quantity,
+            unit_cost,
+            round(item_total, 2),
+            user.full_name if user else "Sistema",
+            m.notes or ""
+        ])
+
+    # Totals row
+    ws.append([])
+    ws.append(["TOTAL", "", "", "", "", round(grand_qty, 2), "", round(grand_cost, 2)])
+    last_row = ws.max_row
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=last_row, column=col).font = Font(bold=True)
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"compras_{start_date}_{end_date}.xlsx"
+
     return StreamingResponse(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
