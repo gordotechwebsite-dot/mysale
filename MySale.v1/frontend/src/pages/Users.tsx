@@ -42,6 +42,7 @@ const Users: React.FC = () => {
   const [showUserDetail, setShowUserDetail] = useState(false);
   const [resetPinResult, setResetPinResult] = useState<string | null>(null);
   const [isResettingPin, setIsResettingPin] = useState(false);
+  const [showPin, setShowPin] = useState(false);
   const [newUser, setNewUser] = useState({ full_name: '', phone: '', cedula: '', username: '', password: '', pin: '', role_id: '', location_id: '', photo_url: '' });
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -337,7 +338,7 @@ const Users: React.FC = () => {
       </Dialog>
 
       {/* User Detail Modal - ID Card Style */}
-      <Dialog open={showUserDetail} onOpenChange={(open) => { setShowUserDetail(open); if (!open) { setResetPinResult(null); } }}>
+      <Dialog open={showUserDetail} onOpenChange={(open) => { setShowUserDetail(open); if (!open) { setResetPinResult(null); setShowPin(false); } }}>
         <DialogContent className="max-w-3xl p-0 overflow-hidden rounded-2xl border-0 shadow-2xl">
           {selectedUser && (
             <div>
@@ -355,8 +356,7 @@ const Users: React.FC = () => {
                         <UserIcon className="w-14 h-14 text-white" />
                       )}
                     </div>
-                    <h3 className="text-white text-lg font-bold mt-4 text-center leading-tight">{selectedUser.full_name}</h3>
-                    <p className="text-blue-300 text-sm font-mono mt-1">@{selectedUser.username}</p>
+                    <p className="text-blue-300 text-sm font-mono mt-4">@{selectedUser.username}</p>
                     <div className="mt-3">
                       {selectedUser.is_active 
                         ? <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 text-xs font-semibold rounded-full border border-emerald-500/30">Activo</span>
@@ -373,7 +373,10 @@ const Users: React.FC = () => {
                 {/* Right: Data Section */}
                 <div className="flex-1 p-6 bg-white">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Carnet de Empleado</h4>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">{selectedUser.full_name}</h3>
+                      <p className="text-xs text-gray-400 uppercase tracking-wider mt-0.5">Carnet de Empleado</p>
+                    </div>
                     <button onClick={() => setShowUserDetail(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
@@ -437,8 +440,14 @@ const Users: React.FC = () => {
                         <div>
                           <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">PIN de Asistencia</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="font-mono font-bold text-2xl text-blue-700 tracking-wider">{resetPinResult || selectedUser.pin || 'Sin PIN'}</span>
-                            {(resetPinResult || selectedUser.pin) && (
+                            <button 
+                              onClick={() => setShowPin(!showPin)} 
+                              className="font-mono font-bold text-2xl text-blue-700 tracking-wider hover:text-blue-500 transition-colors cursor-pointer"
+                              title={showPin ? 'Clic para ocultar' : 'Clic para revelar'}
+                            >
+                              {!(resetPinResult || selectedUser.pin) ? 'Sin PIN' : showPin ? (resetPinResult || selectedUser.pin) : '******'}
+                            </button>
+                            {(resetPinResult || selectedUser.pin) && showPin && (
                               <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => copyToClipboard(resetPinResult || selectedUser.pin || '', 'detail-pin')}>
                                 {copiedField === 'detail-pin' ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
                               </Button>
