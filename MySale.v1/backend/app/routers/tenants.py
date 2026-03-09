@@ -624,3 +624,72 @@ async def get_public_tenant_modules(
         "tenant_code": tenant.code,
         "modules": modules
     }
+
+
+@router.post("/migrate-tenant-users")
+async def migrate_tenant_users(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("superuser"))
+):
+    """
+    Migration endpoint: creates User records for existing tenants that don't have one.
+    This fixes tenants created before the user-creation logic was added.
+    """
+    tenants = db.query(Tenant).filter(Tenant.is_active == True).all()
+    created = []
+    skipped = []
+    
+    for tenant in tenants:
+        if not tenant.pos_username or not tenant.pos_password:
+            skipped.append({"tenant": tenant.name, "reason": "no credentials"})
+            continue
+        
+        # Check if user already exists
+        existing_user = db.query(User).filter(User.username == tenant.pos_username).first()
+        if existing_user:
+            skipped.append({"tenant": tenant.name, "reason": "user already exists"})
+            continue
+        
+        # Check if role exists for this tenant, create if not
+        admin_role = db.query(Role).filter(
+            Role.tenant_id == tenant.id,
+            Role.role_type == RoleType.SUPERUSER
+        ).first()
+        
+        if not admin_role:
+            admin_role = Role(
+                tenant_id=tenant.id,
+                name="Superusuario",
+                role_type=RoleType.SUPERUSER,
+                can_void_sales=True,
+                can_manage_inventory=True,
+                can_manage_users=True,
+                can_view_reports=True,
+                can_manage_locations=True,
+                can_set_stock_thresholds=True,
+                can_close_shifts=True
+            )
+            db.add(admin_role)
+            db.commit()
+            db.refresh(admin_role)
+        
+        # Create user with the tenant's stored credentials
+        new_user = User(
+            tenant_id=tenant.id,
+            username=tenant.pos_username,
+            full_name=tenant.contact_name or tenant.name,
+            email=tenant.contact_email,
+            hashed_password=get_password_hash(tenant.pos_password),
+            role_id=admin_role.id,
+            is_active=True
+        )
+        db.add(new_user)
+        db.commit()
+        
+        created.append({"tenant": tenant.name, "username": tenant.pos_username})
+    
+    return {
+        "message": f"Migration complete: {len(created)} users created, {len(skipped)} skipped",
+        "created": created,
+        "skipped": skipped
+    }
