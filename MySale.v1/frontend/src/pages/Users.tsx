@@ -135,6 +135,24 @@ const Users: React.FC = () => {
     }
   };
 
+  const generateBarcode = (seed: string) => {
+    const bars: { x: number; w: number }[] = [];
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+    }
+    let x = 0;
+    const totalBars = 60;
+    for (let i = 0; i < totalBars; i++) {
+      hash = ((hash * 1103515245 + 12345) & 0x7fffffff);
+      const w = (hash % 3) + 1;
+      const gap = (hash >> 8) % 2 === 0;
+      if (!gap) bars.push({ x, w });
+      x += w + 1;
+    }
+    return { bars, width: x };
+  };
+
   const getRoleBadge = (roleType: string) => {
     const type = roleType?.toUpperCase();
     const badges: Record<string, JSX.Element> = {
@@ -363,6 +381,24 @@ const Users: React.FC = () => {
                         : <span className="px-3 py-1 bg-red-500/20 text-red-300 text-xs font-semibold rounded-full border border-red-500/30">Inactivo</span>
                       }
                     </div>
+                  </div>
+                  {/* Dynamic Barcode */}
+                  <div className="relative z-10 mt-5 w-full px-2">
+                    {(() => {
+                      const { bars, width } = generateBarcode(selectedUser.cedula || selectedUser.username || String(selectedUser.id));
+                      return (
+                        <div className="flex flex-col items-center">
+                          <svg viewBox={`0 0 ${width} 32`} className="w-full h-8" preserveAspectRatio="none">
+                            {bars.map((b, i) => (
+                              <rect key={i} x={b.x} y={0} width={b.w} height={32} fill="white" opacity={0.85} />
+                            ))}
+                          </svg>
+                          <p className="text-white/50 text-[9px] font-mono mt-1 tracking-[0.25em]">
+                            {(selectedUser.cedula || `EMP-${String(selectedUser.id).padStart(6, '0')}`)}
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
                   {/* Company branding */}
                   <div className="absolute bottom-3 left-0 right-0 text-center">
