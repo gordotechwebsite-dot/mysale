@@ -588,28 +588,27 @@ const Reports: React.FC = () => {
                 onGenerate={loadEmployeesReport}
                 showLocation={false}
                 extraButtons={
-                  <Button variant="outline" onClick={handleExportEmployeesExcel} disabled={!employeesReport}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Excel
-                  </Button>
+                  <>
+                    <div className="-mb-0">
+                      <Select value={selectedEmployee || "all"} onValueChange={(v) => setSelectedEmployee(v === "all" ? "" : v)}>
+                        <SelectTrigger className="w-56">
+                          <SelectValue placeholder="Todos los empleados" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos los empleados</SelectItem>
+                          {users.map(u => (
+                            <SelectItem key={u.id} value={u.id.toString()}>{u.full_name} (@{u.username})</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button variant="outline" onClick={handleExportEmployeesExcel} disabled={!employeesReport}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Excel
+                    </Button>
+                  </>
                 }
               />
-              <div className="flex flex-wrap gap-4 mb-6 items-end -mt-3">
-                <div>
-                  <label className="text-sm text-gray-500">Empleado</label>
-                  <Select value={selectedEmployee || "all"} onValueChange={(v) => setSelectedEmployee(v === "all" ? "" : v)}>
-                    <SelectTrigger className="w-56">
-                      <SelectValue placeholder="Todos los empleados" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos los empleados</SelectItem>
-                      {users.map(u => (
-                        <SelectItem key={u.id} value={u.id.toString()}>{u.full_name} (@{u.username})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
 
               {employeesReport && (
                 <>
