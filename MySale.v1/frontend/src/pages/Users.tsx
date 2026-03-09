@@ -387,14 +387,9 @@ const Users: React.FC = () => {
 
                 {/* Right: Data Section */}
                 <div className="flex-1 p-6 bg-white">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900">{selectedUser.full_name}</h3>
-                      <p className="text-xs text-gray-400 uppercase tracking-wider mt-0.5">Carnet de Empleado</p>
-                    </div>
-                    <button onClick={() => setShowUserDetail(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
+                  <div className="mb-4">
+                    <h3 className="text-xl font-bold text-gray-900">{selectedUser.full_name}</h3>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider mt-0.5">Carnet de Empleado</p>
                   </div>
 
                   {/* Data Grid - 2 columns */}
