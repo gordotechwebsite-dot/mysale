@@ -183,7 +183,14 @@ export default function TableManagement() {
   };
 
   const handleCreateZone = async () => {
-    if (!zoneName || !selectedLocation) return;
+    if (!zoneName.trim()) {
+      toast.error('Ingrese un nombre para la zona');
+      return;
+    }
+    if (!selectedLocation) {
+      toast.error('Seleccione una ubicación primero');
+      return;
+    }
     try {
       await createZone({
         name: zoneName,
