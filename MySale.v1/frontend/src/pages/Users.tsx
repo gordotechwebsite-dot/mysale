@@ -367,11 +367,11 @@ const Users: React.FC = () => {
                   {/* Subtle pattern overlay */}
                   <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
                   <div className="relative z-10 flex flex-col items-center">
-                    <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-xl ring-4 ring-white/20">
+                    <div className="w-36 h-36 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-xl ring-4 ring-white/20">
                       {selectedUser.photo_url ? (
                         <img src={selectedUser.photo_url} alt={selectedUser.full_name} className="w-full h-full object-cover rounded-2xl" />
                       ) : (
-                        <UserIcon className="w-14 h-14 text-white" />
+                        <UserIcon className="w-18 h-18 text-white" />
                       )}
                     </div>
                     <p className="text-blue-300 text-sm font-mono mt-4">@{selectedUser.username}</p>
@@ -492,7 +492,7 @@ const Users: React.FC = () => {
                         const { bars, width } = generateBarcode(selectedUser.cedula || selectedUser.username || String(selectedUser.id));
                         return (
                           <>
-                            <svg viewBox={`0 0 ${width} 28`} className="w-36 h-9" preserveAspectRatio="none">
+                            <svg viewBox={`0 0 ${width} 28`} className="w-48 h-12" preserveAspectRatio="none">
                               {bars.map((b, i) => (
                                 <rect key={i} x={b.x} y={0} width={b.w} height={28} fill="black" opacity={0.75} />
                               ))}
