@@ -15,7 +15,6 @@ import Shifts from './pages/Shifts';
 import Reports from './pages/Reports';
 import Users from './pages/Users';
 import Locations from './pages/Locations';
-import Losses from './pages/Losses';
 import Expenses from './pages/Expenses';
 import LocationsDashboard from './pages/LocationsDashboard';
 import CostControl from './pages/CostControl';
@@ -80,7 +79,6 @@ function AppRoutes() {
         <Route path="reports" element={<Reports />} />
         <Route path="users" element={<Users />} />
         <Route path="locations" element={<Locations />} />
-        <Route path="losses" element={<Losses />} />
         <Route path="expenses" element={<Expenses />} />
         <Route path="locations-dashboard" element={<LocationsDashboard />} />
         <Route path="cost-control" element={<CostControl />} />
