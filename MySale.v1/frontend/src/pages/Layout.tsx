@@ -716,25 +716,25 @@ const Layout: React.FC = () => {
         }}
       >
         {/* Logo */}
-        <div className="px-5 py-6 flex items-center justify-center" style={{ borderBottom: '1px solid #e5e7eb' }}>
-          <div className="flex items-center gap-4">
+        <div className="px-4 py-3 flex items-center justify-center" style={{ borderBottom: '1px solid #e5e7eb' }}>
+          <div className="flex items-center gap-3">
             <img 
               src="/logo.png" 
               alt="MySale Logo" 
-              style={{ width: '52px', height: '52px', objectFit: 'contain' }}
+              style={{ width: '36px', height: '36px', objectFit: 'contain' }}
             />
             <div>
-              <h1 className="font-bold text-xl" style={{ color: '#111827' }}>MySale</h1>
-              <p className="text-sm" style={{ color: '#6b7280' }}>Sistema POS</p>
+              <h1 className="font-bold text-base" style={{ color: '#111827' }}>MySale</h1>
+              <p className="text-xs" style={{ color: '#6b7280' }}>Sistema POS</p>
             </div>
           </div>
         </div>
 
         {/* User info */}
-        <div className="px-5 py-6" style={{ borderBottom: '1px solid #e5e7eb' }}>
-          <p className="text-sm" style={{ color: '#6b7280' }}>Bienvenido,</p>
-          <p className="font-bold text-lg truncate" style={{ color: '#111827' }}>{user?.full_name}</p>
-          <p className="text-sm font-medium" style={{ color: '#00a86b' }}>{user?.role?.name}</p>
+        <div className="px-4 py-3" style={{ borderBottom: '1px solid #e5e7eb' }}>
+          <p className="text-xs" style={{ color: '#6b7280' }}>Bienvenido,</p>
+          <p className="font-semibold text-sm truncate" style={{ color: '#111827' }}>{user?.full_name}</p>
+          <p className="text-xs" style={{ color: '#00a86b' }}>{user?.role?.name}</p>
           {currentShift && (
             <div 
               className="mt-2 px-3 py-2 text-xs"
@@ -770,9 +770,9 @@ const Layout: React.FC = () => {
                 <div key={group}>
                   <button
                     onClick={() => toggleGroup(group)}
-                    className="w-full flex items-center justify-between px-4 pt-3 pb-1 cursor-pointer hover:opacity-80 transition-opacity"
+                    className="w-full flex items-center justify-between px-4 pt-2 pb-0.5 cursor-pointer hover:opacity-80 transition-opacity"
                   >
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#9ca3af' }}>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#9ca3af' }}>
                       {group}
                     </span>
                     <ChevronDown
@@ -791,7 +791,7 @@ const Layout: React.FC = () => {
                             key={item.path}
                             to={item.path}
                             onClick={() => setSidebarOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2.5 mb-1 transition-all duration-200"
+                            className="flex items-center gap-3 px-4 py-2 mb-0.5 transition-all duration-200"
                             style={{ 
                               borderRadius: '10px',
                               backgroundColor: isActive ? 'rgba(0, 168, 107, 0.1)' : 'transparent',
