@@ -252,7 +252,7 @@ const Deliveries: React.FC = () => {
 
 
   return (
-    <div className="h-[calc(100vh-180px)] flex flex-col gap-4 pb-4">
+    <div className="h-[calc(100vh-120px)] flex flex-col gap-2 pb-16">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
