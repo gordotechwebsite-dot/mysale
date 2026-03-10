@@ -464,11 +464,12 @@ export default function TableManagement() {
         setShowReserveDialog(true);
         break;
       case 'change_table':
+        console.log('[MOVE] change_table action, currentTicket:', currentTicket?.id, 'selectedTable:', selectedTable?.name);
         if (currentTicket) {
           moveTicketIdRef.current = currentTicket.id;
           moveSourceTableRef.current = selectedTable?.name || '';
           setMoveMode(true);
-          toast('Toque la mesa destino para mover la cuenta', { icon: '👆', duration: 5000 });
+          toast('Seleccione la mesa destino abajo', { icon: '👆', duration: 5000 });
         } else {
           toast.error('No hay cuenta activa para mover');
         }
@@ -665,14 +666,20 @@ export default function TableManagement() {
   };
 
   const handleMoveTicket = async (targetTableId: number) => {
+    console.log('[MOVE] handleMoveTicket called, targetTableId:', targetTableId);
     const ticketId = moveTicketIdRef.current || currentTicket?.id;
+    console.log('[MOVE] ticketId:', ticketId, 'ref:', moveTicketIdRef.current, 'currentTicket:', currentTicket?.id);
     if (!ticketId) {
       toast.error('No hay cuenta activa para mover');
       setMoveMode(false);
       return;
     }
+    toast.loading('Moviendo cuenta...', { id: 'move-toast' });
     try {
-      await moveTicket(ticketId, targetTableId);
+      console.log('[MOVE] Calling API moveTicket(', ticketId, ',', targetTableId, ')');
+      const result = await moveTicket(ticketId, targetTableId);
+      console.log('[MOVE] API success:', result);
+      toast.dismiss('move-toast');
       toast.success('Cuenta movida exitosamente');
       setMoveMode(false);
       setShowTicketDialog(false);
@@ -682,8 +689,11 @@ export default function TableManagement() {
       moveSourceTableRef.current = '';
       loadZones();
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      toast.error(err.response?.data?.detail || 'Error al mover cuenta');
+      console.error('[MOVE] API error:', error);
+      toast.dismiss('move-toast');
+      const err = error as { response?: { data?: { detail?: string } }; message?: string };
+      const detail = err.response?.data?.detail || err.message || 'Error al mover cuenta';
+      toast.error(detail);
       setMoveMode(false);
       moveTicketIdRef.current = null;
       moveSourceTableRef.current = '';
@@ -1221,42 +1231,7 @@ export default function TableManagement() {
           </div>
         )}
 
-        {/* Move mode panel */}
-        {moveMode && (
-          <div className="absolute inset-x-0 bottom-0 z-30 bg-white border-t-2 border-amber-400 shadow-2xl p-4" style={{ maxHeight: '40vh', overflowY: 'auto' }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <ArrowRightLeft className="w-5 h-5 text-amber-600" />
-                <span className="font-bold text-slate-800">Moviendo {moveSourceTableRef.current}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => { setMoveMode(false); moveTicketIdRef.current = null; moveSourceTableRef.current = ''; }}
-                className="bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg px-4 py-2 text-sm font-semibold"
-              >
-                Cancelar
-              </button>
-            </div>
-            <p className="text-sm text-slate-500 mb-2">Seleccione mesa destino:</p>
-            {freeTables.length === 0 ? (
-              <p className="text-slate-400 text-sm text-center py-4">No hay mesas libres disponibles</p>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {freeTables.map(t => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => handleMoveTicket(t.id)}
-                    className="px-3 py-3 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 rounded-lg text-sm font-bold transition-colors border-2 border-emerald-200 hover:border-emerald-400 text-emerald-800"
-                  >
-                    {t.name}
-                    <span className="block text-xs font-normal text-slate-400 mt-0.5">{t.zone_name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Move mode panel - rendered OUTSIDE overflow container via portal-like fixed positioning */}
 
         {/* 2D Floor Plan */}
         <div
@@ -1430,6 +1405,114 @@ export default function TableManagement() {
           )}
         </div>
       </div>
+
+      {/* Move mode panel - FIXED position, outside all containers */}
+      {moveMode && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 9999,
+            backgroundColor: '#fff',
+            borderTop: '3px solid #f59e0b',
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.15)',
+            padding: '16px',
+            maxHeight: '40vh',
+            overflowY: 'auto',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ArrowRightLeft className="w-5 h-5 text-amber-600" />
+              <span style={{ fontWeight: 'bold', color: '#1e293b', fontSize: '16px' }}>
+                Moviendo {moveSourceTableRef.current} (Ticket #{moveTicketIdRef.current})
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setMoveMode(false);
+                moveTicketIdRef.current = null;
+                moveSourceTableRef.current = '';
+              }}
+              style={{
+                backgroundColor: '#e2e8f0',
+                color: '#475569',
+                borderRadius: '8px',
+                padding: '8px 16px',
+                fontSize: '14px',
+                fontWeight: '600',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+          <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '8px' }}>Seleccione mesa destino:</p>
+          {freeTables.length === 0 ? (
+            <p style={{ color: '#94a3b8', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>No hay mesas libres disponibles</p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+              {freeTables.map(ft => (
+                <button
+                  key={ft.id}
+                  type="button"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const tid = moveTicketIdRef.current;
+                    console.log('[MOVE-BTN] clicked table', ft.id, ft.name, 'ticketId:', tid);
+                    if (!tid) {
+                      toast.error('No hay ticket para mover (ref vacía)');
+                      setMoveMode(false);
+                      return;
+                    }
+                    toast.loading('Moviendo cuenta...', { id: 'move-progress' });
+                    try {
+                      const result = await moveTicket(tid, ft.id);
+                      console.log('[MOVE-BTN] success:', result);
+                      toast.dismiss('move-progress');
+                      toast.success(`Cuenta movida a ${ft.name}`);
+                      setMoveMode(false);
+                      setShowTicketDialog(false);
+                      setCurrentTicket(null);
+                      setSelectedTable(null);
+                      moveTicketIdRef.current = null;
+                      moveSourceTableRef.current = '';
+                      loadZones();
+                    } catch (err: unknown) {
+                      console.error('[MOVE-BTN] error:', err);
+                      toast.dismiss('move-progress');
+                      const e2 = err as { response?: { data?: { detail?: string } }; message?: string };
+                      toast.error(e2.response?.data?.detail || e2.message || 'Error al mover');
+                      setMoveMode(false);
+                      moveTicketIdRef.current = null;
+                      moveSourceTableRef.current = '';
+                    }
+                  }}
+                  style={{
+                    padding: '12px 8px',
+                    backgroundColor: '#ecfdf5',
+                    border: '2px solid #a7f3d0',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    color: '#065f46',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                  }}
+                >
+                  {ft.name}
+                  <span style={{ display: 'block', fontSize: '11px', fontWeight: 'normal', color: '#94a3b8', marginTop: '2px' }}>{ft.zone_name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <Dialog open={showZoneDialog} onOpenChange={setShowZoneDialog}>
         <DialogContent className="bg-white text-gray-900 border-gray-200 rounded-xl shadow-2xl max-w-md">
