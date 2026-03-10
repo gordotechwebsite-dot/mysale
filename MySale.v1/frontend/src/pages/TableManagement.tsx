@@ -126,7 +126,7 @@ export default function TableManagement() {
     };
 
     const getTableSize = (shape: string): { w: number; h: number } => {
-      if (shape === 'pair') return { w: 100, h: 120 };
+      if (shape === 'pair') return { w: 150, h: 170 };
       if (shape === 'square') return { w: 130, h: 130 };
       return { w: 200, h: 120 };
     };
