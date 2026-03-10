@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Download, Loader2, TrendingUp, Package, Users, DollarSign, ShoppingCart, Bike, Phone, MapPin, Clock, ChefHat, Truck, Check, X } from 'lucide-react';
+import { Download, Loader2, TrendingUp, Package, Users, DollarSign, ShoppingCart, Bike, Phone, MapPin, Clock, ChefHat, Truck, Check, X, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface EmployeeSummary {
@@ -357,6 +357,10 @@ const Reports: React.FC = () => {
     }
   };
 
+  const handleExportPDF = () => {
+    window.print();
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -445,10 +449,16 @@ const Reports: React.FC = () => {
               <DateFilters
                 onGenerate={loadSalesReport}
                 extraButtons={
-                  <Button variant="outline" onClick={handleExportSalesExcel} disabled={!salesReport}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Excel
-                  </Button>
+                  <>
+                    <Button variant="outline" onClick={handleExportSalesExcel} disabled={!salesReport}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Exportar Excel
+                    </Button>
+                    <Button variant="outline" onClick={handleExportPDF} disabled={!salesReport}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Exportar PDF
+                    </Button>
+                  </>
                 }
               />
 
@@ -592,7 +602,11 @@ const Reports: React.FC = () => {
                   </Button>
                   <Button variant="outline" onClick={handleExportInventoryExcel} disabled={!inventoryReport}>
                     <Download className="w-4 h-4 mr-2" />
-                    Excel
+                    Exportar Excel
+                  </Button>
+                  <Button variant="outline" onClick={handleExportPDF} disabled={!inventoryReport}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Exportar PDF
                   </Button>
                 </div>
               </div>
@@ -706,7 +720,11 @@ const Reports: React.FC = () => {
                     </div>
                     <Button variant="outline" onClick={handleExportEmployeesExcel} disabled={!employeesReport}>
                       <Download className="w-4 h-4 mr-2" />
-                      Excel
+                      Exportar Excel
+                    </Button>
+                    <Button variant="outline" onClick={handleExportPDF} disabled={!employeesReport}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Exportar PDF
                     </Button>
                   </>
                 }
@@ -819,10 +837,16 @@ const Reports: React.FC = () => {
                 onGenerate={loadPurchasesReport}
                 showLocation={true}
                 extraButtons={
-                  <Button variant="outline" onClick={handleExportPurchasesExcel} disabled={!purchasesReport}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Excel
-                  </Button>
+                  <>
+                    <Button variant="outline" onClick={handleExportPurchasesExcel} disabled={!purchasesReport}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Exportar Excel
+                    </Button>
+                    <Button variant="outline" onClick={handleExportPDF} disabled={!purchasesReport}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Exportar PDF
+                    </Button>
+                  </>
                 }
               />
               {isLoading ? (
@@ -912,10 +936,16 @@ const Reports: React.FC = () => {
               <DateFilters
                 onGenerate={loadProfitabilityReport}
                 extraButtons={
-                  <Button variant="outline" onClick={handleExportProfitabilityExcel} disabled={!profitabilityReport}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Excel
-                  </Button>
+                  <>
+                    <Button variant="outline" onClick={handleExportProfitabilityExcel} disabled={!profitabilityReport}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Exportar Excel
+                    </Button>
+                    <Button variant="outline" onClick={handleExportPDF} disabled={!profitabilityReport}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Exportar PDF
+                    </Button>
+                  </>
                 }
               />
 
@@ -1156,7 +1186,11 @@ const Reports: React.FC = () => {
                   </Button>
                   <Button variant="outline" onClick={handleExportDeliveriesExcel} disabled={deliveriesData.length === 0}>
                     <Download className="w-4 h-4 mr-2" />
-                    CSV
+                    Exportar Excel
+                  </Button>
+                  <Button variant="outline" onClick={handleExportPDF} disabled={deliveriesData.length === 0}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Exportar PDF
                   </Button>
                 </div>
               </div>
