@@ -595,6 +595,50 @@ const moduleRoutes: Record<string, string> = {
   deliveries: '/deliveries',
 };
 
+// Sidebar ordering by usage groups: Ventas > Operaciones > Administracion
+const moduleSortOrder: Record<string, number> = {
+  dashboard: 1,
+  quick_sale: 2,
+  pos: 3,
+  deliveries: 4,
+  tables: 5,
+  inventory: 10,
+  losses: 11,
+  expenses: 12,
+  cash: 13,
+  cost_control: 14,
+  shifts: 20,
+  reports: 21,
+  users: 22,
+  branches: 23,
+  work_report: 24,
+  locations: 25,
+  locations_admin: 26,
+  super_admin: 30,
+};
+
+// Group labels for sidebar sections
+const moduleGroup: Record<string, string> = {
+  dashboard: 'Ventas',
+  quick_sale: 'Ventas',
+  pos: 'Ventas',
+  deliveries: 'Ventas',
+  tables: 'Ventas',
+  inventory: 'Operaciones',
+  losses: 'Operaciones',
+  expenses: 'Operaciones',
+  cash: 'Operaciones',
+  cost_control: 'Operaciones',
+  shifts: 'Administracion',
+  reports: 'Administracion',
+  users: 'Administracion',
+  branches: 'Administracion',
+  work_report: 'Administracion',
+  locations: 'Administracion',
+  locations_admin: 'Administracion',
+  super_admin: 'Administracion',
+};
+
 // Modules that require admin role
 const adminOnlyModules = ['inventory', 'cost_control', 'expenses', 'reports', 'users', 'branches', 'work_report', 'locations'];
 
@@ -617,7 +661,7 @@ const Layout: React.FC = () => {
   const isAdmin = user?.role?.role_type === 'superuser' || user?.role?.role_type === 'admin';
   const isSuperuser = user?.role?.role_type === 'superuser';
 
-  // Build menu items dynamically from enabled modules
+  // Build menu items dynamically from enabled modules, sorted by usage groups
   const menuItems = enabledModules.length > 0 
     ? enabledModules
         .filter(module => {
@@ -631,11 +675,14 @@ const Layout: React.FC = () => {
           icon: moduleIcons[module.code] || LayoutDashboard,
           label: module.name,
           code: module.code,
+          group: moduleGroup[module.code] || 'Otros',
+          sortOrder: moduleSortOrder[module.code] ?? 99,
         }))
+        .sort((a, b) => a.sortOrder - b.sortOrder)
     : [
         // Fallback menu if no modules loaded (for backwards compatibility)
-        { path: '/', icon: LayoutDashboard, label: 'Dashboard', code: 'dashboard' },
-        { path: '/pos', icon: ShoppingCart, label: 'Punto de Venta', code: 'pos' },
+        { path: '/', icon: LayoutDashboard, label: 'Dashboard', code: 'dashboard', group: 'Ventas', sortOrder: 1 },
+        { path: '/pos', icon: ShoppingCart, label: 'Punto de Venta', code: 'pos', group: 'Ventas', sortOrder: 3 },
       ];
 
   return (
@@ -696,39 +743,50 @@ const Layout: React.FC = () => {
           )}
         </div>
 
-        {/* Navigation - Premium Style with scroll */}
+        {/* Navigation - Premium Style with scroll, grouped by usage */}
         <nav className="flex-1 overflow-y-auto px-4 py-3" style={{ minHeight: 0 }}>
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setSidebarOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 mb-2 transition-all duration-200"
-                style={{ 
-                  borderRadius: '10px',
-                  backgroundColor: isActive ? 'rgba(0, 168, 107, 0.1)' : 'transparent',
-                  color: isActive ? '#00a86b' : '#6b7280'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 168, 107, 0.06)';
-                    (e.currentTarget as HTMLElement).style.color = '#00a86b';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
-                    (e.currentTarget as HTMLElement).style.color = '#6b7280';
-                  }
-                }}
-              >
-                <item.icon size={18} strokeWidth={1.5} />
-                <span className="text-sm" style={{ fontWeight: isActive ? 500 : 400 }}>{item.label}</span>
-              </Link>
-            );
-          })}
+          {(() => {
+            let lastGroup = '';
+            return menuItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              const showGroupLabel = item.group !== lastGroup;
+              lastGroup = item.group;
+              return (
+                <React.Fragment key={item.path}>
+                  {showGroupLabel && (
+                    <p className="text-xs font-semibold uppercase tracking-wider px-4 pt-3 pb-1" style={{ color: '#9ca3af' }}>
+                      {item.group}
+                    </p>
+                  )}
+                  <Link
+                    to={item.path}
+                    onClick={() => setSidebarOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 mb-1 transition-all duration-200"
+                    style={{ 
+                      borderRadius: '10px',
+                      backgroundColor: isActive ? 'rgba(0, 168, 107, 0.1)' : 'transparent',
+                      color: isActive ? '#00a86b' : '#6b7280'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 168, 107, 0.06)';
+                        (e.currentTarget as HTMLElement).style.color = '#00a86b';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                        (e.currentTarget as HTMLElement).style.color = '#6b7280';
+                      }
+                    }}
+                  >
+                    <item.icon size={18} strokeWidth={1.5} />
+                    <span className="text-sm" style={{ fontWeight: isActive ? 500 : 400 }}>{item.label}</span>
+                  </Link>
+                </React.Fragment>
+              );
+            });
+          })()}
         </nav>
 
       </aside>
