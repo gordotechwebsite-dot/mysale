@@ -716,25 +716,25 @@ const Layout: React.FC = () => {
         }}
       >
         {/* Logo */}
-        <div className="p-5" style={{ borderBottom: '1px solid #e5e7eb' }}>
-          <div className="flex items-center gap-3">
+        <div className="px-5 py-6" style={{ borderBottom: '1px solid #e5e7eb' }}>
+          <div className="flex items-center gap-4">
             <img 
               src="/logo.png" 
               alt="MySale Logo" 
-              style={{ width: '40px', height: '40px', objectFit: 'contain' }}
+              style={{ width: '52px', height: '52px', objectFit: 'contain' }}
             />
             <div>
-              <h1 className="font-semibold text-base" style={{ color: '#111827' }}>MySale</h1>
-              <p className="text-xs" style={{ color: '#6b7280' }}>Sistema POS</p>
+              <h1 className="font-bold text-xl" style={{ color: '#111827' }}>MySale</h1>
+              <p className="text-sm" style={{ color: '#6b7280' }}>Sistema POS</p>
             </div>
           </div>
         </div>
 
         {/* User info */}
-        <div className="p-5" style={{ borderBottom: '1px solid #e5e7eb' }}>
-          <p className="text-xs" style={{ color: '#6b7280' }}>Bienvenido,</p>
-          <p className="font-semibold text-sm truncate" style={{ color: '#111827' }}>{user?.full_name}</p>
-          <p className="text-xs" style={{ color: '#00a86b' }}>{user?.role?.name}</p>
+        <div className="px-5 py-6" style={{ borderBottom: '1px solid #e5e7eb' }}>
+          <p className="text-sm" style={{ color: '#6b7280' }}>Bienvenido,</p>
+          <p className="font-bold text-lg truncate" style={{ color: '#111827' }}>{user?.full_name}</p>
+          <p className="text-sm font-medium" style={{ color: '#00a86b' }}>{user?.role?.name}</p>
           {currentShift && (
             <div 
               className="mt-2 px-3 py-2 text-xs"
