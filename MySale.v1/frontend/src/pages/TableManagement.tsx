@@ -1252,7 +1252,7 @@ export default function TableManagement() {
                   className="w-full h-auto pointer-events-none"
                   draggable={false}
                   style={{
-                    filter: `drop-shadow(0 0 6px ${overlay.color})`,
+                    filter: 'none',
                   }}
                 />
 
@@ -1265,13 +1265,15 @@ export default function TableManagement() {
                     {table.name}
                   </span>
 
-                  {/* Status badge */}
-                  <span
-                    className="mt-1 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-                    style={{ backgroundColor: overlay.color }}
-                  >
-                    {overlay.label}
-                  </span>
+                  {/* Status badge - only for non-free tables */}
+                  {!isTableFree(table.status) && (
+                    <span
+                      className="mt-1 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                      style={{ backgroundColor: overlay.color }}
+                    >
+                      {overlay.label}
+                    </span>
+                  )}
 
                   {/* Real-time timer */}
                   {!isTableFree(table.status) && (() => {
