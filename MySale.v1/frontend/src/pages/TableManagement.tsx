@@ -130,6 +130,9 @@ export default function TableManagement() {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  // Store ticket ID for move operation (ref survives re-renders)
+  const moveTicketIdRef = useRef<number | null>(null);
+
   // Floor plan drag state
   const floorPlanRef = useRef<HTMLDivElement>(null);
   const [draggingTable, setDraggingTable] = useState<number | null>(null);
@@ -451,6 +454,7 @@ export default function TableManagement() {
         break;
       case 'change_table':
         if (currentTicket) {
+          moveTicketIdRef.current = currentTicket.id;
           setShowMoveDialog(true);
         } else {
           toast.error('No hay cuenta activa para mover');
@@ -648,18 +652,19 @@ export default function TableManagement() {
   };
 
   const handleMoveTicket = async (targetTableId: number) => {
-    const ticketToMove = currentTicket;
-    if (!ticketToMove) {
+    const ticketId = moveTicketIdRef.current || currentTicket?.id;
+    if (!ticketId) {
       toast.error('No hay cuenta activa para mover');
       return;
     }
     try {
-      await moveTicket(ticketToMove.id, targetTableId);
+      await moveTicket(ticketId, targetTableId);
       toast.success('Cuenta movida exitosamente');
       setShowMoveDialog(false);
       setShowTicketDialog(false);
       setCurrentTicket(null);
       setSelectedTable(null);
+      moveTicketIdRef.current = null;
       loadZones();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
@@ -942,6 +947,7 @@ export default function TableManagement() {
                   variant="outline"
                   className="h-12 text-lg"
                   onClick={() => {
+                    if (currentTicket) moveTicketIdRef.current = currentTicket.id;
                     setShowMoveDialog(true);
                   }}
                 >
@@ -1708,6 +1714,7 @@ export default function TableManagement() {
                     variant="outline"
                     className="text-xs"
                     onClick={() => {
+                      if (currentTicket) moveTicketIdRef.current = currentTicket.id;
                       setShowMoveDialog(true);
                     }}
                   >
@@ -1817,31 +1824,37 @@ export default function TableManagement() {
       </Dialog>
 
       <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
-        <DialogContent className="bg-slate-800 text-white border-slate-700">
+        <DialogContent className="bg-white text-slate-800 border-slate-200 max-w-sm">
           <DialogHeader>
-            <DialogTitle>Mover Cuenta a Otra Mesa</DialogTitle>
+            <DialogTitle className="text-slate-900">Mover Cuenta a Otra Mesa</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <Label>Seleccionar Mesa Destino</Label>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-500">Seleccionar mesa destino:</p>
             {freeTables.length === 0 ? (
-              <p className="text-slate-400 text-sm">No hay mesas disponibles</p>
+              <p className="text-slate-400 text-sm text-center py-4">No hay mesas disponibles</p>
             ) : (
               <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
                 {freeTables.map(table => (
                   <button
                     key={table.id}
+                    type="button"
                     onClick={() => handleMoveTicket(table.id)}
-                    className="px-3 py-2 bg-slate-700 hover:bg-emerald-600 rounded-lg text-sm font-medium transition-colors border border-slate-600 hover:border-emerald-500"
+                    className="px-3 py-3 bg-slate-50 hover:bg-emerald-50 rounded-lg text-sm font-semibold transition-colors border border-slate-200 hover:border-emerald-400 text-slate-700 hover:text-emerald-700"
                   >
                     {table.name}
-                    <span className="block text-xs text-slate-400">{table.zone_name || 'Sin zona'}</span>
+                    <span className="block text-xs font-normal text-slate-400 mt-0.5">{table.zone_name || 'Sin zona'}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowMoveDialog(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => { setShowMoveDialog(false); moveTicketIdRef.current = null; }}
+              className="border-slate-300 text-slate-700 hover:bg-slate-100"
+            >
               Cancelar
             </Button>
           </DialogFooter>
