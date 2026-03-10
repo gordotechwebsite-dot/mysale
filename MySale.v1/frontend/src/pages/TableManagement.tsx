@@ -1406,6 +1406,24 @@ export default function TableManagement() {
               />
             </div>
             <div>
+              <Label className="text-gray-700 text-sm font-medium">Forma</Label>
+              <Select value={tableShape} onValueChange={(v) => {
+                const shape = v as 'square' | 'pair' | 'rectangle';
+                setTableShape(shape);
+                const capacityMap: Record<string, number> = { pair: 2, square: 4, rectangle: 6 };
+                setTableCapacity(capacityMap[shape] || 4);
+              }}>
+                <SelectTrigger className="mt-1.5 bg-gray-50 border-gray-300 text-gray-900">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pair">Pareja</SelectItem>
+                  <SelectItem value="square">Cuadrada</SelectItem>
+                  <SelectItem value="rectangle">Rectangular</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label className="text-gray-700 text-sm font-medium">Capacidad (personas)</Label>
               <Input
                 type="number"
@@ -1414,19 +1432,6 @@ export default function TableManagement() {
                 min={1}
                 className="mt-1.5 bg-gray-50 border-gray-300 text-gray-900 focus:border-emerald-500 focus:ring-emerald-500"
               />
-            </div>
-            <div>
-              <Label className="text-gray-700 text-sm font-medium">Forma</Label>
-              <Select value={tableShape} onValueChange={(v) => setTableShape(v as 'square' | 'pair' | 'rectangle')}>
-                <SelectTrigger className="mt-1.5 bg-gray-50 border-gray-300 text-gray-900">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                                    <SelectItem value="square">Cuadrada</SelectItem>
-                                    <SelectItem value="pair">Pareja</SelectItem>
-                                    <SelectItem value="rectangle">Rectangular</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <DialogFooter className="pt-4 border-t border-gray-100">
