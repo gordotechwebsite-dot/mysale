@@ -716,7 +716,7 @@ const Layout: React.FC = () => {
         }}
       >
         {/* Logo */}
-        <div className="px-5 py-6" style={{ borderBottom: '1px solid #e5e7eb' }}>
+        <div className="px-5 py-6 flex items-center justify-center" style={{ borderBottom: '1px solid #e5e7eb' }}>
           <div className="flex items-center gap-4">
             <img 
               src="/logo.png" 
