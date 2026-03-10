@@ -357,8 +357,190 @@ const Reports: React.FC = () => {
     }
   };
 
-  const handleExportPDF = () => {
-    window.print();
+  const fmtCOP = (value: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
+  const fmtHrs = (hours: number) => { const h = Math.floor(hours); const m = Math.round((hours - h) * 60); return `${h}h ${m}m`; };
+
+  const openPDFWindow = (title: string, dateRange: string, summaryHTML: string, tableHTML: string) => {
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(`<!DOCTYPE html><html><head><title>${title}</title><style>
+      @page { size: letter portrait; margin: 15mm 12mm; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; font-size: 9px; line-height: 1.4; }
+      .header { text-align: center; border-bottom: 2px solid #1a1a1a; padding-bottom: 10px; margin-bottom: 12px; }
+      .header h1 { font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+      .header .company { font-size: 11px; color: #555; margin-top: 2px; }
+      .header .dates { font-size: 10px; color: #333; margin-top: 4px; font-weight: 600; }
+      .header .generated { font-size: 8px; color: #888; margin-top: 2px; }
+      .summary { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+      .summary-card { flex: 1; min-width: 120px; border: 1px solid #ddd; border-radius: 6px; padding: 8px 10px; background: #fafafa; }
+      .summary-card .label { font-size: 8px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+      .summary-card .value { font-size: 14px; font-weight: 700; margin-top: 2px; }
+      .summary-card .sub { font-size: 7px; color: #888; }
+      .green { color: #16a34a; } .red { color: #dc2626; } .blue { color: #2563eb; } .purple { color: #7c3aed; }
+      table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+      th { background: #1a1a1a; color: white; padding: 5px 6px; text-align: left; font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+      td { padding: 4px 6px; border-bottom: 1px solid #e5e5e5; font-size: 8px; }
+      tr:nth-child(even) { background: #f8f8f8; }
+      .text-right { text-align: right; }
+      .font-bold { font-weight: 700; }
+      .font-mono { font-family: 'Courier New', monospace; }
+      .section-title { font-size: 11px; font-weight: 700; margin: 14px 0 6px; padding-bottom: 3px; border-bottom: 1px solid #ccc; }
+      .total-row { background: #f0f0f0 !important; font-weight: 700; }
+      .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 7px; font-weight: 600; }
+      .badge-green { background: #dcfce7; color: #166534; } .badge-red { background: #fef2f2; color: #991b1b; }
+      .badge-blue { background: #dbeafe; color: #1e40af; } .badge-yellow { background: #fef9c3; color: #854d0e; }
+      .badge-purple { background: #f3e8ff; color: #6b21a8; } .badge-gray { background: #f3f4f6; color: #374151; }
+      .footer { text-align: center; margin-top: 16px; padding-top: 8px; border-top: 1px solid #ddd; font-size: 7px; color: #999; }
+      @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    </style></head><body>
+      <div class="header">
+        <div class="company">MySale POS</div>
+        <h1>${title}</h1>
+        <div class="dates">${dateRange}</div>
+        <div class="generated">Generado: ${new Date().toLocaleString('es-CO')}</div>
+      </div>
+      ${summaryHTML}
+      ${tableHTML}
+      <div class="footer">MySale POS - Sistema de Punto de Venta - www.pos-mysale.co</div>
+    </body></html>`);
+    w.document.close();
+    setTimeout(() => { w.print(); }, 500);
+  };
+
+  const handleExportSalesPDF = () => {
+    if (!salesReport) return;
+    const summary = `<div class="summary">
+      <div class="summary-card"><div class="label">Total Ventas</div><div class="value green">${fmtCOP(salesReport.total_sales || salesReport.summary?.total_sales || 0)}</div></div>
+      <div class="summary-card"><div class="label">Transacciones</div><div class="value">${salesReport.total_transactions || salesReport.summary?.total_transactions || 0}</div></div>
+      <div class="summary-card"><div class="label">Efectivo</div><div class="value">${fmtCOP(salesReport.total_cash || salesReport.summary?.cash_sales || 0)}</div></div>
+      <div class="summary-card"><div class="label">Tarjeta</div><div class="value">${fmtCOP(salesReport.total_card || salesReport.summary?.card_sales || 0)}</div></div>
+    </div>`;
+    let tableHTML = '';
+    if (salesReport.details && salesReport.details.length > 0) {
+      const rows = salesReport.details.map((d: any) => `<tr>
+        <td class="font-mono">${d.folio}</td><td>${d.date ? new Date(d.date).toLocaleDateString('es-CO') : ''}</td><td>${d.time || ''}</td>
+        <td>${d.product_name}</td><td class="font-mono">${d.product_code || ''}</td><td class="text-right">${d.quantity}</td>
+        <td class="text-right">${fmtCOP(d.unit_price)}</td><td class="text-right font-bold">${fmtCOP(d.subtotal)}</td>
+        <td>${d.payment_method === 'cash' ? 'Efectivo' : d.payment_method === 'card' ? 'Tarjeta' : 'Transfer.'}</td>
+        <td>${d.cashier_name || ''}</td><td>${d.location_name || ''}</td>
+      </tr>`).join('');
+      tableHTML = `<div class="section-title">Detalle de Ventas</div><table><tr><th>Folio</th><th>Fecha</th><th>Hora</th><th>Producto</th><th>Codigo</th><th class="text-right">Cant.</th><th class="text-right">P. Unit.</th><th class="text-right">Subtotal</th><th>Metodo</th><th>Cajero</th><th>Ubicacion</th></tr>${rows}</table>`;
+    } else if (salesReport.top_products && salesReport.top_products.length > 0) {
+      const rows = salesReport.top_products.slice(0, 10).map((p: any) => `<tr><td>${p.product_name}</td><td class="text-right">${p.quantity}</td><td class="text-right font-bold">${fmtCOP(p.total)}</td></tr>`).join('');
+      tableHTML = `<div class="section-title">Productos Mas Vendidos</div><table><tr><th>Producto</th><th class="text-right">Cantidad</th><th class="text-right">Total</th></tr>${rows}</table>`;
+    }
+    openPDFWindow('Reporte de Ventas', `${startDate} al ${endDate}`, summary, tableHTML);
+  };
+
+  const handleExportInventoryPDF = () => {
+    if (!inventoryReport) return;
+    const summary = `<div class="summary">
+      <div class="summary-card"><div class="label">Total Productos</div><div class="value">${inventoryReport.total_products || inventoryReport.summary?.total_products || 0}</div></div>
+      <div class="summary-card"><div class="label">Valor Total (Costo)</div><div class="value">${fmtCOP(inventoryReport.total_stock_value || inventoryReport.summary?.total_cost_value || 0)}</div></div>
+      <div class="summary-card"><div class="label">Valor Total (Venta)</div><div class="value green">${fmtCOP(inventoryReport.summary?.total_sale_value || 0)}</div></div>
+    </div>`;
+    let tableHTML = '';
+    if (inventoryReport.products && inventoryReport.products.length > 0) {
+      const rows = inventoryReport.products.map((p: any) => {
+        const statusBadge = p.status === 'low' ? '<span class="badge badge-red">Bajo</span>' : p.status === 'high' ? '<span class="badge badge-yellow">Alto</span>' : '<span class="badge badge-green">Normal</span>';
+        return `<tr><td class="font-mono">${p.product_code || p.code || ''}</td><td>${p.product_name || p.name}</td><td>${p.group_name || '-'}</td><td>${p.family_name || '-'}</td><td class="text-right">${p.quantity ?? p.total_stock ?? 0}</td><td class="text-right">${fmtCOP(p.weighted_cost)}</td><td class="text-right">${fmtCOP(p.sale_price)}</td><td class="text-right font-bold">${fmtCOP(p.stock_value)}</td><td>${statusBadge}</td></tr>`;
+      }).join('');
+      tableHTML = `<div class="section-title">Detalle de Inventario</div><table><tr><th>Codigo</th><th>Producto</th><th>Grupo</th><th>Familia</th><th class="text-right">Stock</th><th class="text-right">Costo</th><th class="text-right">P. Venta</th><th class="text-right">Valor</th><th>Estado</th></tr>${rows}</table>`;
+    }
+    openPDFWindow('Reporte de Inventario', new Date().toLocaleDateString('es-CO'), summary, tableHTML);
+  };
+
+  const handleExportEmployeesPDF = () => {
+    if (!employeesReport) return;
+    const summary = `<div class="summary">
+      <div class="summary-card"><div class="label">Total Empleados</div><div class="value">${employeesReport.total_employees}</div></div>
+      <div class="summary-card"><div class="label">Horas Totales</div><div class="value">${fmtHrs(employeesReport.total_hours_all)}</div></div>
+      <div class="summary-card"><div class="label">Ventas Totales</div><div class="value green">${fmtCOP(employeesReport.total_sales_all)}</div></div>
+      <div class="summary-card"><div class="label">Transacciones</div><div class="value">${employeesReport.total_transactions_all}</div></div>
+    </div>`;
+    const rows = employeesReport.employees.map((emp, i) => {
+      const statusBadge = emp.is_active ? '<span class="badge badge-green">Activo</span>' : '<span class="badge badge-red">Inactivo</span>';
+      return `<tr><td>${i + 1}</td><td>${emp.full_name}</td><td>${emp.role}</td><td class="text-right">${emp.total_shifts}</td><td class="text-right">${fmtHrs(emp.total_hours)}</td><td class="text-right">${fmtHrs(emp.avg_hours_per_shift)}</td><td class="text-right green font-bold">${fmtCOP(emp.total_sales)}</td><td class="text-right">${emp.total_transactions}</td><td class="text-right">${fmtCOP(emp.avg_sales_per_shift)}</td><td class="text-right">${emp.points}</td><td>${statusBadge}</td></tr>`;
+    }).join('');
+    const tableHTML = `<div class="section-title">Detalle por Empleado</div><table><tr><th>#</th><th>Empleado</th><th>Rol</th><th class="text-right">Turnos</th><th class="text-right">Horas</th><th class="text-right">Prom Hrs</th><th class="text-right">Ventas</th><th class="text-right">Trans.</th><th class="text-right">Prom Vta</th><th class="text-right">Pts</th><th>Estado</th></tr>${rows}</table>`;
+    openPDFWindow('Reporte de Empleados', `${startDate} al ${endDate}`, summary, tableHTML);
+  };
+
+  const handleExportPurchasesPDF = () => {
+    if (!purchasesReport) return;
+    const summary = `<div class="summary">
+      <div class="summary-card"><div class="label">Total Compras</div><div class="value">${purchasesReport.total_purchases}</div></div>
+      <div class="summary-card"><div class="label">Cantidad Total</div><div class="value">${purchasesReport.total_quantity}</div></div>
+      <div class="summary-card"><div class="label">Costo Total</div><div class="value blue">${fmtCOP(purchasesReport.total_cost)}</div></div>
+    </div>`;
+    const rows = purchasesReport.purchases.map((p: any, idx: number) => `<tr><td>${idx + 1}</td><td>${p.date}</td><td class="font-mono">${p.product_code}</td><td>${p.product_name}</td><td>${p.location_name}</td><td class="text-right">${p.quantity}</td><td class="text-right">${fmtCOP(p.unit_cost)}</td><td class="text-right font-bold">${fmtCOP(p.total_cost)}</td><td>${p.registered_by}</td><td>${p.notes || '-'}</td></tr>`).join('');
+    const totalRow = `<tr class="total-row"><td colspan="5">TOTAL</td><td class="text-right">${purchasesReport.total_quantity}</td><td></td><td class="text-right blue">${fmtCOP(purchasesReport.total_cost)}</td><td colspan="2"></td></tr>`;
+    const tableHTML = `<div class="section-title">Detalle de Compras</div><table><tr><th>#</th><th>Fecha</th><th>Codigo</th><th>Producto</th><th>Ubicacion</th><th class="text-right">Cant.</th><th class="text-right">C. Unit.</th><th class="text-right">C. Total</th><th>Registrado</th><th>Notas</th></tr>${rows}${totalRow}</table>`;
+    openPDFWindow('Reporte de Compras', `${startDate} al ${endDate}`, summary, tableHTML);
+  };
+
+  const handleExportProfitabilityPDF = () => {
+    if (!profitabilityReport) return;
+    const s = profitabilityReport.summary;
+    const pct = (val: number) => s.total_sales > 0 ? `${(val / s.total_sales * 100).toFixed(1)}%` : '0%';
+    const summary = `<div class="summary">
+      <div class="summary-card"><div class="label">Ventas Totales</div><div class="value">${fmtCOP(s.total_sales)}</div><div class="sub">${s.total_transactions} transacciones</div></div>
+      <div class="summary-card"><div class="label">Costo Productos</div><div class="value red">${fmtCOP(s.total_cost_of_goods)}</div></div>
+      <div class="summary-card"><div class="label">Utilidad Bruta</div><div class="value ${s.gross_profit >= 0 ? 'green' : 'red'}">${fmtCOP(s.gross_profit)}</div><div class="sub">Margen: ${s.gross_margin_pct}%</div></div>
+      <div class="summary-card"><div class="label">Utilidad Neta</div><div class="value ${s.net_profit >= 0 ? 'green' : 'red'}">${fmtCOP(s.net_profit)}</div><div class="sub">Margen: ${s.net_margin_pct}%</div></div>
+    </div>`;
+    // Breakdown table
+    let expenseRows = Object.entries(s.expenses_by_category).map(([cat, amount]) => `<tr><td style="padding-left:24px;color:#888;">${cat}</td><td class="text-right" style="color:#888;">${fmtCOP(amount as number)}</td><td class="text-right" style="color:#aaa;">${pct(amount as number)}</td></tr>`).join('');
+    let lossRows = Object.entries(s.losses_by_type).map(([type, amount]) => `<tr><td style="padding-left:24px;color:#888;">${type}</td><td class="text-right" style="color:#888;">${fmtCOP(amount as number)}</td><td class="text-right" style="color:#aaa;">${pct(amount as number)}</td></tr>`).join('');
+    const breakdownHTML = `<div class="section-title">Desglose de Rentabilidad</div><table>
+      <tr><th style="width:50%">Concepto</th><th class="text-right">Monto</th><th class="text-right">% Ventas</th></tr>
+      <tr><td class="green font-bold">Ventas Totales</td><td class="text-right green font-bold">${fmtCOP(s.total_sales)}</td><td class="text-right">100%</td></tr>
+      <tr><td class="red">(-) Costo Productos</td><td class="text-right red">${fmtCOP(s.total_cost_of_goods)}</td><td class="text-right red">${pct(s.total_cost_of_goods)}</td></tr>
+      <tr class="total-row"><td class="${s.gross_profit >= 0 ? 'green' : 'red'}">= Utilidad Bruta</td><td class="text-right ${s.gross_profit >= 0 ? 'green' : 'red'}">${fmtCOP(s.gross_profit)}</td><td class="text-right">${s.gross_margin_pct}%</td></tr>
+      <tr><td class="red">(-) Gastos Operacionales</td><td class="text-right red">${fmtCOP(s.total_expenses)}</td><td class="text-right red">${pct(s.total_expenses)}</td></tr>
+      ${expenseRows}
+      <tr><td class="red">(-) Mermas / Perdidas</td><td class="text-right red">${fmtCOP(s.total_losses)}</td><td class="text-right red">${pct(s.total_losses)}</td></tr>
+      ${lossRows}
+      <tr style="background:${s.net_profit >= 0 ? '#f0fdf4' : '#fef2f2'};font-weight:700;font-size:10px;"><td class="${s.net_profit >= 0 ? 'green' : 'red'}">= UTILIDAD NETA</td><td class="text-right ${s.net_profit >= 0 ? 'green' : 'red'}">${fmtCOP(s.net_profit)}</td><td class="text-right">${s.net_margin_pct}%</td></tr>
+    </table>`;
+    // Daily breakdown
+    let dailyHTML = '';
+    if (profitabilityReport.by_day.length > 0) {
+      const dayRows = profitabilityReport.by_day.map(day => `<tr><td class="font-mono">${day.date}</td><td class="text-right green">${fmtCOP(day.sales)}</td><td class="text-right red">${fmtCOP(day.cost_of_goods)}</td><td class="text-right red">${fmtCOP(day.expenses)}</td><td class="text-right red">${fmtCOP(day.losses)}</td><td class="text-right ${day.gross_profit >= 0 ? 'green' : 'red'}">${fmtCOP(day.gross_profit)}</td><td class="text-right font-bold ${day.net_profit >= 0 ? 'green' : 'red'}">${fmtCOP(day.net_profit)}</td></tr>`).join('');
+      const totalDayRow = `<tr class="total-row"><td>TOTAL</td><td class="text-right green">${fmtCOP(s.total_sales)}</td><td class="text-right red">${fmtCOP(s.total_cost_of_goods)}</td><td class="text-right red">${fmtCOP(s.total_expenses)}</td><td class="text-right red">${fmtCOP(s.total_losses)}</td><td class="text-right ${s.gross_profit >= 0 ? 'green' : 'red'}">${fmtCOP(s.gross_profit)}</td><td class="text-right ${s.net_profit >= 0 ? 'green' : 'red'}">${fmtCOP(s.net_profit)}</td></tr>`;
+      dailyHTML = `<div class="section-title">Detalle Diario</div><table><tr><th>Fecha</th><th class="text-right">Ventas</th><th class="text-right">Costo</th><th class="text-right">Gastos</th><th class="text-right">Mermas</th><th class="text-right">U. Bruta</th><th class="text-right">U. Neta</th></tr>${dayRows}${totalDayRow}</table>`;
+    }
+    openPDFWindow('Reporte de Rentabilidad', `${startDate} al ${endDate}`, summary, breakdownHTML + dailyHTML);
+  };
+
+  const handleExportDeliveriesPDF = () => {
+    if (deliveriesData.length === 0) return;
+    const totalSales = deliveriesData.reduce((sum, d) => sum + d.grand_total, 0);
+    const totalFees = deliveriesData.reduce((sum, d) => sum + d.delivery_fee, 0);
+    const delivered = deliveriesData.filter(d => d.delivery_status === 'delivered').length;
+    const summary = `<div class="summary">
+      <div class="summary-card"><div class="label">Total Pedidos</div><div class="value purple">${deliveriesData.length}</div></div>
+      <div class="summary-card"><div class="label">Total Ventas</div><div class="value green">${fmtCOP(totalSales)}</div></div>
+      <div class="summary-card"><div class="label">Total Domicilios</div><div class="value blue">${fmtCOP(totalFees)}</div></div>
+      <div class="summary-card"><div class="label">Entregados</div><div class="value green">${delivered} / ${deliveriesData.length}</div></div>
+    </div>`;
+    const statusLabel = (s?: string) => s === 'pending' ? 'Pendiente' : s === 'preparing' ? 'Preparando' : s === 'in_transit' ? 'En Camino' : s === 'delivered' ? 'Entregado' : 'Cancelado';
+    const statusClass = (s?: string) => s === 'delivered' ? 'badge-green' : s === 'cancelled' ? 'badge-red' : s === 'in_transit' ? 'badge-blue' : s === 'preparing' ? 'badge-yellow' : 'badge-yellow';
+    const payLabel = (m: string) => m === 'cash' ? 'Efectivo' : m === 'card' ? 'Tarjeta' : 'Transfer.';
+    const rows = deliveriesData.map(d => `<tr>
+      <td class="font-mono">${d.folio}</td><td>${new Date(d.created_at).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}</td>
+      <td>${d.customer_name}</td><td>${d.customer_phone || ''}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;">${d.customer_address || ''}</td>
+      <td>${d.delivery_person || '-'}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;">${d.items.map(i => `${i.product_name} x${i.quantity}`).join(', ')}</td>
+      <td class="text-right">${fmtCOP(d.total)}</td><td class="text-right">${fmtCOP(d.delivery_fee)}</td>
+      <td class="text-right font-bold">${fmtCOP(d.grand_total)}</td>
+      <td>${payLabel(d.payment_method)}</td>
+      <td><span class="badge ${statusClass(d.delivery_status)}">${statusLabel(d.delivery_status)}</span></td>
+    </tr>`).join('');
+    const tableHTML = `<div class="section-title">Detalle de Domicilios</div><table><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th>Tel.</th><th>Direccion</th><th>Domicil.</th><th>Productos</th><th class="text-right">Subtotal</th><th class="text-right">Domic.</th><th class="text-right">Total</th><th>Pago</th><th>Estado</th></tr>${rows}</table>`;
+    openPDFWindow('Reporte de Domicilios', `${startDate} al ${endDate}`, summary, tableHTML);
   };
 
   const formatCurrency = (value: number) => {
@@ -454,7 +636,7 @@ const Reports: React.FC = () => {
                       <Download className="w-4 h-4 mr-2" />
                       Exportar Excel
                     </Button>
-                    <Button variant="outline" onClick={handleExportPDF} disabled={!salesReport}>
+                    <Button variant="outline" onClick={handleExportSalesPDF} disabled={!salesReport}>
                       <FileText className="w-4 h-4 mr-2" />
                       Exportar PDF
                     </Button>
@@ -604,7 +786,7 @@ const Reports: React.FC = () => {
                     <Download className="w-4 h-4 mr-2" />
                     Exportar Excel
                   </Button>
-                  <Button variant="outline" onClick={handleExportPDF} disabled={!inventoryReport}>
+                  <Button variant="outline" onClick={handleExportInventoryPDF} disabled={!inventoryReport}>
                     <FileText className="w-4 h-4 mr-2" />
                     Exportar PDF
                   </Button>
@@ -722,7 +904,7 @@ const Reports: React.FC = () => {
                       <Download className="w-4 h-4 mr-2" />
                       Exportar Excel
                     </Button>
-                    <Button variant="outline" onClick={handleExportPDF} disabled={!employeesReport}>
+                    <Button variant="outline" onClick={handleExportEmployeesPDF} disabled={!employeesReport}>
                       <FileText className="w-4 h-4 mr-2" />
                       Exportar PDF
                     </Button>
@@ -842,7 +1024,7 @@ const Reports: React.FC = () => {
                       <Download className="w-4 h-4 mr-2" />
                       Exportar Excel
                     </Button>
-                    <Button variant="outline" onClick={handleExportPDF} disabled={!purchasesReport}>
+                    <Button variant="outline" onClick={handleExportPurchasesPDF} disabled={!purchasesReport}>
                       <FileText className="w-4 h-4 mr-2" />
                       Exportar PDF
                     </Button>
@@ -941,7 +1123,7 @@ const Reports: React.FC = () => {
                       <Download className="w-4 h-4 mr-2" />
                       Exportar Excel
                     </Button>
-                    <Button variant="outline" onClick={handleExportPDF} disabled={!profitabilityReport}>
+                    <Button variant="outline" onClick={handleExportProfitabilityPDF} disabled={!profitabilityReport}>
                       <FileText className="w-4 h-4 mr-2" />
                       Exportar PDF
                     </Button>
@@ -1188,7 +1370,7 @@ const Reports: React.FC = () => {
                     <Download className="w-4 h-4 mr-2" />
                     Exportar Excel
                   </Button>
-                  <Button variant="outline" onClick={handleExportPDF} disabled={deliveriesData.length === 0}>
+                  <Button variant="outline" onClick={handleExportDeliveriesPDF} disabled={deliveriesData.length === 0}>
                     <FileText className="w-4 h-4 mr-2" />
                     Exportar PDF
                   </Button>
