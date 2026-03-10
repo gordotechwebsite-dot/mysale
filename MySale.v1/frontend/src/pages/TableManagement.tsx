@@ -84,6 +84,7 @@ export default function TableManagement() {
   const [showPeopleDialog, setShowPeopleDialog] = useState(false);
   const [reservationName, setReservationName] = useState('');
   const [reservationTime, setReservationTime] = useState('');
+  const [reservationPhone, setReservationPhone] = useState('');
   const [orderMode, setOrderMode] = useState(false);
 
   const [editingZone, setEditingZone] = useState<ZoneWithTables | null>(null);
@@ -465,6 +466,7 @@ export default function TableManagement() {
         } else {
           setReservationName('');
           setReservationTime('');
+          setReservationPhone('');
           setShowReserveDialog(true);
         }
         break;
@@ -516,6 +518,7 @@ export default function TableManagement() {
         status: 'reserved',
         reserved_by: reservationName || undefined,
         reserved_time: reservationTime || undefined,
+        reserved_phone: reservationPhone || undefined,
       });
       toast.success(`Mesa ${selectedTable.name} reservada para ${reservationName}`);
       setShowReserveDialog(false);
@@ -534,6 +537,7 @@ export default function TableManagement() {
         status: 'available',
         reserved_by: '',
         reserved_time: '',
+        reserved_phone: '',
       });
       toast.success(`Reserva de ${selectedTable.name} cancelada`);
       setShowViewReservationDialog(false);
@@ -2078,6 +2082,16 @@ export default function TableManagement() {
                 className="bg-slate-700 border-slate-600"
               />
             </div>
+            <div>
+              <Label>Telefono (opcional)</Label>
+              <Input
+                type="tel"
+                value={reservationPhone}
+                onChange={(e) => setReservationPhone(e.target.value)}
+                placeholder="Numero de telefono"
+                className="bg-slate-700 border-slate-600"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowReserveDialog(false)}>
@@ -2114,6 +2128,17 @@ export default function TableManagement() {
                   <div>
                     <p className="text-xs text-gray-500 font-medium">Hora de la reserva</p>
                     <p className="text-base font-bold text-gray-900">{selectedTable.reserved_time}</p>
+                  </div>
+                </div>
+              )}
+              {selectedTable?.reserved_phone && (
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium">Telefono</p>
+                    <p className="text-base font-bold text-gray-900">{selectedTable.reserved_phone}</p>
                   </div>
                 </div>
               )}

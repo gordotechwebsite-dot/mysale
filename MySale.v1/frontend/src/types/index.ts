@@ -414,6 +414,7 @@ export interface Table {
   rotation: number;
   reserved_by?: string | null;
   reserved_time?: string | null;
+  reserved_phone?: string | null;
   is_active: boolean;
   created_at: string;
   current_ticket_id?: number | null;

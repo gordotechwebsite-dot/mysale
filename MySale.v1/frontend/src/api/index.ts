@@ -652,6 +652,7 @@ export const updateTable = async (id: number, data: {
   rotation?: number;
   reserved_by?: string;
   reserved_time?: string;
+  reserved_phone?: string;
   is_active?: boolean;
 }): Promise<Table> => {
   const response = await api.put(`/api/tables/${id}`, data);

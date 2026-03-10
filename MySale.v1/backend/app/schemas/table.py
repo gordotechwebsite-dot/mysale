@@ -58,6 +58,7 @@ class TableUpdate(BaseModel):
     rotation: Optional[int] = None
     reserved_by: Optional[str] = None
     reserved_time: Optional[str] = None
+    reserved_phone: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -76,6 +77,7 @@ class TableResponse(BaseModel):
     rotation: int = 0
     reserved_by: Optional[str] = None
     reserved_time: Optional[str] = None
+    reserved_phone: Optional[str] = None
     is_active: bool
     created_at: datetime
     current_ticket_id: Optional[int] = None
