@@ -135,7 +135,9 @@ export default function TableManagement() {
     free: { color: '#10b981', label: 'Libre' },
     available: { color: '#10b981', label: 'Libre' },
     occupied: { color: '#f59e0b', label: 'Ocupada' },
-    bill_open: { color: '#3b82f6', label: 'Cuenta Abierta' },
+    bill_open: { color: '#ef4444', label: 'Cuenta Abierta' },
+    waiting_food: { color: '#8b5cf6', label: 'Esperando Comida' },
+    reserved: { color: '#3b82f6', label: 'Reservada' },
     to_pay: { color: '#f59e0b', label: 'Por Cobrar' },
     paid: { color: '#ef4444', label: 'Pagada' },
   };
@@ -1221,6 +1223,12 @@ export default function TableManagement() {
                   }
                 }}
               >
+                {/* Status color dot */}
+                <div
+                  className="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full border-2 border-white shadow-sm z-10"
+                  style={{ backgroundColor: overlay.color, transform: `rotate(${-rotation}deg)` }}
+                />
+
                 {/* Table image */}
                 <img
                   src={getTableImage(table.shape)}
@@ -1228,7 +1236,7 @@ export default function TableManagement() {
                   className="w-full h-auto pointer-events-none"
                   draggable={false}
                   style={{
-                    filter: isTableFree(table.status) ? 'none' : `drop-shadow(0 0 6px ${overlay.color})`,
+                    filter: `drop-shadow(0 0 6px ${overlay.color})`,
                   }}
                 />
 
@@ -1242,14 +1250,12 @@ export default function TableManagement() {
                   </span>
 
                   {/* Status badge */}
-                  {!isTableFree(table.status) && (
-                    <span
-                      className="mt-1 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-                      style={{ backgroundColor: overlay.color }}
-                    >
-                      {overlay.label}
-                    </span>
-                  )}
+                  <span
+                    className="mt-1 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: overlay.color }}
+                  >
+                    {overlay.label}
+                  </span>
 
                   {/* Time indicator */}
                   {!isTableFree(table.status) && table.ticket_time && (
