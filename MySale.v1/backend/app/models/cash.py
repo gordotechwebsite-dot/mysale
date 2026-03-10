@@ -33,6 +33,29 @@ class CashCut(Base):
     denominations = relationship("CashDenomination", back_populates="cash_cut")
 
 
+class CashClose(Base):
+    __tablename__ = "cash_closes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    close_date = Column(DateTime, nullable=False)
+    total_sales = Column(Float, default=0.0)
+    total_cash_sales = Column(Float, default=0.0)
+    total_card_sales = Column(Float, default=0.0)
+    total_transfer_sales = Column(Float, default=0.0)
+    total_transactions = Column(Integer, default=0)
+    base_amount = Column(Float, default=0.0)
+    expected_cash = Column(Float, default=0.0)
+    declared_cash = Column(Float, default=0.0)
+    difference = Column(Float, default=0.0)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    location = relationship("Location")
+    user = relationship("User")
+
+
 class CashDenomination(Base):
     __tablename__ = "cash_denominations"
 

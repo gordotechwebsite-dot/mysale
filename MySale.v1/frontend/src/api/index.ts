@@ -1,7 +1,7 @@
 import api from './client';
 import type {
   User, Role, Location, Group, Family, SubFamily, Product,
-  Shift, Sale, CashCut, CashDenomination, Loss, Transfer, Expense, Delivery,
+  Shift, Sale, CashCut, CashDenomination, CashClose, Loss, Transfer, Expense, Delivery,
   ShiftAlert, DashboardData, CostEntry, CostConfig, CostCalculation, CostApplication,
   Zone, Table, ZoneWithTables, Ticket, Comanda, TicketPayment,
   Module, Tenant, TenantListItem, TenantPayment, AdminDashboard,
@@ -244,6 +244,37 @@ export const createBlindCashCut = async (data: {
 export const getDenominations = async (): Promise<{ bills: number[]; coins: number[] }> => {
   const response = await api.get('/api/cash/denominations');
   return response.data;
+};
+
+export const getCashCloses = async (params?: {
+  start_date?: string;
+  end_date?: string;
+  location_id?: number;
+}): Promise<CashClose[]> => {
+  const response = await api.get('/api/cash/closes', { params });
+  return response.data;
+};
+
+export const createCashClose = async (data: {
+  location_id: number;
+  close_date: string;
+  total_sales?: number;
+  total_cash_sales?: number;
+  total_card_sales?: number;
+  total_transfer_sales?: number;
+  total_transactions?: number;
+  base_amount?: number;
+  expected_cash?: number;
+  declared_cash?: number;
+  difference?: number;
+  notes?: string;
+}): Promise<CashClose> => {
+  const response = await api.post('/api/cash/closes', data);
+  return response.data;
+};
+
+export const deleteCashClose = async (id: number): Promise<void> => {
+  await api.delete(`/api/cash/closes/${id}`);
 };
 
 export const getLosses = async (params?: {

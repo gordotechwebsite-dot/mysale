@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getSalesReport, getInventoryReport, exportSalesExcel, exportInventoryExcel, getLocations, getEmployeesSummaryReport, getProfitabilityReport, exportEmployeesExcel, exportProfitabilityExcel, getUsers, getPurchasesReport, exportPurchasesExcel, getDeliveries } from '../api';
-import type { Delivery } from '../types';
+import { getSalesReport, getInventoryReport, exportSalesExcel, exportInventoryExcel, getLocations, getEmployeesSummaryReport, getProfitabilityReport, exportEmployeesExcel, exportProfitabilityExcel, getUsers, getPurchasesReport, exportPurchasesExcel, getDeliveries, getCashCloses, createCashClose, deleteCashClose } from '../api';
+import type { Delivery, CashClose } from '../types';
 import type { Location } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Download, Loader2, TrendingUp, Package, Users, DollarSign, ShoppingCart, Bike, Phone, MapPin, Clock, ChefHat, Truck, Check, X, FileText } from 'lucide-react';
+import { Download, Loader2, TrendingUp, Package, Users, DollarSign, ShoppingCart, Bike, Phone, MapPin, Clock, ChefHat, Truck, Check, X, FileText, Banknote, Plus, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface EmployeeSummary {
@@ -97,6 +97,20 @@ const Reports: React.FC = () => {
   const [purchasesReport, setPurchasesReport] = useState<any>(null);
   const [deliveriesData, setDeliveriesData] = useState<Delivery[]>([]);
   const [deliveryStatusFilter, setDeliveryStatusFilter] = useState<string>('all');
+  const [cashCloses, setCashCloses] = useState<CashClose[]>([]);
+  const [showCashCloseForm, setShowCashCloseForm] = useState(false);
+  const [cashCloseForm, setCashCloseForm] = useState({
+    location_id: '',
+    close_date: new Date().toISOString().split('T')[0],
+    total_sales: '',
+    total_cash_sales: '',
+    total_card_sales: '',
+    total_transfer_sales: '',
+    total_transactions: '',
+    base_amount: '',
+    declared_cash: '',
+    notes: '',
+  });
 
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
@@ -514,6 +528,115 @@ const Reports: React.FC = () => {
     openPDFWindow('Reporte de Rentabilidad', `${startDate} al ${endDate}`, summary, breakdownHTML + dailyHTML);
   };
 
+  const loadCashCloses = async () => {
+    setIsLoading(true);
+    try {
+      const data = await getCashCloses({
+        start_date: startDate,
+        end_date: endDate,
+        location_id: selectedLocation ? parseInt(selectedLocation) : undefined,
+      });
+      setCashCloses(data);
+    } catch (error) {
+      console.error('Error loading cash closes:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateCashClose = async () => {
+    if (!cashCloseForm.location_id) return;
+    try {
+      const totalSales = parseFloat(cashCloseForm.total_sales || '0');
+      const totalCash = parseFloat(cashCloseForm.total_cash_sales || '0');
+      const totalCard = parseFloat(cashCloseForm.total_card_sales || '0');
+      const totalTransfer = parseFloat(cashCloseForm.total_transfer_sales || '0');
+      const baseAmount = parseFloat(cashCloseForm.base_amount || '0');
+      const declaredCash = parseFloat(cashCloseForm.declared_cash || '0');
+      const expectedCash = baseAmount + totalCash;
+      const difference = declaredCash - expectedCash;
+      await createCashClose({
+        location_id: parseInt(cashCloseForm.location_id),
+        close_date: cashCloseForm.close_date,
+        total_sales: totalSales,
+        total_cash_sales: totalCash,
+        total_card_sales: totalCard,
+        total_transfer_sales: totalTransfer,
+        total_transactions: parseInt(cashCloseForm.total_transactions || '0'),
+        base_amount: baseAmount,
+        expected_cash: expectedCash,
+        declared_cash: declaredCash,
+        difference: difference,
+        notes: cashCloseForm.notes || undefined,
+      });
+      setShowCashCloseForm(false);
+      setCashCloseForm({ location_id: '', close_date: new Date().toISOString().split('T')[0], total_sales: '', total_cash_sales: '', total_card_sales: '', total_transfer_sales: '', total_transactions: '', base_amount: '', declared_cash: '', notes: '' });
+      loadCashCloses();
+    } catch (error) {
+      console.error('Error creating cash close:', error);
+    }
+  };
+
+  const handleDeleteCashClose = async (id: number) => {
+    if (!confirm('¿Eliminar este cierre de caja?')) return;
+    try {
+      await deleteCashClose(id);
+      loadCashCloses();
+    } catch (error) {
+      console.error('Error deleting cash close:', error);
+    }
+  };
+
+  const handleExportCashClosesExcel = () => {
+    if (cashCloses.length === 0) return;
+    const headers = ['Fecha', 'Sucursal', 'Responsable', 'Ventas Totales', 'Efectivo', 'Tarjeta', 'Transferencia', 'Transacciones', 'Base', 'Esperado', 'Declarado', 'Diferencia', 'Notas'];
+    const rows = cashCloses.map(c => [
+      new Date(c.close_date).toLocaleDateString('es-CO'),
+      c.location_name || '',
+      c.user_name || '',
+      c.total_sales,
+      c.total_cash_sales,
+      c.total_card_sales,
+      c.total_transfer_sales,
+      c.total_transactions,
+      c.base_amount,
+      c.expected_cash,
+      c.declared_cash,
+      c.difference,
+      c.notes || '',
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cierres_caja_${startDate}_${endDate}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleExportCashClosesPDF = () => {
+    if (cashCloses.length === 0) return;
+    const totalSales = cashCloses.reduce((s, c) => s + c.total_sales, 0);
+    const totalDeclared = cashCloses.reduce((s, c) => s + c.declared_cash, 0);
+    const totalDiff = cashCloses.reduce((s, c) => s + c.difference, 0);
+    const totalTx = cashCloses.reduce((s, c) => s + c.total_transactions, 0);
+    const summary = `<div class="summary">
+      <div class="summary-card"><div class="label">Total Cierres</div><div class="value blue">${cashCloses.length}</div></div>
+      <div class="summary-card"><div class="label">Ventas Totales</div><div class="value green">${fmtCOP(totalSales)}</div></div>
+      <div class="summary-card"><div class="label">Total Declarado</div><div class="value purple">${fmtCOP(totalDeclared)}</div></div>
+      <div class="summary-card"><div class="label">Diferencia Neta</div><div class="value ${totalDiff >= 0 ? 'green' : 'red'}">${fmtCOP(totalDiff)}</div></div>
+      <div class="summary-card"><div class="label">Transacciones</div><div class="value blue">${totalTx}</div></div>
+    </div>`;
+    const rows = cashCloses.map(c => {
+      const diffClass = c.difference > 0 ? 'badge-green' : c.difference < 0 ? 'badge-red' : 'badge-gray';
+      const diffLabel = c.difference > 0 ? 'Sobra' : c.difference < 0 ? 'Falta' : 'Exacto';
+      return `<tr><td>${new Date(c.close_date).toLocaleDateString('es-CO')}</td><td>${c.location_name || '-'}</td><td>${c.user_name || '-'}</td><td class="text-right font-mono">${fmtCOP(c.total_sales)}</td><td class="text-right font-mono">${fmtCOP(c.base_amount)}</td><td class="text-right font-mono">${fmtCOP(c.expected_cash)}</td><td class="text-right font-mono">${fmtCOP(c.declared_cash)}</td><td class="text-right"><span class="badge ${diffClass}">${diffLabel} ${fmtCOP(Math.abs(c.difference))}</span></td><td>${c.notes || ''}</td></tr>`;
+    }).join('');
+    const tableHTML = `<div class="section-title">Detalle de Cierres de Caja</div><table><tr><th>Fecha</th><th>Sucursal</th><th>Responsable</th><th class="text-right">Ventas</th><th class="text-right">Base</th><th class="text-right">Esperado</th><th class="text-right">Declarado</th><th class="text-right">Diferencia</th><th>Notas</th></tr>${rows}</table>`;
+    openPDFWindow('Reporte de Cierres de Caja', `${startDate} al ${endDate}`, summary, tableHTML);
+  };
+
   const handleExportDeliveriesPDF = () => {
     if (deliveriesData.length === 0) return;
     const totalSales = deliveriesData.reduce((sum, d) => sum + d.grand_total, 0);
@@ -616,6 +739,7 @@ const Reports: React.FC = () => {
           <TabsTrigger value="purchases">Compras</TabsTrigger>
           <TabsTrigger value="profitability">Rentabilidad</TabsTrigger>
           <TabsTrigger value="deliveries">Domicilios</TabsTrigger>
+          <TabsTrigger value="cash-close">Caja</TabsTrigger>
         </TabsList>
 
         {/* ===== VENTAS ===== */}
@@ -1471,6 +1595,200 @@ const Reports: React.FC = () => {
                 <div className="text-center py-12 text-gray-400">
                   <Bike className="w-12 h-12 mx-auto mb-3" />
                   <p>Genera el reporte para ver los domicilios</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        {/* ===== CAJA ===== */}
+        <TabsContent value="cash-close">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Banknote className="w-5 h-5" />
+                Cierres de Caja
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DateFilters
+                onGenerate={loadCashCloses}
+                extraButtons={
+                  <>
+                    <Button variant="outline" onClick={() => setShowCashCloseForm(!showCashCloseForm)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Nuevo Cierre
+                    </Button>
+                    <Button variant="outline" onClick={handleExportCashClosesExcel} disabled={cashCloses.length === 0}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Exportar Excel
+                    </Button>
+                    <Button variant="outline" onClick={handleExportCashClosesPDF} disabled={cashCloses.length === 0}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Exportar PDF
+                    </Button>
+                  </>
+                }
+              />
+
+              {showCashCloseForm && (
+                <Card className="mb-6 border-2 border-blue-200">
+                  <CardContent className="pt-4">
+                    <h3 className="font-semibold mb-3">Registrar Cierre de Caja</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                      <div>
+                        <label className="text-xs text-gray-500">Sucursal *</label>
+                        <Select value={cashCloseForm.location_id || "none"} onValueChange={(v) => setCashCloseForm({ ...cashCloseForm, location_id: v === "none" ? "" : v })}>
+                          <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Seleccionar</SelectItem>
+                            {locations.map(l => (
+                              <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500">Fecha</label>
+                        <Input type="date" value={cashCloseForm.close_date} onChange={(e) => setCashCloseForm({ ...cashCloseForm, close_date: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500">Total Ventas</label>
+                        <Input type="number" placeholder="0" value={cashCloseForm.total_sales} onChange={(e) => setCashCloseForm({ ...cashCloseForm, total_sales: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500">Transacciones</label>
+                        <Input type="number" placeholder="0" value={cashCloseForm.total_transactions} onChange={(e) => setCashCloseForm({ ...cashCloseForm, total_transactions: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                      <div>
+                        <label className="text-xs text-gray-500">Ventas Efectivo</label>
+                        <Input type="number" placeholder="0" value={cashCloseForm.total_cash_sales} onChange={(e) => setCashCloseForm({ ...cashCloseForm, total_cash_sales: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500">Ventas Tarjeta</label>
+                        <Input type="number" placeholder="0" value={cashCloseForm.total_card_sales} onChange={(e) => setCashCloseForm({ ...cashCloseForm, total_card_sales: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500">Ventas Transferencia</label>
+                        <Input type="number" placeholder="0" value={cashCloseForm.total_transfer_sales} onChange={(e) => setCashCloseForm({ ...cashCloseForm, total_transfer_sales: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-500">Base Diaria</label>
+                        <Input type="number" placeholder="0" value={cashCloseForm.base_amount} onChange={(e) => setCashCloseForm({ ...cashCloseForm, base_amount: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                      <div>
+                        <label className="text-xs text-gray-500">Dinero Declarado</label>
+                        <Input type="number" placeholder="0" value={cashCloseForm.declared_cash} onChange={(e) => setCashCloseForm({ ...cashCloseForm, declared_cash: e.target.value })} />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="text-xs text-gray-500">Notas</label>
+                        <Input placeholder="Observaciones..." value={cashCloseForm.notes} onChange={(e) => setCashCloseForm({ ...cashCloseForm, notes: e.target.value })} />
+                      </div>
+                      <div className="flex items-end">
+                        <Button onClick={handleCreateCashClose} disabled={!cashCloseForm.location_id} className="w-full">
+                          Guardar Cierre
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {cashCloses.length > 0 && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm text-gray-500">Total Cierres</p>
+                        <p className="text-2xl font-bold text-blue-600">{cashCloses.length}</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm text-gray-500">Ventas Totales</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {formatCurrency(cashCloses.reduce((s, c) => s + c.total_sales, 0))}
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm text-gray-500">Total Declarado</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                          {formatCurrency(cashCloses.reduce((s, c) => s + c.declared_cash, 0))}
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm text-gray-500">Diferencia Neta</p>
+                        <p className={`text-2xl font-bold ${cashCloses.reduce((s, c) => s + c.difference, 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(cashCloses.reduce((s, c) => s + c.difference, 0))}
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm text-gray-500">Transacciones</p>
+                        <p className="text-2xl font-bold text-gray-700">
+                          {cashCloses.reduce((s, c) => s + c.total_transactions, 0)}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Fecha</TableHead>
+                          <TableHead>Sucursal</TableHead>
+                          <TableHead>Responsable</TableHead>
+                          <TableHead className="text-right">Ventas</TableHead>
+                          <TableHead className="text-right">Base</TableHead>
+                          <TableHead className="text-right">Esperado</TableHead>
+                          <TableHead className="text-right">Declarado</TableHead>
+                          <TableHead className="text-right">Diferencia</TableHead>
+                          <TableHead>Notas</TableHead>
+                          <TableHead></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {cashCloses.map(c => (
+                          <TableRow key={c.id}>
+                            <TableCell className="text-sm">{new Date(c.close_date).toLocaleDateString('es-CO')}</TableCell>
+                            <TableCell className="text-sm">{c.location_name || '-'}</TableCell>
+                            <TableCell className="text-sm">{c.user_name || '-'}</TableCell>
+                            <TableCell className="text-right font-mono text-sm">{formatCurrency(c.total_sales)}</TableCell>
+                            <TableCell className="text-right font-mono text-sm">{formatCurrency(c.base_amount)}</TableCell>
+                            <TableCell className="text-right font-mono text-sm">{formatCurrency(c.expected_cash)}</TableCell>
+                            <TableCell className="text-right font-mono text-sm">{formatCurrency(c.declared_cash)}</TableCell>
+                            <TableCell className="text-right">
+                              <Badge variant={c.difference > 0 ? 'default' : c.difference < 0 ? 'destructive' : 'secondary'}>
+                                {c.difference > 0 ? 'Sobra' : c.difference < 0 ? 'Falta' : 'Exacto'} {formatCurrency(Math.abs(c.difference))}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs text-gray-500 max-w-[150px] truncate">{c.notes || '-'}</TableCell>
+                            <TableCell>
+                              <Button variant="ghost" size="sm" onClick={() => handleDeleteCashClose(c.id)}>
+                                <Trash2 className="w-4 h-4 text-red-400" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
+
+              {cashCloses.length === 0 && !isLoading && (
+                <div className="text-center py-12 text-gray-400">
+                  <Banknote className="w-12 h-12 mx-auto mb-3" />
+                  <p>Genera el reporte para ver los cierres de caja</p>
                 </div>
               )}
             </CardContent>

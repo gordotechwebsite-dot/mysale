@@ -38,3 +38,41 @@ class CashCutResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CashCloseCreate(BaseModel):
+    location_id: int
+    close_date: str
+    total_sales: float = 0.0
+    total_cash_sales: float = 0.0
+    total_card_sales: float = 0.0
+    total_transfer_sales: float = 0.0
+    total_transactions: int = 0
+    base_amount: float = 0.0
+    expected_cash: float = 0.0
+    declared_cash: float = 0.0
+    difference: float = 0.0
+    notes: Optional[str] = None
+
+
+class CashCloseResponse(BaseModel):
+    id: int
+    location_id: int
+    user_id: int
+    close_date: datetime
+    total_sales: float
+    total_cash_sales: float
+    total_card_sales: float
+    total_transfer_sales: float
+    total_transactions: int
+    base_amount: float
+    expected_cash: float
+    declared_cash: float
+    difference: float
+    notes: Optional[str]
+    created_at: datetime
+    location_name: Optional[str] = None
+    user_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True

@@ -192,6 +192,26 @@ export interface CashCut {
   created_at: string;
 }
 
+export interface CashClose {
+  id: number;
+  location_id: number;
+  user_id: number;
+  close_date: string;
+  total_sales: number;
+  total_cash_sales: number;
+  total_card_sales: number;
+  total_transfer_sales: number;
+  total_transactions: number;
+  base_amount: number;
+  expected_cash: number;
+  declared_cash: number;
+  difference: number;
+  notes: string | null;
+  created_at: string;
+  location_name?: string;
+  user_name?: string;
+}
+
 export interface Loss {
   id: number;
   location_id: number;
