@@ -725,7 +725,8 @@ export default function TableManagement() {
     setQuantityInput('');
   };
 
-  // freeTables used by move mode to validate target
+  const allTables = zones.flatMap(z => z.tables.map(t => ({ ...t, zone_name: z.name })));
+  const freeTables = allTables.filter(t => isTableFree(t.status));
 
   const handleExitOrderMode = () => {
     setOrderMode(false);
@@ -1220,17 +1221,40 @@ export default function TableManagement() {
           </div>
         )}
 
-        {/* Move mode banner */}
+        {/* Move mode panel */}
         {moveMode && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-amber-500 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-pulse">
-            <ArrowRightLeft className="w-5 h-5" />
-            <span className="font-semibold">Moviendo {moveSourceTableRef.current} — Toque la mesa destino</span>
-            <button
-              onClick={() => { setMoveMode(false); moveTicketIdRef.current = null; moveSourceTableRef.current = ''; }}
-              className="ml-2 bg-white/20 hover:bg-white/30 rounded-lg px-3 py-1 text-sm font-medium"
-            >
-              Cancelar
-            </button>
+          <div className="absolute inset-x-0 bottom-0 z-30 bg-white border-t-2 border-amber-400 shadow-2xl p-4" style={{ maxHeight: '40vh', overflowY: 'auto' }}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <ArrowRightLeft className="w-5 h-5 text-amber-600" />
+                <span className="font-bold text-slate-800">Moviendo {moveSourceTableRef.current}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setMoveMode(false); moveTicketIdRef.current = null; moveSourceTableRef.current = ''; }}
+                className="bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg px-4 py-2 text-sm font-semibold"
+              >
+                Cancelar
+              </button>
+            </div>
+            <p className="text-sm text-slate-500 mb-2">Seleccione mesa destino:</p>
+            {freeTables.length === 0 ? (
+              <p className="text-slate-400 text-sm text-center py-4">No hay mesas libres disponibles</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {freeTables.map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => handleMoveTicket(t.id)}
+                    className="px-3 py-3 bg-emerald-50 hover:bg-emerald-100 active:bg-emerald-200 rounded-lg text-sm font-bold transition-colors border-2 border-emerald-200 hover:border-emerald-400 text-emerald-800"
+                  >
+                    {t.name}
+                    <span className="block text-xs font-normal text-slate-400 mt-0.5">{t.zone_name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
