@@ -401,9 +401,14 @@ export default function TableManagement() {
   };
 
   const handleTableClick = async (table: Table) => {
+    // DEBUG: trace click flow
+    toast(`DEBUG click: ${table.name} status=${table.status} moveMode=${moveMode}`);
+    
     // If in move mode, clicking a free table moves the ticket there
     if (moveMode) {
+      toast(`DEBUG moveMode=true, isFree=${isTableFree(table.status)}, ticketRef=${moveTicketIdRef.current}`);
       if (isTableFree(table.status)) {
+        toast('DEBUG: calling handleMoveTicket...');
         await handleMoveTicket(table.id);
       } else {
         toast.error('Esa mesa ya está ocupada. Seleccione una mesa libre.');
@@ -666,12 +671,14 @@ export default function TableManagement() {
 
   const handleMoveTicket = async (targetTableId: number) => {
     const ticketId = moveTicketIdRef.current || currentTicket?.id;
+    toast(`DEBUG handleMoveTicket: ticketId=${ticketId}, targetTableId=${targetTableId}`);
     if (!ticketId) {
       toast.error('No hay cuenta activa para mover');
       setMoveMode(false);
       return;
     }
     try {
+      toast(`DEBUG: calling API moveTicket(${ticketId}, ${targetTableId})...`);
       await moveTicket(ticketId, targetTableId);
       toast.success('Cuenta movida exitosamente');
       setMoveMode(false);
