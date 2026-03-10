@@ -487,9 +487,16 @@ export default function TableManagement() {
 
   const handleReserveTable = async () => {
     if (!selectedTable) return;
-    toast.success(`Mesa ${selectedTable.name} reservada para ${reservationName}`);
-    setShowReserveDialog(false);
-    loadZones();
+    try {
+      await updateTable(selectedTable.id, { status: 'reserved' });
+      toast.success(`Mesa ${selectedTable.name} reservada para ${reservationName}`);
+      setShowReserveDialog(false);
+      setSelectedTable(null);
+      loadZones();
+    } catch (error) {
+      console.error('Error reserving table:', error);
+      toast.error('Error al reservar la mesa');
+    }
   };
 
   const handleOpenTicket = async () => {
