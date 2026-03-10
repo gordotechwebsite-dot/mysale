@@ -252,7 +252,7 @@ const Deliveries: React.FC = () => {
 
 
   return (
-    <div className="h-[calc(100vh-120px)] flex flex-col gap-2 pb-16">
+    <div className="h-[calc(100vh-100px)] flex flex-col gap-1">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
@@ -329,11 +329,11 @@ const Deliveries: React.FC = () => {
             </div>
 
             {/* Order ticket - right */}
-            <Card className="w-[420px] flex flex-col">
-              <div className="p-4 border-b bg-purple-50">
+            <Card className="w-[420px] flex flex-col mb-16">
+              <div className="p-2 px-3 border-b bg-purple-50">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-lg flex items-center gap-2">
-                    <Bike className="w-5 h-5 text-purple-600" />
+                  <h3 className="font-bold text-base flex items-center gap-2">
+                    <Bike className="w-4 h-4 text-purple-600" />
                     Pedido a Domicilio
                   </h3>
                   {items.length > 0 && (
@@ -351,29 +351,29 @@ const Deliveries: React.FC = () => {
               </div>
 
               {/* Customer info */}
-              <div className="p-3 border-b space-y-2">
-                <h4 className="text-sm font-semibold text-gray-600 flex items-center gap-1">
-                  <User className="w-4 h-4" /> Datos del Cliente
+              <div className="p-2 px-3 border-b space-y-1">
+                <h4 className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+                  <User className="w-3 h-3" /> Datos del Cliente
                 </h4>
                 <Input
                   placeholder="Nombre del cliente *"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="h-9 text-sm"
+                  className="h-8 text-sm"
                 />
                 <Input
                   placeholder="Telefono *"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="h-9 text-sm"
+                  className="h-8 text-sm"
                 />
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3" />
                   <Input
                     placeholder="Direccion de entrega *"
                     value={customerAddress}
                     onChange={(e) => setCustomerAddress(e.target.value)}
-                    className="h-9 text-sm pl-9"
+                    className="h-8 text-sm pl-8"
                   />
                 </div>
                 <div className="flex gap-2">
@@ -381,55 +381,55 @@ const Deliveries: React.FC = () => {
                     placeholder="Domiciliario (opcional)"
                     value={deliveryPerson}
                     onChange={(e) => setDeliveryPerson(e.target.value)}
-                    className="h-9 text-sm flex-1"
+                    className="h-8 text-sm flex-1"
                   />
                   <Input
                     type="number"
                     placeholder="$ Domicilio"
                     value={deliveryFee}
                     onChange={(e) => setDeliveryFee(e.target.value)}
-                    className="h-9 text-sm w-28"
+                    className="h-8 text-sm w-28"
                   />
                 </div>
               </div>
 
               {/* Payment method */}
-              <div className="p-3 border-b space-y-2">
-                <h4 className="text-sm font-semibold text-gray-600 flex items-center gap-1">
-                  <CreditCard className="w-4 h-4" /> Método de Pago
+              <div className="p-2 px-3 border-b space-y-1">
+                <h4 className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+                  <CreditCard className="w-3 h-3" /> Método de Pago
                 </h4>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1">
                   <button
                     onClick={() => setPaymentMethod('cash')}
-                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all text-sm ${
+                    className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg border-2 transition-all text-xs ${
                       paymentMethod === 'cash'
                         ? 'border-purple-600 bg-purple-50 text-purple-700'
                         : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     }`}
                   >
-                    <Banknote className="w-5 h-5" />
+                    <Banknote className="w-4 h-4" />
                     <span className="font-medium">Efectivo</span>
                   </button>
                   <button
                     onClick={() => setPaymentMethod('transfer')}
-                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all text-sm ${
+                    className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg border-2 transition-all text-xs ${
                       paymentMethod === 'transfer'
                         ? 'border-purple-600 bg-purple-50 text-purple-700'
                         : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     }`}
                   >
-                    <Smartphone className="w-5 h-5" />
+                    <Smartphone className="w-4 h-4" />
                     <span className="font-medium">Nequi</span>
                   </button>
                   <button
                     onClick={() => setPaymentMethod('card')}
-                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all text-sm ${
+                    className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg border-2 transition-all text-xs ${
                       paymentMethod === 'card'
                         ? 'border-purple-600 bg-purple-50 text-purple-700'
                         : 'border-gray-200 hover:border-gray-300 text-gray-600'
                     }`}
                   >
-                    <CreditCard className="w-5 h-5" />
+                    <CreditCard className="w-4 h-4" />
                     <span className="font-medium">Bre-B</span>
                   </button>
                 </div>
@@ -439,7 +439,7 @@ const Deliveries: React.FC = () => {
                     placeholder="Monto recibido (opcional)"
                     value={amountReceived}
                     onChange={(e) => setAmountReceived(e.target.value)}
-                    className="h-9 text-sm"
+                    className="h-8 text-sm"
                   />
                 )}
               </div>
@@ -494,8 +494,8 @@ const Deliveries: React.FC = () => {
               </div>
 
               {/* Totals */}
-              <div className="p-3 border-t bg-purple-50">
-                <div className="flex justify-between items-center mb-1 text-sm">
+              <div className="p-2 px-3 border-t bg-purple-50">
+                <div className="flex justify-between items-center mb-0.5 text-sm">
                   <span className="text-gray-600">Subtotal:</span>
                   <span className="font-semibold">{formatCurrency(subtotal)}</span>
                 </div>
@@ -505,12 +505,12 @@ const Deliveries: React.FC = () => {
                     <span className="font-semibold">{formatCurrency(fee)}</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-lg font-bold">TOTAL:</span>
-                  <span className="text-xl font-bold text-purple-600">{formatCurrency(grandTotal)}</span>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-base font-bold">TOTAL:</span>
+                  <span className="text-lg font-bold text-purple-600">{formatCurrency(grandTotal)}</span>
                 </div>
                 <Button
-                  className="w-full h-12 text-base font-bold bg-purple-600 hover:bg-purple-700"
+                  className="w-full h-10 text-sm font-bold bg-purple-600 hover:bg-purple-700"
                   disabled={items.length === 0 || !customerName || !customerPhone || !customerAddress}
                   onClick={() => setShowPayment(true)}
                 >
