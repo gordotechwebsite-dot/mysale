@@ -252,22 +252,10 @@ const Deliveries: React.FC = () => {
 
 
   return (
-    <div className="h-[calc(100vh-100px)] flex flex-col gap-1">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-            <Bike className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-800">Domicilios</h1>
-            <p className="text-sm text-gray-500">Registra ventas para envio a domicilio</p>
-          </div>
-        </div>
-      </div>
-
+    <div className="h-[calc(100vh-80px)] -mt-4 flex flex-col">
       <div className="flex-1 flex flex-col">
         <div className="flex-1">
-          <div className="flex gap-4 h-full">
+          <div className="flex gap-3 h-full">
             {/* Product selection - left */}
             <div className="flex-1 flex flex-col">
               <div className="mb-4">
