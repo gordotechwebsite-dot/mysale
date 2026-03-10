@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useCart } from '../context/CartContext';
-import { getProducts, getLocations, getDeliveries, createDelivery, updateDeliveryStatus } from '../api';
+import { getProducts, getLocations, getDeliveries, createDelivery } from '../api';
 import type { Product, Location, Delivery } from '../types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -20,20 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Search,
   Plus,
@@ -81,8 +67,8 @@ const Deliveries: React.FC = () => {
   const [notes, setNotes] = useState('');
 
   // Delivery list
-  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
-  const [statusFilter, setStatusFilter] = useState('all');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
 
   useEffect(() => {
@@ -142,9 +128,7 @@ const Deliveries: React.FC = () => {
 
   const loadDeliveries = async () => {
     try {
-      const params: Record<string, string> = {};
-      if (statusFilter !== 'all') params.delivery_status = statusFilter;
-      const data = await getDeliveries(params);
+      const data = await getDeliveries();
       setDeliveries(data);
     } catch (error) {
       console.error('Error loading deliveries:', error);
@@ -220,15 +204,6 @@ const Deliveries: React.FC = () => {
     }
   };
 
-  const handleStatusChange = async (deliveryId: number, newStatus: 'pending' | 'preparing' | 'in_transit' | 'delivered' | 'cancelled') => {
-    try {
-      await updateDeliveryStatus(deliveryId, { delivery_status: newStatus });
-      await loadDeliveries();
-      setSelectedDelivery(null);
-    } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al actualizar estado');
-    }
-  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -269,12 +244,9 @@ const Deliveries: React.FC = () => {
     );
   };
 
-  const filteredDeliveries = statusFilter === 'all'
-    ? deliveries
-    : deliveries.filter(d => d.delivery_status === statusFilter);
 
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col gap-4">
+    <div className="h-[calc(100vh-180px)] flex flex-col gap-4 pb-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
@@ -305,13 +277,8 @@ const Deliveries: React.FC = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="new" className="flex-1 flex flex-col">
-        <TabsList>
-          <TabsTrigger value="new">Nuevo Domicilio</TabsTrigger>
-          <TabsTrigger value="orders">Pedidos ({deliveries.length})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="new" className="flex-1">
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1">
           <div className="flex gap-4 h-full">
             {/* Product selection - left */}
             <div className="flex-1 flex flex-col">
@@ -514,107 +481,8 @@ const Deliveries: React.FC = () => {
               </div>
             </Card>
           </div>
-        </TabsContent>
-
-        <TabsContent value="orders" className="flex-1">
-          <Card className="h-full flex flex-col">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Bike className="w-5 h-5" />
-                  Pedidos de Domicilio
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); }}>
-                    <SelectTrigger className="w-44">
-                      <SelectValue placeholder="Filtrar por estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="pending">Pendiente</SelectItem>
-                      <SelectItem value="preparing">Preparando</SelectItem>
-                      <SelectItem value="in_transit">En Camino</SelectItem>
-                      <SelectItem value="delivered">Entregado</SelectItem>
-                      <SelectItem value="cancelled">Cancelado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button variant="outline" onClick={loadDeliveries}>
-                    Actualizar
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="flex-1 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Folio</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Direccion</TableHead>
-                    <TableHead>Domiciliario</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredDeliveries.map((delivery) => (
-                    <TableRow key={delivery.id} className="cursor-pointer hover:bg-gray-50" onClick={() => setSelectedDelivery(delivery)}>
-                      <TableCell className="font-mono text-sm">{delivery.folio}</TableCell>
-                      <TableCell className="text-sm">{formatDateTime(delivery.created_at)}</TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-sm">{delivery.customer_name}</p>
-                          <p className="text-xs text-gray-500 flex items-center gap-1">
-                            <Phone className="w-3 h-3" /> {delivery.customer_phone}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm max-w-[200px] truncate">{delivery.customer_address}</TableCell>
-                      <TableCell className="text-sm">{delivery.delivery_person || '-'}</TableCell>
-                      <TableCell className="font-semibold">{formatCurrency(delivery.grand_total)}</TableCell>
-                      <TableCell>{getStatusBadge(delivery.delivery_status)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          {delivery.delivery_status === 'pending' && (
-                            <Button size="sm" className="bg-orange-500 hover:bg-orange-600 h-7 text-xs" onClick={(e) => { e.stopPropagation(); handleStatusChange(delivery.id, 'preparing'); }}>
-                              <ChefHat className="w-3 h-3 mr-1" /> Preparar
-                            </Button>
-                          )}
-                          {delivery.delivery_status === 'preparing' && (
-                            <Button size="sm" className="bg-blue-500 hover:bg-blue-600 h-7 text-xs" onClick={(e) => { e.stopPropagation(); handleStatusChange(delivery.id, 'in_transit'); }}>
-                              <Truck className="w-3 h-3 mr-1" /> Enviar
-                            </Button>
-                          )}
-                          {delivery.delivery_status === 'in_transit' && (
-                            <Button size="sm" className="bg-green-500 hover:bg-green-600 h-7 text-xs" onClick={(e) => { e.stopPropagation(); handleStatusChange(delivery.id, 'delivered'); }}>
-                              <Check className="w-3 h-3 mr-1" /> Entregado
-                            </Button>
-                          )}
-                          {(delivery.delivery_status === 'pending' || delivery.delivery_status === 'preparing') && (
-                            <Button size="sm" variant="ghost" className="text-red-500 h-7 text-xs" onClick={(e) => { e.stopPropagation(); handleStatusChange(delivery.id, 'cancelled'); }}>
-                              <X className="w-3 h-3" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {filteredDeliveries.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-12 text-gray-400">
-                        <Bike className="w-12 h-12 mx-auto mb-3" />
-                        <p>No hay pedidos de domicilio</p>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       {/* Payment Dialog */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
