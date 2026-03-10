@@ -28,7 +28,8 @@ import {
   LucideIcon,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  ChevronDown
 } from 'lucide-react';
 
 // Branch option type for selection
@@ -652,6 +653,11 @@ const Layout: React.FC = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [pinModalOpen, setPinModalOpen] = React.useState(false);
+  const [collapsedGroups, setCollapsedGroups] = React.useState<Record<string, boolean>>({});
+
+  const toggleGroup = (group: string) => {
+    setCollapsedGroups(prev => ({ ...prev, [group]: !prev[group] }));
+  };
 
   const handleLogout = () => {
     logout();
@@ -746,44 +752,72 @@ const Layout: React.FC = () => {
         {/* Navigation - Premium Style with scroll, grouped by usage */}
         <nav className="flex-1 overflow-y-auto px-4 py-3" style={{ minHeight: 0 }}>
           {(() => {
-            let lastGroup = '';
-            return menuItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              const showGroupLabel = item.group !== lastGroup;
-              lastGroup = item.group;
+            // Group menu items by their group
+            const groups: Record<string, typeof menuItems> = {};
+            menuItems.forEach((item) => {
+              if (!groups[item.group]) groups[item.group] = [];
+              groups[item.group].push(item);
+            });
+            // Maintain order based on first item in each group
+            const groupOrder = Object.keys(groups);
+
+            return groupOrder.map((group) => {
+              const isCollapsed = collapsedGroups[group] || false;
+              const groupItems = groups[group];
+              const hasActiveItem = groupItems.some(item => location.pathname === item.path);
+
               return (
-                <React.Fragment key={item.path}>
-                  {showGroupLabel && (
-                    <p className="text-xs font-semibold uppercase tracking-wider px-4 pt-3 pb-1" style={{ color: '#9ca3af' }}>
-                      {item.group}
-                    </p>
-                  )}
-                  <Link
-                    to={item.path}
-                    onClick={() => setSidebarOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 mb-1 transition-all duration-200"
-                    style={{ 
-                      borderRadius: '10px',
-                      backgroundColor: isActive ? 'rgba(0, 168, 107, 0.1)' : 'transparent',
-                      color: isActive ? '#00a86b' : '#6b7280'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 168, 107, 0.06)';
-                        (e.currentTarget as HTMLElement).style.color = '#00a86b';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
-                        (e.currentTarget as HTMLElement).style.color = '#6b7280';
-                      }
-                    }}
+                <div key={group}>
+                  <button
+                    onClick={() => toggleGroup(group)}
+                    className="w-full flex items-center justify-between px-4 pt-3 pb-1 cursor-pointer hover:opacity-80 transition-opacity"
                   >
-                    <item.icon size={18} strokeWidth={1.5} />
-                    <span className="text-sm" style={{ fontWeight: isActive ? 500 : 400 }}>{item.label}</span>
-                  </Link>
-                </React.Fragment>
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#9ca3af' }}>
+                      {group}
+                    </span>
+                    <ChevronDown
+                      size={14}
+                      className={`transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
+                      style={{ color: '#9ca3af' }}
+                    />
+                  </button>
+                  {(!isCollapsed || hasActiveItem) && (
+                    <div className={`transition-all duration-200 ${isCollapsed ? 'opacity-50' : ''}`}>
+                      {groupItems.map((item) => {
+                        const isActive = location.pathname === item.path;
+                        if (isCollapsed && !isActive) return null;
+                        return (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            onClick={() => setSidebarOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 mb-1 transition-all duration-200"
+                            style={{ 
+                              borderRadius: '10px',
+                              backgroundColor: isActive ? 'rgba(0, 168, 107, 0.1)' : 'transparent',
+                              color: isActive ? '#00a86b' : '#6b7280'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isActive) {
+                                (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 168, 107, 0.06)';
+                                (e.currentTarget as HTMLElement).style.color = '#00a86b';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isActive) {
+                                (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                                (e.currentTarget as HTMLElement).style.color = '#6b7280';
+                              }
+                            }}
+                          >
+                            <item.icon size={18} strokeWidth={1.5} />
+                            <span className="text-sm" style={{ fontWeight: isActive ? 500 : 400 }}>{item.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             });
           })()}
