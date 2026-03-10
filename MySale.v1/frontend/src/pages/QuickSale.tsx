@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { getProducts, getLocations, createSale, decodeWeightedBarcode } from '../api';
-import type { Product, Location } from '../types';
+import type { Product } from '../types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,13 +13,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Search,
   Plus,
@@ -38,11 +32,12 @@ import {
 
 const QuickSale: React.FC = () => {
   const { items, addItem, removeItem, updateQuantity, clearCart, total, subtotal } = useCart();
+  const { user } = useAuth();
   const searchRef = useRef<HTMLInputElement>(null);
   
   const [products, setProducts] = useState<Product[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
+  const [locationName, setLocationName] = useState<string>('');
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -86,9 +81,14 @@ const QuickSale: React.FC = () => {
     try {
       const locs = await getLocations();
       const posLocations = locs.filter(l => l.location_type === 'pos');
-      setLocations(posLocations);
-      if (posLocations.length > 0) {
+      // Use user's assigned location if available, otherwise first POS location
+      if (user?.location_id) {
+        setSelectedLocation(user.location_id);
+        const userLoc = locs.find(l => l.id === user.location_id);
+        if (userLoc) setLocationName(userLoc.name);
+      } else if (posLocations.length > 0) {
         setSelectedLocation(posLocations[0].id);
+        setLocationName(posLocations[0].name);
       }
     } catch (error) {
       console.error('Error loading locations:', error);
@@ -233,24 +233,12 @@ const QuickSale: React.FC = () => {
             <p className="text-sm text-gray-500">Selecciona productos y cobra al instante</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Punto de Venta:</span>
-          <Select
-            value={selectedLocation?.toString() || ''}
-            onValueChange={(value) => setSelectedLocation(parseInt(value))}
-          >
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Seleccionar ubicacion" />
-            </SelectTrigger>
-            <SelectContent>
-              {locations.map((loc) => (
-                <SelectItem key={loc.id} value={loc.id.toString()}>
-                  {loc.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {locationName && (
+          <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-lg">
+            <span className="text-sm text-gray-500">Sucursal:</span>
+            <span className="text-sm font-semibold text-gray-800">{locationName}</span>
+          </div>
+        )}
       </div>
 
       <div className="flex-1 flex gap-4">
