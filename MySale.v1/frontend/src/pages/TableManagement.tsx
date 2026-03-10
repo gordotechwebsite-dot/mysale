@@ -77,7 +77,7 @@ export default function TableManagement() {
   const [showTableDialog, setShowTableDialog] = useState(false);
   const [showTicketDialog, setShowTicketDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [moveMode, setMoveMode] = useState(false);
   const [showTableMenu, setShowTableMenu] = useState(false);
   const [showReserveDialog, setShowReserveDialog] = useState(false);
   const [showPeopleDialog, setShowPeopleDialog] = useState(false);
@@ -132,6 +132,7 @@ export default function TableManagement() {
 
   // Store ticket ID for move operation (ref survives re-renders)
   const moveTicketIdRef = useRef<number | null>(null);
+  const moveSourceTableRef = useRef<string>('');
 
   // Floor plan drag state
   const floorPlanRef = useRef<HTMLDivElement>(null);
@@ -400,6 +401,16 @@ export default function TableManagement() {
   };
 
   const handleTableClick = async (table: Table) => {
+    // If in move mode, clicking a free table moves the ticket there
+    if (moveMode) {
+      if (isTableFree(table.status)) {
+        await handleMoveTicket(table.id);
+      } else {
+        toast.error('Esa mesa ya está ocupada. Seleccione una mesa libre.');
+      }
+      return;
+    }
+
     if (editMode) {
       setEditingTable(table);
       setTableName(table.name);
@@ -455,7 +466,9 @@ export default function TableManagement() {
       case 'change_table':
         if (currentTicket) {
           moveTicketIdRef.current = currentTicket.id;
-          setShowMoveDialog(true);
+          moveSourceTableRef.current = selectedTable?.name || '';
+          setMoveMode(true);
+          toast('Toque la mesa destino para mover la cuenta', { icon: '👆', duration: 5000 });
         } else {
           toast.error('No hay cuenta activa para mover');
         }
@@ -655,20 +668,25 @@ export default function TableManagement() {
     const ticketId = moveTicketIdRef.current || currentTicket?.id;
     if (!ticketId) {
       toast.error('No hay cuenta activa para mover');
+      setMoveMode(false);
       return;
     }
     try {
       await moveTicket(ticketId, targetTableId);
       toast.success('Cuenta movida exitosamente');
-      setShowMoveDialog(false);
+      setMoveMode(false);
       setShowTicketDialog(false);
       setCurrentTicket(null);
       setSelectedTable(null);
       moveTicketIdRef.current = null;
+      moveSourceTableRef.current = '';
       loadZones();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       toast.error(err.response?.data?.detail || 'Error al mover cuenta');
+      setMoveMode(false);
+      moveTicketIdRef.current = null;
+      moveSourceTableRef.current = '';
     }
   };
 
@@ -707,7 +725,7 @@ export default function TableManagement() {
     setQuantityInput('');
   };
 
-  const freeTables = zones.flatMap(z => z.tables).filter(t => isTableFree(t.status) && t.id !== selectedTable?.id);
+  // freeTables used by move mode to validate target
 
   const handleExitOrderMode = () => {
     setOrderMode(false);
@@ -947,8 +965,13 @@ export default function TableManagement() {
                   variant="outline"
                   className="h-12 text-lg"
                   onClick={() => {
-                    if (currentTicket) moveTicketIdRef.current = currentTicket.id;
-                    setShowMoveDialog(true);
+                    if (currentTicket) {
+                      moveTicketIdRef.current = currentTicket.id;
+                      moveSourceTableRef.current = selectedTable?.name || '';
+                      setMoveMode(true);
+                      setOrderMode(false);
+                      toast('Toque la mesa destino para mover la cuenta', { icon: '\ud83d\udc46', duration: 5000 });
+                    }
                   }}
                 >
                   <ArrowRightLeft className="w-5 h-5 mr-2" />
@@ -1194,6 +1217,20 @@ export default function TableManagement() {
             Arrastra para mover · Clic en
             <RotateCw className="w-3 h-3 inline" />
             para rotar
+          </div>
+        )}
+
+        {/* Move mode banner */}
+        {moveMode && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-amber-500 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-pulse">
+            <ArrowRightLeft className="w-5 h-5" />
+            <span className="font-semibold">Moviendo {moveSourceTableRef.current} — Toque la mesa destino</span>
+            <button
+              onClick={() => { setMoveMode(false); moveTicketIdRef.current = null; moveSourceTableRef.current = ''; }}
+              className="ml-2 bg-white/20 hover:bg-white/30 rounded-lg px-3 py-1 text-sm font-medium"
+            >
+              Cancelar
+            </button>
           </div>
         )}
 
@@ -1714,8 +1751,13 @@ export default function TableManagement() {
                     variant="outline"
                     className="text-xs"
                     onClick={() => {
-                      if (currentTicket) moveTicketIdRef.current = currentTicket.id;
-                      setShowMoveDialog(true);
+                      if (currentTicket) {
+                        moveTicketIdRef.current = currentTicket.id;
+                        moveSourceTableRef.current = selectedTable?.name || '';
+                        setMoveMode(true);
+                        setShowTicketDialog(false);
+                        toast('Toque la mesa destino para mover la cuenta', { icon: '\ud83d\udc46', duration: 5000 });
+                      }
                     }}
                   >
                     <ArrowRightLeft className="w-3 h-3 mr-1" />
@@ -1818,44 +1860,6 @@ export default function TableManagement() {
               disabled={paymentAmount < (currentTicket?.total || 0)}
             >
               Confirmar Pago
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
-        <DialogContent className="bg-white text-slate-800 border-slate-200 max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-slate-900">Mover Cuenta a Otra Mesa</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-slate-500">Seleccionar mesa destino:</p>
-            {freeTables.length === 0 ? (
-              <p className="text-slate-400 text-sm text-center py-4">No hay mesas disponibles</p>
-            ) : (
-              <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
-                {freeTables.map(table => (
-                  <button
-                    key={table.id}
-                    type="button"
-                    onClick={() => handleMoveTicket(table.id)}
-                    className="px-3 py-3 bg-slate-50 hover:bg-emerald-50 rounded-lg text-sm font-semibold transition-colors border border-slate-200 hover:border-emerald-400 text-slate-700 hover:text-emerald-700"
-                  >
-                    {table.name}
-                    <span className="block text-xs font-normal text-slate-400 mt-0.5">{table.zone_name || 'Sin zona'}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => { setShowMoveDialog(false); moveTicketIdRef.current = null; }}
-              className="border-slate-300 text-slate-700 hover:bg-slate-100"
-            >
-              Cancelar
             </Button>
           </DialogFooter>
         </DialogContent>
