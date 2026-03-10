@@ -619,6 +619,8 @@ export const updateTable = async (id: number, data: {
   width?: number;
   height?: number;
   rotation?: number;
+  reserved_by?: string;
+  reserved_time?: string;
   is_active?: boolean;
 }): Promise<Table> => {
   const response = await api.put(`/api/tables/${id}`, data);

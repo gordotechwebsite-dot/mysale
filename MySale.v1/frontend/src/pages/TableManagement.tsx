@@ -80,6 +80,7 @@ export default function TableManagement() {
   const [moveMode, setMoveMode] = useState(false);
   const [showTableMenu, setShowTableMenu] = useState(false);
   const [showReserveDialog, setShowReserveDialog] = useState(false);
+  const [showViewReservationDialog, setShowViewReservationDialog] = useState(false);
   const [showPeopleDialog, setShowPeopleDialog] = useState(false);
   const [reservationName, setReservationName] = useState('');
   const [reservationTime, setReservationTime] = useState('');
@@ -459,9 +460,13 @@ export default function TableManagement() {
         }
         break;
       case 'reserve':
-        setReservationName('');
-        setReservationTime('');
-        setShowReserveDialog(true);
+        if (selectedTable?.status === 'reserved') {
+          setShowViewReservationDialog(true);
+        } else {
+          setReservationName('');
+          setReservationTime('');
+          setShowReserveDialog(true);
+        }
         break;
       case 'change_table':
         console.log('[MOVE] change_table action, currentTicket:', currentTicket?.id, 'selectedTable:', selectedTable?.name);
@@ -507,7 +512,11 @@ export default function TableManagement() {
   const handleReserveTable = async () => {
     if (!selectedTable) return;
     try {
-      await updateTable(selectedTable.id, { status: 'reserved' });
+      await updateTable(selectedTable.id, {
+        status: 'reserved',
+        reserved_by: reservationName || undefined,
+        reserved_time: reservationTime || undefined,
+      });
       toast.success(`Mesa ${selectedTable.name} reservada para ${reservationName}`);
       setShowReserveDialog(false);
       setSelectedTable(null);
@@ -515,6 +524,24 @@ export default function TableManagement() {
     } catch (error) {
       console.error('Error reserving table:', error);
       toast.error('Error al reservar la mesa');
+    }
+  };
+
+  const handleCancelReservation = async () => {
+    if (!selectedTable) return;
+    try {
+      await updateTable(selectedTable.id, {
+        status: 'available',
+        reserved_by: '',
+        reserved_time: '',
+      });
+      toast.success(`Reserva de ${selectedTable.name} cancelada`);
+      setShowViewReservationDialog(false);
+      setSelectedTable(null);
+      loadZones();
+    } catch (error) {
+      console.error('Error cancelling reservation:', error);
+      toast.error('Error al cancelar la reserva');
     }
   };
 
@@ -1997,7 +2024,7 @@ export default function TableManagement() {
               onClick={() => handleMenuAction('reserve')}
               className="px-4 py-3 hover:bg-slate-200 border-b border-slate-300 font-semibold text-slate-700 text-center"
             >
-              RESERVAR
+              {selectedTable?.status === 'reserved' ? 'VER RESERVA' : 'RESERVAR'}
             </button>
             <button
               onClick={() => handleMenuAction('change_table')}
@@ -2058,6 +2085,49 @@ export default function TableManagement() {
             </Button>
             <Button onClick={handleReserveTable} disabled={!reservationName}>
               Reservar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showViewReservationDialog} onOpenChange={setShowViewReservationDialog}>
+        <DialogContent className="bg-white text-gray-900 border-gray-200 rounded-xl shadow-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-gray-900">Reserva - {selectedTable?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Reservado por</p>
+                  <p className="text-base font-bold text-gray-900">{selectedTable?.reserved_by || 'Sin nombre'}</p>
+                </div>
+              </div>
+              {selectedTable?.reserved_time && (
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium">Hora de la reserva</p>
+                    <p className="text-base font-bold text-gray-900">{selectedTable.reserved_time}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowViewReservationDialog(false)} className="border-gray-300 text-gray-700">
+              Cerrar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancelReservation}
+            >
+              Cancelar Reserva
             </Button>
           </DialogFooter>
         </DialogContent>

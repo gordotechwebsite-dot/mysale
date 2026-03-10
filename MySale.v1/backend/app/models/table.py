@@ -83,6 +83,8 @@ class Table(Base):
     width = Column(Integer, default=100)
     height = Column(Integer, default=100)
     rotation = Column(Integer, default=0)
+    reserved_by = Column(String(100), nullable=True)
+    reserved_time = Column(String(10), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

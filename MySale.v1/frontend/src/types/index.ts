@@ -386,12 +386,14 @@ export interface Table {
   zone_name?: string;
   capacity: number;
   shape: 'square' | 'pair' | 'rectangle';
-  status: 'free' | 'occupied' | 'bill_open' | 'to_pay' | 'paid';
+  status: 'free' | 'occupied' | 'bill_open' | 'to_pay' | 'paid' | 'reserved';
   position_x: number;
   position_y: number;
   width: number;
   height: number;
   rotation: number;
+  reserved_by?: string | null;
+  reserved_time?: string | null;
   is_active: boolean;
   created_at: string;
   current_ticket_id?: number | null;

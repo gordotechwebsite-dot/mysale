@@ -73,6 +73,8 @@ def get_table_response(table: Table, db: Session) -> TableResponse:
         width=table.width,
         height=table.height,
         rotation=table.rotation or 0,
+        reserved_by=table.reserved_by,
+        reserved_time=table.reserved_time,
         is_active=table.is_active,
         created_at=table.created_at,
         current_ticket_id=current_ticket.id if current_ticket else None,
@@ -307,6 +309,10 @@ async def update_table(
         table.height = data.height
     if data.rotation is not None:
         table.rotation = data.rotation
+    if data.reserved_by is not None:
+        table.reserved_by = data.reserved_by
+    if data.reserved_time is not None:
+        table.reserved_time = data.reserved_time
     if data.is_active is not None:
         table.is_active = data.is_active
     
