@@ -405,6 +405,57 @@ const Deliveries: React.FC = () => {
                 </div>
               </div>
 
+              {/* Payment method */}
+              <div className="p-3 border-b space-y-2">
+                <h4 className="text-sm font-semibold text-gray-600 flex items-center gap-1">
+                  <CreditCard className="w-4 h-4" /> Método de Pago
+                </h4>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setPaymentMethod('cash')}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all text-sm ${
+                      paymentMethod === 'cash'
+                        ? 'border-purple-600 bg-purple-50 text-purple-700'
+                        : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                    }`}
+                  >
+                    <Banknote className="w-5 h-5" />
+                    <span className="font-medium">Efectivo</span>
+                  </button>
+                  <button
+                    onClick={() => setPaymentMethod('transfer')}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all text-sm ${
+                      paymentMethod === 'transfer'
+                        ? 'border-purple-600 bg-purple-50 text-purple-700'
+                        : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                    }`}
+                  >
+                    <Smartphone className="w-5 h-5" />
+                    <span className="font-medium">Nequi</span>
+                  </button>
+                  <button
+                    onClick={() => setPaymentMethod('card')}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all text-sm ${
+                      paymentMethod === 'card'
+                        ? 'border-purple-600 bg-purple-50 text-purple-700'
+                        : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                    }`}
+                  >
+                    <CreditCard className="w-5 h-5" />
+                    <span className="font-medium">Bre-B</span>
+                  </button>
+                </div>
+                {paymentMethod === 'cash' && (
+                  <Input
+                    type="number"
+                    placeholder="Monto recibido (opcional)"
+                    value={amountReceived}
+                    onChange={(e) => setAmountReceived(e.target.value)}
+                    className="h-9 text-sm"
+                  />
+                )}
+              </div>
+
               {/* Cart items */}
               <div className="flex-1 overflow-auto p-3">
                 {items.length === 0 ? (
