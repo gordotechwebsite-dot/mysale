@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { useShift } from '../context/ShiftContext';
 import { getProducts, getLocations, getDeliveries, createDelivery } from '../api';
-import type { Product, Location, Delivery } from '../types';
+import type { Product, Delivery } from '../types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,13 +15,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Search,
   Plus,
@@ -44,11 +39,15 @@ import {
 
 const Deliveries: React.FC = () => {
   const { items, addItem, removeItem, updateQuantity, clearCart, total, subtotal } = useCart();
+  const { user } = useAuth();
+  const { currentShift } = useShift();
   const searchRef = useRef<HTMLInputElement>(null);
 
+  // Use shift location, then user location, then first POS location as fallback
+  const sessionLocationId = currentShift?.location_id || user?.location_id || null;
+
   const [products, setProducts] = useState<Product[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<number | null>(sessionLocationId);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -74,6 +73,13 @@ const Deliveries: React.FC = () => {
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  // Update selectedLocation when session location changes
+  useEffect(() => {
+    if (sessionLocationId && !selectedLocation) {
+      setSelectedLocation(sessionLocationId);
+    }
+  }, [sessionLocationId]);
 
   useEffect(() => {
     if (selectedLocation) {
@@ -101,9 +107,9 @@ const Deliveries: React.FC = () => {
         getDeliveries()
       ]);
       const posLocations = locs.filter(l => l.location_type === 'pos');
-      setLocations(posLocations);
       setDeliveries(deliveriesData);
-      if (posLocations.length > 0) {
+      // If no session location, fallback to first POS location
+      if (!selectedLocation && posLocations.length > 0) {
         setSelectedLocation(posLocations[0].id);
       }
     } catch (error) {
@@ -256,24 +262,6 @@ const Deliveries: React.FC = () => {
             <h1 className="text-xl font-bold text-gray-800">Domicilios</h1>
             <p className="text-sm text-gray-500">Registra ventas para envio a domicilio</p>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Punto de Venta:</span>
-          <Select
-            value={selectedLocation?.toString() || ''}
-            onValueChange={(value) => setSelectedLocation(parseInt(value))}
-          >
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Seleccionar ubicacion" />
-            </SelectTrigger>
-            <SelectContent>
-              {locations.map((loc) => (
-                <SelectItem key={loc.id} value={loc.id.toString()}>
-                  {loc.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
