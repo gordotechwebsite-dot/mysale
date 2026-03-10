@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import engine, Base, SessionLocal
 from app.models import *
-from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants, integration, faq, biometric, branches
+from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants, integration, faq, biometric, branches, deliveries
 from app.routers.tenants import public_router as tenants_public_router
 
 
@@ -114,6 +114,27 @@ def run_migrations():
                 db.execute(text("ALTER TABLE tenants ADD COLUMN pos_password VARCHAR(100)"))
                 db.commit()
                 print("Migration: Added pos_password column to tenants table")
+        
+        # Add delivery columns to sales table
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='sales'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(sales)"))
+            sale_cols = [row[1] for row in result.fetchall()]
+            
+            for col_name, col_def in [
+                ('sale_type', "VARCHAR(20) DEFAULT 'regular'"),
+                ('customer_name', 'VARCHAR(200)'),
+                ('customer_phone', 'VARCHAR(50)'),
+                ('customer_address', 'TEXT'),
+                ('delivery_person', 'VARCHAR(200)'),
+                ('delivery_fee', 'FLOAT DEFAULT 0.0'),
+                ('delivery_status', 'VARCHAR(20)'),
+                ('delivered_at', 'DATETIME'),
+            ]:
+                if col_name not in sale_cols:
+                    db.execute(text(f"ALTER TABLE sales ADD COLUMN {col_name} {col_def}"))
+                    db.commit()
+                    print(f"Migration: Added {col_name} column to sales table")
         
         # Add rotation column to tables table
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='tables'"))
@@ -292,6 +313,7 @@ def run_migrations():
                     {"code": "branches", "name": "Sedes", "description": "Gestión de sedes y sucursales del negocio", "icon": "Building2", "route": "/branches", "display_order": 14, "is_core": False},
                     {"code": "work_report", "name": "Horas Trabajadas", "description": "Reporte de horas trabajadas por empleado", "icon": "ClipboardList", "route": "/work-report", "display_order": 15, "is_core": False},
                     {"code": "super_admin", "name": "Super Admin", "description": "Panel de administración de tenants", "icon": "Shield", "route": "/super-admin", "display_order": 16, "is_core": False},
+                    {"code": "deliveries", "name": "Domicilios", "description": "Registro y seguimiento de ventas a domicilio", "icon": "Bike", "route": "/deliveries", "display_order": 5, "is_core": False},
                 ]
         
         for module_data in all_modules:
@@ -370,6 +392,7 @@ app.include_router(tenants_public_router)
 app.include_router(integration.router)
 app.include_router(faq.router)
 app.include_router(biometric.router)
+app.include_router(deliveries.router)
 
 
 @app.get("/healthz")

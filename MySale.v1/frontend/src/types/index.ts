@@ -242,6 +242,46 @@ export interface TransferItem {
   total_value: number;
 }
 
+export interface Delivery {
+  id: number;
+  folio: string;
+  location_id: number;
+  location_name?: string;
+  shift_id: number;
+  cashier_id: number;
+  cashier_name?: string;
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  delivery_fee: number;
+  grand_total: number;
+  payment_method: string;
+  amount_received?: number;
+  change_given?: number;
+  notes?: string;
+  sale_type: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_address?: string;
+  delivery_person?: string;
+  delivery_status?: 'pending' | 'preparing' | 'in_transit' | 'delivered' | 'cancelled';
+  delivered_at?: string;
+  created_at: string;
+  items: DeliveryItem[];
+}
+
+export interface DeliveryItem {
+  id: number;
+  product_id: number;
+  product_name?: string;
+  product_code?: string;
+  quantity: number;
+  unit_price: number;
+  discount: number;
+  subtotal: number;
+}
+
 export interface Expense {
   id: number;
   location_id: number | null;

@@ -1,7 +1,7 @@
 import api from './client';
 import type {
   User, Role, Location, Group, Family, SubFamily, Product,
-  Shift, Sale, CashCut, CashDenomination, Loss, Transfer, Expense,
+  Shift, Sale, CashCut, CashDenomination, Loss, Transfer, Expense, Delivery,
   ShiftAlert, DashboardData, CostEntry, CostConfig, CostCalculation, CostApplication,
   Zone, Table, ZoneWithTables, Ticket, Comanda, TicketPayment,
   Module, Tenant, TenantListItem, TenantPayment, AdminDashboard,
@@ -1206,5 +1206,38 @@ export const autoClockIn = async (): Promise<WorkSession | null> => {
 
 export const autoClockOut = async (): Promise<{ message: string; total_minutes?: number }> => {
   const response = await api.post('/api/branches/auto-clock-out');
+  return response.data;
+};
+
+// Deliveries (Domicilios)
+export const getDeliveries = async (params?: {
+  delivery_status?: string;
+  start_date?: string;
+  end_date?: string;
+}): Promise<Delivery[]> => {
+  const response = await api.get('/api/deliveries/', { params });
+  return response.data;
+};
+
+export const createDelivery = async (data: {
+  payment_method: 'cash' | 'card' | 'transfer';
+  items: { product_id: number; quantity: number; discount?: number }[];
+  customer_name: string;
+  customer_phone: string;
+  customer_address: string;
+  delivery_person?: string;
+  delivery_fee?: number;
+  amount_received?: number;
+  notes?: string;
+}): Promise<Delivery> => {
+  const response = await api.post('/api/deliveries/', data);
+  return response.data;
+};
+
+export const updateDeliveryStatus = async (id: number, data: {
+  delivery_status: 'pending' | 'preparing' | 'in_transit' | 'delivered' | 'cancelled';
+  delivery_person?: string;
+}): Promise<Delivery> => {
+  const response = await api.put(`/api/deliveries/${id}/status`, data);
   return response.data;
 };

@@ -24,6 +24,7 @@ import {
   Banknote,
   Building2,
   ClipboardList,
+  Bike,
   LucideIcon,
   CheckCircle,
   XCircle,
@@ -569,6 +570,7 @@ const moduleIcons: Record<string, LucideIcon> = {
   branches: Building2,
   work_report: ClipboardList,
   super_admin: Shield,
+  deliveries: Bike,
 };
 
 // Map module codes to routes
@@ -590,6 +592,7 @@ const moduleRoutes: Record<string, string> = {
   work_report: '/work-report',
   super_admin: '/super-admin',
   locations_admin: '/locations',
+  deliveries: '/deliveries',
 };
 
 // Modules that require admin role
