@@ -112,7 +112,6 @@ export default function TableManagement() {
   const [paymentReference, setPaymentReference] = useState('');
   const [tip, setTip] = useState(0);
 
-  const [moveTargetTable, setMoveTargetTable] = useState<number | null>(null);
   const [openingTicket, setOpeningTicket] = useState(false);
 
   // Real-time clock for table timers
@@ -452,7 +451,6 @@ export default function TableManagement() {
         break;
       case 'change_table':
         if (currentTicket) {
-          setMoveTargetTable(null);
           setShowMoveDialog(true);
         } else {
           toast.error('No hay cuenta activa para mover');
@@ -649,10 +647,14 @@ export default function TableManagement() {
     }
   };
 
-  const handleMoveTicket = async () => {
-    if (!currentTicket || !moveTargetTable) return;
+  const handleMoveTicket = async (targetTableId: number) => {
+    const ticketToMove = currentTicket;
+    if (!ticketToMove) {
+      toast.error('No hay cuenta activa para mover');
+      return;
+    }
     try {
-      await moveTicket(currentTicket.id, moveTargetTable);
+      await moveTicket(ticketToMove.id, targetTableId);
       toast.success('Cuenta movida exitosamente');
       setShowMoveDialog(false);
       setShowTicketDialog(false);
@@ -940,7 +942,6 @@ export default function TableManagement() {
                   variant="outline"
                   className="h-12 text-lg"
                   onClick={() => {
-                    setMoveTargetTable(null);
                     setShowMoveDialog(true);
                   }}
                 >
@@ -1707,7 +1708,6 @@ export default function TableManagement() {
                     variant="outline"
                     className="text-xs"
                     onClick={() => {
-                      setMoveTargetTable(null);
                       setShowMoveDialog(true);
                     }}
                   >
@@ -1822,31 +1822,27 @@ export default function TableManagement() {
             <DialogTitle>Mover Cuenta a Otra Mesa</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label>Seleccionar Mesa Destino</Label>
-              <Select
-                value={moveTargetTable?.toString() || ''}
-                onValueChange={(v) => setMoveTargetTable(parseInt(v))}
-              >
-                <SelectTrigger className="bg-slate-700 border-slate-600">
-                  <SelectValue placeholder="Seleccionar mesa" />
-                </SelectTrigger>
-                <SelectContent>
-                  {freeTables.map(table => (
-                    <SelectItem key={table.id} value={table.id.toString()}>
-                      {table.name} ({table.zone_name || 'Sin zona'})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Label>Seleccionar Mesa Destino</Label>
+            {freeTables.length === 0 ? (
+              <p className="text-slate-400 text-sm">No hay mesas disponibles</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+                {freeTables.map(table => (
+                  <button
+                    key={table.id}
+                    onClick={() => handleMoveTicket(table.id)}
+                    className="px-3 py-2 bg-slate-700 hover:bg-emerald-600 rounded-lg text-sm font-medium transition-colors border border-slate-600 hover:border-emerald-500"
+                  >
+                    {table.name}
+                    <span className="block text-xs text-slate-400">{table.zone_name || 'Sin zona'}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowMoveDialog(false)}>
               Cancelar
-            </Button>
-            <Button onClick={handleMoveTicket} disabled={!moveTargetTable}>
-              Mover Cuenta
             </Button>
           </DialogFooter>
         </DialogContent>
