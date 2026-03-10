@@ -147,6 +147,16 @@ def run_migrations():
                 db.commit()
                 print("Migration: Added rotation column to tables table")
             
+            if 'reserved_by' not in table_cols:
+                db.execute(text("ALTER TABLE tables ADD COLUMN reserved_by VARCHAR(100)"))
+                db.commit()
+                print("Migration: Added reserved_by column to tables table")
+            
+            if 'reserved_time' not in table_cols:
+                db.execute(text("ALTER TABLE tables ADD COLUMN reserved_time VARCHAR(10)"))
+                db.commit()
+                print("Migration: Added reserved_time column to tables table")
+            
             # Migrate old 'round' shape values to 'pair'
             db.execute(text("UPDATE tables SET shape = 'PAIR' WHERE shape = 'ROUND'"))
             db.commit()
