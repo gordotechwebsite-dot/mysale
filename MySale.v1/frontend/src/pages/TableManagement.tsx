@@ -1272,11 +1272,22 @@ export default function TableManagement() {
                   }}
                 />
 
-                {/* Table name label */}
+                {/* Table name + status overlay centered on table */}
                 <div
                   className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
                   style={{ transform: `rotate(${-rotation}deg)` }}
                 >
+                  {/* Real-time timer - prominently on top */}
+                  {!isTableFree(table.status) && (() => {
+                    const elapsed = getElapsedTime(table.ticket_opened_at) || table.ticket_time || null;
+                    return elapsed ? (
+                      <span className="mb-1 text-white text-xs font-bold flex items-center gap-1 bg-gray-800/80 backdrop-blur-sm px-2 py-0.5 rounded-full shadow font-mono">
+                        <Clock className="w-3 h-3" />
+                        {elapsed}
+                      </span>
+                    ) : null;
+                  })()}
+
                   <span className="bg-white/90 backdrop-blur-sm text-gray-900 font-bold text-sm px-2 py-0.5 rounded shadow-sm">
                     {table.name}
                   </span>
@@ -1290,17 +1301,6 @@ export default function TableManagement() {
                       {overlay.label}
                     </span>
                   )}
-
-                  {/* Real-time timer */}
-                  {!isTableFree(table.status) && (() => {
-                    const elapsed = getElapsedTime(table.ticket_opened_at);
-                    return elapsed ? (
-                      <span className="mt-0.5 text-gray-600 text-[10px] flex items-center gap-0.5 bg-white/80 px-1 rounded font-mono">
-                        <Clock className="w-2.5 h-2.5" />
-                        {elapsed}
-                      </span>
-                    ) : null;
-                  })()}
                 </div>
 
                 {/* Pending comandas badge */}
