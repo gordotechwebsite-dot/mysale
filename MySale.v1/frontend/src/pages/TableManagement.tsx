@@ -133,11 +133,14 @@ export default function TableManagement() {
 
   const statusOverlay: Record<string, { color: string; label: string }> = {
     free: { color: '#10b981', label: 'Libre' },
+    available: { color: '#10b981', label: 'Libre' },
     occupied: { color: '#f59e0b', label: 'Ocupada' },
     bill_open: { color: '#3b82f6', label: 'Cuenta Abierta' },
     to_pay: { color: '#f59e0b', label: 'Por Cobrar' },
     paid: { color: '#ef4444', label: 'Pagada' },
   };
+
+  const isTableFree = (status: string) => status === 'free' || status === 'available';
 
   const handleFloorMouseDown = useCallback((e: React.MouseEvent, table: Table) => {
     if (!editMode || !isSuperuser) return;
@@ -407,7 +410,7 @@ export default function TableManagement() {
     switch (action) {
       case 'load_order':
         if (!selectedTable) return;
-        if (selectedTable.status === 'free') {
+        if (isTableFree(selectedTable.status)) {
           setCustomerName('');
           setNumPeople(1);
           setTicketNotes('');
@@ -653,7 +656,7 @@ export default function TableManagement() {
     setQuantityInput('');
   };
 
-  const freeTables = zones.flatMap(z => z.tables).filter(t => t.status === 'free' && t.id !== selectedTable?.id);
+  const freeTables = zones.flatMap(z => z.tables).filter(t => isTableFree(t.status) && t.id !== selectedTable?.id);
 
   const handleExitOrderMode = () => {
     setOrderMode(false);
@@ -1225,7 +1228,7 @@ export default function TableManagement() {
                   className="w-full h-auto pointer-events-none"
                   draggable={false}
                   style={{
-                    filter: table.status === 'free' ? 'none' : `drop-shadow(0 0 6px ${overlay.color})`,
+                    filter: isTableFree(table.status) ? 'none' : `drop-shadow(0 0 6px ${overlay.color})`,
                   }}
                 />
 
@@ -1239,7 +1242,7 @@ export default function TableManagement() {
                   </span>
 
                   {/* Status badge */}
-                  {table.status !== 'free' && (
+                  {!isTableFree(table.status) && (
                     <span
                       className="mt-1 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full"
                       style={{ backgroundColor: overlay.color }}
@@ -1249,7 +1252,7 @@ export default function TableManagement() {
                   )}
 
                   {/* Time indicator */}
-                  {table.status !== 'free' && table.ticket_time && (
+                  {!isTableFree(table.status) && table.ticket_time && (
                     <span className="mt-0.5 text-gray-600 text-[10px] flex items-center gap-0.5 bg-white/80 px-1 rounded">
                       <Clock className="w-2.5 h-2.5" />
                       {table.ticket_time}
