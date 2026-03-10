@@ -37,7 +37,6 @@ const QuickSale: React.FC = () => {
   
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
-  const [locationName, setLocationName] = useState<string>('');
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -84,11 +83,8 @@ const QuickSale: React.FC = () => {
       // Use user's assigned location if available, otherwise first POS location
       if (user?.location_id) {
         setSelectedLocation(user.location_id);
-        const userLoc = locs.find(l => l.id === user.location_id);
-        if (userLoc) setLocationName(userLoc.name);
       } else if (posLocations.length > 0) {
         setSelectedLocation(posLocations[0].id);
-        setLocationName(posLocations[0].name);
       }
     } catch (error) {
       console.error('Error loading locations:', error);
@@ -223,24 +219,6 @@ const QuickSale: React.FC = () => {
 
   return (
     <div className="h-[calc(100vh-140px)] flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-            <Zap className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-800">Venta Rapida</h1>
-            <p className="text-sm text-gray-500">Selecciona productos y cobra al instante</p>
-          </div>
-        </div>
-        {locationName && (
-          <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-lg">
-            <span className="text-sm text-gray-500">Sucursal:</span>
-            <span className="text-sm font-semibold text-gray-800">{locationName}</span>
-          </div>
-        )}
-      </div>
-
       <div className="flex-1 flex gap-4">
         <div className="flex-1 flex flex-col">
           <div className="mb-4">
