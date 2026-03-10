@@ -254,7 +254,7 @@ const Deliveries: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-800">Domicilios</h1>
-            <p className="text-sm text-gray-500">Registra ventas para despacho a domicilio</p>
+            <p className="text-sm text-gray-500">Registra ventas para envio a domicilio</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
