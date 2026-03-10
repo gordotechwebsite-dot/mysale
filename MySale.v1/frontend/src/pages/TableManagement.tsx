@@ -113,6 +113,7 @@ export default function TableManagement() {
   const [tip, setTip] = useState(0);
 
   const [moveTargetTable, setMoveTargetTable] = useState<number | null>(null);
+  const [openingTicket, setOpeningTicket] = useState(false);
 
   // Real-time clock for table timers
   const [now, setNow] = useState(Date.now());
@@ -492,7 +493,8 @@ export default function TableManagement() {
   };
 
   const handleOpenTicket = async () => {
-    if (!selectedTable || !selectedLocation) return;
+    if (!selectedTable || !selectedLocation || openingTicket) return;
+    setOpeningTicket(true);
     try {
       const ticket = await createTicket({
         table_id: selectedTable.id,
@@ -506,7 +508,21 @@ export default function TableManagement() {
       loadZones();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
+      // If table already has a ticket, fetch it instead of just showing error
+      if (err.response?.data?.detail?.includes('already has an open ticket')) {
+        try {
+          const existingTicket = await getTableTicket(selectedTable.id);
+          setCurrentTicket(existingTicket);
+          toast.success('Cuenta cargada');
+          loadZones();
+          return;
+        } catch {
+          // fallback to error
+        }
+      }
       toast.error(err.response?.data?.detail || 'Error al abrir cuenta');
+    } finally {
+      setOpeningTicket(false);
     }
   };
 
@@ -738,8 +754,8 @@ export default function TableManagement() {
                 <Button variant="outline" onClick={handleExitOrderMode} className="flex-1 h-12">
                   Cancelar
                 </Button>
-                <Button onClick={handleOpenTicket} className="flex-1 h-12 bg-emerald-500 hover:bg-emerald-600">
-                  Abrir Cuenta
+                <Button onClick={handleOpenTicket} disabled={openingTicket} className="flex-1 h-12 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50">
+                  {openingTicket ? 'Abriendo...' : 'Abrir Cuenta'}
                 </Button>
               </div>
             </div>
@@ -1529,8 +1545,8 @@ export default function TableManagement() {
                 <Button variant="outline" onClick={() => setShowTicketDialog(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleOpenTicket}>
-                  Abrir Cuenta
+                <Button onClick={handleOpenTicket} disabled={openingTicket}>
+                  {openingTicket ? 'Abriendo...' : 'Abrir Cuenta'}
                 </Button>
               </DialogFooter>
             </div>
