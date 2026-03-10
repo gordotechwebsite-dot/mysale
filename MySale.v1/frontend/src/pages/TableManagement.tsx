@@ -408,8 +408,8 @@ export default function TableManagement() {
     }
 
     setSelectedTable(table);
-    setShowTableMenu(true);
 
+    // Load ticket BEFORE showing menu so currentTicket is ready for actions
     if (table.current_ticket_id) {
       try {
         const ticket = await getTableTicket(table.id);
@@ -417,10 +417,13 @@ export default function TableManagement() {
       } catch (error: unknown) {
         const err = error as { response?: { data?: { detail?: string } } };
         toast.error(err.response?.data?.detail || 'Error al cargar cuenta');
+        setCurrentTicket(null);
       }
     } else {
       setCurrentTicket(null);
     }
+
+    setShowTableMenu(true);
   };
 
   const handleMenuAction = async (action: string) => {
@@ -1034,39 +1037,6 @@ export default function TableManagement() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
-          <DialogContent className="bg-slate-800 text-white border-slate-700">
-            <DialogHeader>
-              <DialogTitle>Mover Cuenta a Otra Mesa</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Label>Seleccionar Mesa Destino</Label>
-              <Select
-                value={moveTargetTable?.toString() || ''}
-                onValueChange={(v) => setMoveTargetTable(parseInt(v))}
-              >
-                <SelectTrigger className="bg-slate-700 border-slate-600">
-                  <SelectValue placeholder="Seleccionar mesa" />
-                </SelectTrigger>
-                <SelectContent>
-                  {freeTables.map(table => (
-                    <SelectItem key={table.id} value={table.id.toString()}>
-                      {table.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowMoveDialog(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleMoveTicket} disabled={!moveTargetTable}>
-                Mover
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     );
   }
