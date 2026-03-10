@@ -358,6 +358,7 @@ export interface Table {
   pending_comandas?: number;
   ticket_total?: number;
   ticket_time?: string | null;
+  ticket_opened_at?: string | null;
   waiter_name?: string | null;
 }
 

@@ -78,6 +78,7 @@ class TableResponse(BaseModel):
     pending_comandas: int = 0
     ticket_total: Optional[float] = None
     ticket_time: Optional[str] = None
+    ticket_opened_at: Optional[datetime] = None
     waiter_name: Optional[str] = None
 
     class Config:

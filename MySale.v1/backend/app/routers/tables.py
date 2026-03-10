@@ -79,6 +79,7 @@ def get_table_response(table: Table, db: Session) -> TableResponse:
         pending_comandas=pending_comandas,
         ticket_total=ticket_total,
         ticket_time=ticket_time,
+        ticket_opened_at=current_ticket.opened_at if current_ticket and current_ticket.opened_at else None,
         waiter_name=waiter_name
     )
 

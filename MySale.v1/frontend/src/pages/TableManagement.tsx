@@ -114,6 +114,22 @@ export default function TableManagement() {
 
   const [moveTargetTable, setMoveTargetTable] = useState<number | null>(null);
 
+  // Real-time clock for table timers
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const getElapsedTime = (openedAt: string | null | undefined): string | null => {
+    if (!openedAt) return null;
+    const diff = Math.max(0, Math.floor((now - new Date(openedAt).getTime()) / 1000));
+    const h = Math.floor(diff / 3600);
+    const m = Math.floor((diff % 3600) / 60);
+    const s = diff % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
   // Floor plan drag state
   const floorPlanRef = useRef<HTMLDivElement>(null);
   const [draggingTable, setDraggingTable] = useState<number | null>(null);
@@ -1257,13 +1273,16 @@ export default function TableManagement() {
                     {overlay.label}
                   </span>
 
-                  {/* Time indicator */}
-                  {!isTableFree(table.status) && table.ticket_time && (
-                    <span className="mt-0.5 text-gray-600 text-[10px] flex items-center gap-0.5 bg-white/80 px-1 rounded">
-                      <Clock className="w-2.5 h-2.5" />
-                      {table.ticket_time}
-                    </span>
-                  )}
+                  {/* Real-time timer */}
+                  {!isTableFree(table.status) && (() => {
+                    const elapsed = getElapsedTime(table.ticket_opened_at);
+                    return elapsed ? (
+                      <span className="mt-0.5 text-gray-600 text-[10px] flex items-center gap-0.5 bg-white/80 px-1 rounded font-mono">
+                        <Clock className="w-2.5 h-2.5" />
+                        {elapsed}
+                      </span>
+                    ) : null;
+                  })()}
                 </div>
 
                 {/* Pending comandas badge */}
