@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getSalesReport, getInventoryReport, exportSalesExcel, exportInventoryExcel, getLocations, getEmployeesSummaryReport, getProfitabilityReport, exportEmployeesExcel, exportProfitabilityExcel, getUsers, getPurchasesReport, exportPurchasesExcel } from '../api';
+import { getSalesReport, getInventoryReport, exportSalesExcel, exportInventoryExcel, getLocations, getEmployeesSummaryReport, getProfitabilityReport, exportEmployeesExcel, exportProfitabilityExcel, getUsers, getPurchasesReport, exportPurchasesExcel, getDeliveries } from '../api';
+import type { Delivery } from '../types';
 import type { Location } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Download, Loader2, TrendingUp, Package, Users, DollarSign, ShoppingCart } from 'lucide-react';
+import { Download, Loader2, TrendingUp, Package, Users, DollarSign, ShoppingCart, Bike, Phone, MapPin, Clock, ChefHat, Truck, Check, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface EmployeeSummary {
   user_id: number;
@@ -93,6 +95,8 @@ const Reports: React.FC = () => {
   const [employeesReport, setEmployeesReport] = useState<EmployeesReport | null>(null);
   const [profitabilityReport, setProfitabilityReport] = useState<ProfitabilityReport | null>(null);
   const [purchasesReport, setPurchasesReport] = useState<any>(null);
+  const [deliveriesData, setDeliveriesData] = useState<Delivery[]>([]);
+  const [deliveryStatusFilter, setDeliveryStatusFilter] = useState<string>('all');
 
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
@@ -274,6 +278,66 @@ const Reports: React.FC = () => {
     }
   };
 
+  const loadDeliveriesReport = async () => {
+    setIsLoading(true);
+    try {
+      const params: Record<string, string> = {
+        start_date: startDate,
+        end_date: endDate,
+      };
+      if (deliveryStatusFilter !== 'all') params.delivery_status = deliveryStatusFilter;
+      const data = await getDeliveries(params);
+      setDeliveriesData(data);
+    } catch (error) {
+      console.error('Error loading deliveries report:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getDeliveryStatusBadge = (status?: string) => {
+    const config: Record<string, { color: string; label: string; icon: React.ReactNode }> = {
+      pending: { color: 'bg-yellow-500', label: 'Pendiente', icon: <Clock className="w-3 h-3" /> },
+      preparing: { color: 'bg-orange-500', label: 'Preparando', icon: <ChefHat className="w-3 h-3" /> },
+      in_transit: { color: 'bg-blue-500', label: 'En Camino', icon: <Truck className="w-3 h-3" /> },
+      delivered: { color: 'bg-green-500', label: 'Entregado', icon: <Check className="w-3 h-3" /> },
+      cancelled: { color: 'bg-red-500', label: 'Cancelado', icon: <X className="w-3 h-3" /> },
+    };
+    const c = config[status || 'pending'] || config.pending;
+    return (
+      <Badge className={`${c.color} text-white flex items-center gap-1 w-fit`}>
+        {c.icon} {c.label}
+      </Badge>
+    );
+  };
+
+  const handleExportDeliveriesExcel = () => {
+    if (deliveriesData.length === 0) return;
+    const headers = ['Folio', 'Fecha', 'Cliente', 'Telefono', 'Direccion', 'Domiciliario', 'Productos', 'Subtotal', 'Domicilio', 'Total', 'Metodo Pago', 'Estado'];
+    const rows = deliveriesData.map(d => [
+      d.folio,
+      new Date(d.created_at).toLocaleString('es-CO'),
+      d.customer_name || '',
+      d.customer_phone || '',
+      d.customer_address || '',
+      d.delivery_person || '',
+      d.items.map(i => `${i.product_name} x${i.quantity}`).join(', '),
+      d.total,
+      d.delivery_fee,
+      d.grand_total,
+      d.payment_method === 'cash' ? 'Efectivo' : d.payment_method === 'card' ? 'Tarjeta' : 'Transferencia',
+      d.delivery_status === 'pending' ? 'Pendiente' : d.delivery_status === 'preparing' ? 'Preparando' : d.delivery_status === 'in_transit' ? 'En Camino' : d.delivery_status === 'delivered' ? 'Entregado' : 'Cancelado',
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `domicilios_${startDate}_${endDate}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   const handleExportProfitabilityExcel = async () => {
     try {
       const blob = await exportProfitabilityExcel({
@@ -365,6 +429,7 @@ const Reports: React.FC = () => {
           <TabsTrigger value="employees">Empleados</TabsTrigger>
           <TabsTrigger value="purchases">Compras</TabsTrigger>
           <TabsTrigger value="profitability">Rentabilidad</TabsTrigger>
+          <TabsTrigger value="deliveries">Domicilios</TabsTrigger>
         </TabsList>
 
         {/* ===== VENTAS ===== */}
@@ -1036,6 +1101,161 @@ const Reports: React.FC = () => {
                     </div>
                   )}
                 </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        {/* ===== DOMICILIOS ===== */}
+        <TabsContent value="deliveries">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bike className="w-5 h-5" />
+                Reporte de Domicilios
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-4 mb-6 items-end">
+                <div>
+                  <label className="text-sm text-gray-500">Fecha Inicio</label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-40"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500">Fecha Fin</label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-40"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-500">Estado</label>
+                  <Select value={deliveryStatusFilter} onValueChange={setDeliveryStatusFilter}>
+                    <SelectTrigger className="w-44">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="pending">Pendiente</SelectItem>
+                      <SelectItem value="preparing">Preparando</SelectItem>
+                      <SelectItem value="in_transit">En Camino</SelectItem>
+                      <SelectItem value="delivered">Entregado</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end gap-2">
+                  <Button onClick={loadDeliveriesReport} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Generar'}
+                  </Button>
+                  <Button variant="outline" onClick={handleExportDeliveriesExcel} disabled={deliveriesData.length === 0}>
+                    <Download className="w-4 h-4 mr-2" />
+                    CSV
+                  </Button>
+                </div>
+              </div>
+
+              {deliveriesData.length > 0 && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm text-gray-500">Total Pedidos</p>
+                        <p className="text-2xl font-bold text-purple-600">{deliveriesData.length}</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm text-gray-500">Total Ventas</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {formatCurrency(deliveriesData.reduce((sum, d) => sum + d.grand_total, 0))}
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm text-gray-500">Total Domicilios</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {formatCurrency(deliveriesData.reduce((sum, d) => sum + d.delivery_fee, 0))}
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm text-gray-500">Entregados</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {deliveriesData.filter(d => d.delivery_status === 'delivered').length} / {deliveriesData.length}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Folio</TableHead>
+                          <TableHead>Fecha</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Telefono</TableHead>
+                          <TableHead>Direccion</TableHead>
+                          <TableHead>Domiciliario</TableHead>
+                          <TableHead>Productos</TableHead>
+                          <TableHead>Subtotal</TableHead>
+                          <TableHead>Domicilio</TableHead>
+                          <TableHead>Total</TableHead>
+                          <TableHead>Pago</TableHead>
+                          <TableHead>Estado</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {deliveriesData.map((d) => (
+                          <TableRow key={d.id}>
+                            <TableCell className="font-mono text-xs">{d.folio}</TableCell>
+                            <TableCell className="text-xs">{new Date(d.created_at).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}</TableCell>
+                            <TableCell className="font-medium text-sm">{d.customer_name}</TableCell>
+                            <TableCell className="text-xs">
+                              <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-gray-400" />{d.customer_phone}</span>
+                            </TableCell>
+                            <TableCell className="text-xs max-w-[200px] truncate">
+                              <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-gray-400 flex-shrink-0" />{d.customer_address}</span>
+                            </TableCell>
+                            <TableCell className="text-sm">{d.delivery_person || '-'}</TableCell>
+                            <TableCell className="text-xs">
+                              {d.items.map(i => `${i.product_name} x${i.quantity}`).join(', ')}
+                            </TableCell>
+                            <TableCell className="text-sm">{formatCurrency(d.total)}</TableCell>
+                            <TableCell className="text-sm">{formatCurrency(d.delivery_fee)}</TableCell>
+                            <TableCell className="font-semibold">{formatCurrency(d.grand_total)}</TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                d.payment_method === 'cash' ? 'bg-green-100 text-green-700' :
+                                d.payment_method === 'card' ? 'bg-blue-100 text-blue-700' :
+                                'bg-purple-100 text-purple-700'
+                              }`}>
+                                {d.payment_method === 'cash' ? 'Efectivo' : d.payment_method === 'card' ? 'Tarjeta' : 'Transfer'}
+                              </span>
+                            </TableCell>
+                            <TableCell>{getDeliveryStatusBadge(d.delivery_status)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
+
+              {deliveriesData.length === 0 && !isLoading && (
+                <div className="text-center py-12 text-gray-400">
+                  <Bike className="w-12 h-12 mx-auto mb-3" />
+                  <p>Genera el reporte para ver los domicilios</p>
+                </div>
               )}
             </CardContent>
           </Card>
