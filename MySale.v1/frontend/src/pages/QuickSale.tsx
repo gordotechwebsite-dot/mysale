@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { getProducts, getLocations, createSale, decodeWeightedBarcode } from '../api';
-import type { Product } from '../types';
+import { getProducts, getLocations, createSale, decodeWeightedBarcode, getFamilies, getSubFamilies } from '../api';
+import type { Product, Family, SubFamily } from '../types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,8 @@ import {
   X,
   Zap,
   Scale,
-  Package
+  Package,
+  LayoutGrid
 } from 'lucide-react';
 
 const QuickSale: React.FC = () => {
@@ -36,6 +37,9 @@ const QuickSale: React.FC = () => {
   const searchRef = useRef<HTMLInputElement>(null);
   
   const [products, setProducts] = useState<Product[]>([]);
+  const [families, setFamilies] = useState<Family[]>([]);
+  const [subfamilies, setSubfamilies] = useState<SubFamily[]>([]);
+  const [selectedFamily, setSelectedFamily] = useState<number | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -64,21 +68,34 @@ const QuickSale: React.FC = () => {
   }, [selectedLocation]);
 
   useEffect(() => {
+    let filtered = products;
+    // Filter by selected family
+    if (selectedFamily) {
+      const familySubfamilyIds = subfamilies
+        .filter(sf => sf.family_id === selectedFamily)
+        .map(sf => sf.id);
+      filtered = filtered.filter(p => familySubfamilyIds.includes(p.subfamily_id));
+    }
+    // Filter by search term
     if (searchTerm) {
-      const filtered = products.filter(p =>
+      filtered = filtered.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.barcode?.includes(searchTerm)
       );
-      setFilteredProducts(filtered);
-    } else {
-      setFilteredProducts(products);
     }
-  }, [searchTerm, products]);
+    setFilteredProducts(filtered);
+  }, [searchTerm, products, selectedFamily, subfamilies]);
 
   const loadInitialData = async () => {
     try {
-      const locs = await getLocations();
+      const [locs, familiesData, subfamiliesData] = await Promise.all([
+        getLocations(),
+        getFamilies(),
+        getSubFamilies()
+      ]);
+      setFamilies(familiesData);
+      setSubfamilies(subfamiliesData);
       const posLocations = locs.filter(l => l.location_type === 'pos');
       // Use user's assigned location if available, otherwise first POS location
       if (user?.location_id) {
@@ -248,6 +265,53 @@ const QuickSale: React.FC = () => {
             )}
           </div>
 
+          {/* Category Cards */}
+          {families.length > 0 && (
+            <div className="mb-3">
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <button
+                  onClick={() => { setSelectedFamily(null); setSearchTerm(''); }}
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-xl font-medium text-sm transition-all flex items-center gap-2 ${
+                    selectedFamily === null
+                      ? 'bg-orange-600 text-white shadow-md'
+                      : 'bg-white text-gray-700 border border-gray-200 hover:border-orange-300 hover:bg-orange-50'
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  Todos
+                </button>
+                {families.map((family) => {
+                  const count = products.filter(p => {
+                    const familySubIds = subfamilies.filter(sf => sf.family_id === family.id).map(sf => sf.id);
+                    return familySubIds.includes(p.subfamily_id);
+                  }).length;
+                  if (count === 0) return null;
+                  return (
+                    <button
+                      key={family.id}
+                      onClick={() => { setSelectedFamily(family.id); setSearchTerm(''); }}
+                      className={`flex-shrink-0 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                        selectedFamily === family.id
+                          ? 'bg-orange-600 text-white shadow-md'
+                          : 'bg-white text-gray-700 border border-gray-200 hover:border-orange-300 hover:bg-orange-50'
+                      }`}
+                    >
+                      {family.name}
+                      <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
+                        selectedFamily === family.id
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Product Grid */}
           <div className="flex-1 overflow-auto">
             {!selectedLocation ? (
               <div className="flex items-center justify-center h-full text-gray-400">
@@ -257,32 +321,39 @@ const QuickSale: React.FC = () => {
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="w-8 h-8 animate-spin text-orange-600" />
               </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                <Package className="w-12 h-12 mb-2" />
+                <p>No hay productos en esta categoria</p>
+              </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {filteredProducts.map((product) => (
                   <button
                     key={product.id}
                     onClick={() => handleProductClick(product)}
-                    className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-orange-50 transition-all text-left border-2 border-transparent hover:border-orange-500 active:scale-95 flex items-center justify-between gap-3"
+                    className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-orange-50 transition-all text-left border-2 border-transparent hover:border-orange-500 active:scale-95"
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-800 truncate">{product.name}</p>
-                      <p className="text-xs text-gray-500">{product.code}</p>
-                      <p className="text-lg font-bold text-orange-600 mt-1">
-                        {formatCurrency(product.sale_price)}
-                      </p>
-                    </div>
-                    {(product as any).image_url ? (
-                      <img
-                        src={`${import.meta.env.VITE_API_URL}${(product as any).image_url}`}
-                        alt={product.name}
-                        className="w-16 h-16 object-contain rounded-lg flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Package className="w-8 h-8 text-gray-300" />
+                    <div className="flex items-center gap-3">
+                      {(product as any).image_url ? (
+                        <img
+                          src={`${import.meta.env.VITE_API_URL}${(product as any).image_url}`}
+                          alt={product.name}
+                          className="w-14 h-14 object-contain rounded-lg flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Package className="w-7 h-7 text-gray-300" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-800 truncate text-sm">{product.name}</p>
+                        <p className="text-xs text-gray-400">{product.code}</p>
                       </div>
-                    )}
+                    </div>
+                    <p className="text-lg font-bold text-orange-600 mt-2">
+                      {formatCurrency(product.sale_price)}
+                    </p>
                   </button>
                 ))}
               </div>
