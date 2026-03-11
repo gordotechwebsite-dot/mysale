@@ -666,6 +666,8 @@ const Layout: React.FC = () => {
   const menuItems = enabledModules.length > 0 
     ? enabledModules
         .filter(module => {
+          // Hide modules that are now integrated into other modules
+          if (module.code === 'losses') return false;
           // Check role-based access
           if (superuserOnlyModules.includes(module.code) && !isSuperuser) return false;
           if (adminOnlyModules.includes(module.code) && !isAdmin) return false;
