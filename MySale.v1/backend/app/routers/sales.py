@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import datetime, date
+from typing import List, Optional, Dict, Any
+from datetime import datetime, date, timedelta
+from pydantic import BaseModel
 from app.database import get_db
 from app.models.user import User, RoleType
 from app.models.shift import Shift, ShiftStatus
@@ -9,7 +10,7 @@ from app.models.sale import Sale, SaleItem, PaymentMethod
 from app.models.inventory import Product, ProductStock, StockMovement, MovementType
 from app.models.location import Location
 from app.schemas.sale import SaleCreate, SaleResponse, SaleItemResponse
-from app.utils.auth import get_current_user
+from app.utils.auth import get_current_user, require_role
 
 router = APIRouter(prefix="/api/sales", tags=["Ventas"])
 
@@ -336,3 +337,186 @@ async def get_sale_by_folio(
         created_at=sale.created_at,
         items=items
     )
+
+
+# --- Bulk Sales Import (historical data) ---
+
+class BulkSaleItem(BaseModel):
+    product_name: str
+    quantity: float
+    unit_price: float
+    discount: float = 0.0
+
+class BulkSale(BaseModel):
+    folio: str
+    date: str  # ISO format date
+    time: str  # HH:MM:SS
+    payment_method: str = "cash"
+    items: List[BulkSaleItem]
+    table_number: Optional[int] = None
+
+class BulkSalesImport(BaseModel):
+    location_id: int
+    cashier_id: int
+    sales: List[BulkSale]
+
+
+@router.post("/bulk-import")
+async def bulk_import_sales(
+    data: BulkSalesImport,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER))
+):
+    """Import historical sales data bypassing stock checks and shift requirements."""
+    location = db.query(Location).filter(Location.id == data.location_id).first()
+    if not location:
+        raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
+
+    cashier = db.query(User).filter(User.id == data.cashier_id).first()
+    if not cashier:
+        raise HTTPException(status_code=404, detail="Cajero no encontrado")
+
+    # Build product name->id mapping
+    products = db.query(Product).all()
+    name_to_product: Dict[str, Product] = {}
+    for p in products:
+        name_to_product[p.name.strip().lower()] = p
+
+    # Group sales by date to create one shift per day
+    sales_by_date: Dict[str, List[BulkSale]] = {}
+    for sale in data.sales:
+        d = sale.date
+        if d not in sales_by_date:
+            sales_by_date[d] = []
+        sales_by_date[d].append(sale)
+
+    created_sales = 0
+    created_shifts = 0
+    skipped_items = 0
+    errors: List[str] = []
+
+    for sale_date_str, day_sales in sorted(sales_by_date.items()):
+        sale_date = datetime.fromisoformat(sale_date_str).date()
+
+        # Create a closed shift for this day
+        shift_start = datetime.combine(sale_date, datetime.strptime("08:00:00", "%H:%M:%S").time())
+        shift_end = datetime.combine(sale_date, datetime.strptime("22:00:00", "%H:%M:%S").time())
+
+        day_total = 0.0
+        day_cash_total = 0.0
+
+        shift = Shift(
+            user_id=data.cashier_id,
+            location_id=data.location_id,
+            start_time=shift_start,
+            end_time=shift_end,
+            status=ShiftStatus.CLOSED,
+            initial_cash=100000,
+            final_cash=0,
+            total_sales=0,
+            total_cash_sales=0,
+            total_card_sales=0,
+            total_transfer_sales=0,
+        )
+        db.add(shift)
+        db.flush()
+        created_shifts += 1
+
+        for sale_data in day_sales:
+            # Parse sale time
+            try:
+                sale_time = datetime.strptime(sale_data.time, "%H:%M:%S").time()
+            except ValueError:
+                sale_time = datetime.strptime("12:00:00", "%H:%M:%S").time()
+
+            sale_datetime = datetime.combine(sale_date, sale_time)
+
+            # Map payment method
+            pm = PaymentMethod.CASH
+            if "TAR" in sale_data.payment_method.upper() or "CARD" in sale_data.payment_method.upper():
+                pm = PaymentMethod.CARD
+            elif "TRANS" in sale_data.payment_method.upper():
+                pm = PaymentMethod.TRANSFER
+
+            # Process items
+            sale_subtotal = 0.0
+            sale_items_list = []
+            for item in sale_data.items:
+                key = item.product_name.strip().lower()
+                product = name_to_product.get(key)
+                if not product:
+                    skipped_items += 1
+                    errors.append(f"Product not found: '{item.product_name}'")
+                    continue
+
+                item_subtotal = item.unit_price * item.quantity
+                sale_items_list.append({
+                    "product_id": product.id,
+                    "quantity": item.quantity,
+                    "unit_price": item.unit_price,
+                    "cost_at_sale": product.weighted_cost,
+                    "discount": item.discount,
+                    "subtotal": item_subtotal - item.discount
+                })
+                sale_subtotal += item_subtotal
+
+            if not sale_items_list:
+                continue
+
+            sale_total = sale_subtotal
+
+            # Create sale record
+            sale = Sale(
+                folio=sale_data.folio,
+                location_id=data.location_id,
+                shift_id=shift.id,
+                cashier_id=data.cashier_id,
+                subtotal=sale_subtotal,
+                tax=0.0,
+                discount=0.0,
+                total=sale_total,
+                payment_method=pm,
+                amount_received=sale_total if pm == PaymentMethod.CASH else None,
+                change_given=0.0 if pm == PaymentMethod.CASH else None,
+                created_at=sale_datetime,
+                sale_type="regular"
+            )
+            db.add(sale)
+            db.flush()
+
+            # Create sale items
+            for si in sale_items_list:
+                sale_item = SaleItem(
+                    sale_id=sale.id,
+                    product_id=si["product_id"],
+                    quantity=si["quantity"],
+                    unit_price=si["unit_price"],
+                    cost_at_sale=si["cost_at_sale"],
+                    discount=si["discount"],
+                    subtotal=si["subtotal"]
+                )
+                db.add(sale_item)
+
+            day_total += sale_total
+            if pm == PaymentMethod.CASH:
+                day_cash_total += sale_total
+
+            created_sales += 1
+
+        # Update shift totals
+        shift.total_sales = day_total
+        shift.total_cash_sales = day_cash_total
+        shift.final_cash = 100000 + day_cash_total
+
+    # Update location folio counter
+    location.folio_counter = max(location.folio_counter, len(data.sales))
+
+    db.commit()
+
+    return {
+        "status": "success",
+        "created_sales": created_sales,
+        "created_shifts": created_shifts,
+        "skipped_items": skipped_items,
+        "errors": errors[:20] if errors else []
+    }
