@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
 from datetime import datetime, timedelta
+from pydantic import BaseModel
 from app.database import get_db
 from app.models.user import User, RoleType
 from app.models.branch import Branch, WorkSession
@@ -379,6 +380,47 @@ async def get_work_report(
         ))
     
     return sorted(result, key=lambda x: x.total_hours, reverse=True)
+
+
+# ==================== BULK WORK SESSIONS IMPORT ====================
+
+class BulkWorkSessionEntry(BaseModel):
+    user_id: int
+    branch_id: int
+    clock_in: str  # ISO format datetime
+    clock_out: str  # ISO format datetime
+    notes: Optional[str] = None
+
+class BulkWorkSessionsImport(BaseModel):
+    sessions: List[BulkWorkSessionEntry]
+
+@router.post("/bulk-import-sessions")
+async def bulk_import_work_sessions(
+    data: BulkWorkSessionsImport,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER))
+):
+    """Import historical work sessions (entry/exit records)."""
+    created = 0
+    for entry in data.sessions:
+        clock_in_dt = datetime.fromisoformat(entry.clock_in)
+        clock_out_dt = datetime.fromisoformat(entry.clock_out)
+        total_minutes = int((clock_out_dt - clock_in_dt).total_seconds() / 60)
+
+        ws = WorkSession(
+            tenant_id=current_user.tenant_id,
+            user_id=entry.user_id,
+            branch_id=entry.branch_id,
+            clock_in=clock_in_dt,
+            clock_out=clock_out_dt,
+            total_minutes=total_minutes,
+            notes=entry.notes
+        )
+        db.add(ws)
+        created += 1
+
+    db.commit()
+    return {"status": "success", "created_sessions": created}
 
 
 # ==================== BRANCH CRUD ====================
