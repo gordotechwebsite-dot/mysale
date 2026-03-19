@@ -6,12 +6,14 @@ from datetime import datetime
 class GroupCreate(BaseModel):
     name: str
     description: Optional[str] = None
+    tenant_id: Optional[int] = None
 
 
 class GroupResponse(BaseModel):
     id: int
     name: str
     description: Optional[str]
+    tenant_id: Optional[int] = None
     is_active: bool
     created_at: datetime
 
@@ -22,14 +24,18 @@ class GroupResponse(BaseModel):
 class FamilyCreate(BaseModel):
     name: str
     group_id: int
+    icon: Optional[str] = None
     description: Optional[str] = None
+    tenant_id: Optional[int] = None
 
 
 class FamilyResponse(BaseModel):
     id: int
     name: str
     group_id: int
+    icon: Optional[str] = None
     description: Optional[str]
+    tenant_id: Optional[int] = None
     is_active: bool
     created_at: datetime
 
@@ -41,6 +47,7 @@ class SubFamilyCreate(BaseModel):
     name: str
     family_id: int
     description: Optional[str] = None
+    tenant_id: Optional[int] = None
 
 
 class SubFamilyResponse(BaseModel):
@@ -48,6 +55,7 @@ class SubFamilyResponse(BaseModel):
     name: str
     family_id: int
     description: Optional[str]
+    tenant_id: Optional[int] = None
     is_active: bool
     created_at: datetime
 
@@ -119,3 +127,9 @@ class PurchaseCreate(BaseModel):
     quantity: float
     unit_cost: float
     notes: Optional[str] = None
+
+
+class BulkProductImport(BaseModel):
+    tenant_id: int
+    group_name: str = "Menu"
+    products: List[dict]  # [{"category": str, "name": str, "price": float, "icon": Optional[str]}]

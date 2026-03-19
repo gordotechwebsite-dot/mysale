@@ -256,6 +256,37 @@ def run_migrations():
                     db.commit()
                     print("Migration: Fixed work_sessions.tenant_id to allow NULL")
         
+        # Add tenant_id to inventory tables (groups, families, subfamilies) for multi-tenant scoping
+        for table_name in ['groups', 'families', 'subfamilies']:
+            result = db.execute(text(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table_name}'"))
+            if result.fetchone():
+                result = db.execute(text(f"PRAGMA table_info({table_name})"))
+                cols = [row[1] for row in result.fetchall()]
+                if 'tenant_id' not in cols:
+                    db.execute(text(f"ALTER TABLE {table_name} ADD COLUMN tenant_id INTEGER REFERENCES tenants(id)"))
+                    db.commit()
+                    print(f"Migration: Added tenant_id column to {table_name} table")
+        
+        # Add icon column to families table
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='families'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(families)"))
+            fam_cols = [row[1] for row in result.fetchall()]
+            if 'icon' not in fam_cols:
+                db.execute(text("ALTER TABLE families ADD COLUMN icon VARCHAR(100)"))
+                db.commit()
+                print("Migration: Added icon column to families table")
+        
+        # Add tenant_id to products table if not present
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='products'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(products)"))
+            prod_cols = [row[1] for row in result.fetchall()]
+            if 'tenant_id' not in prod_cols:
+                db.execute(text("ALTER TABLE products ADD COLUMN tenant_id INTEGER REFERENCES tenants(id)"))
+                db.commit()
+                print("Migration: Added tenant_id column to products table")
+        
         # Check if products table exists and fix subfamily_id constraint
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='products'"))
         if result.fetchone():

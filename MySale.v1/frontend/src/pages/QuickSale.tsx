@@ -28,8 +28,68 @@ import {
   Zap,
   Scale,
   Package,
-  LayoutGrid
+  LayoutGrid,
+  Sun,
+  Beef,
+  Drumstick,
+  Bird,
+  UtensilsCrossed,
+  Flame,
+  Dog,
+  Salad,
+  Soup,
+  Star,
+  Coffee,
+  Baby,
+  PlusCircle,
+  Pizza,
+  Sandwich,
+  Cookie,
+  IceCream,
+  Wheat,
+  Fish,
+  Egg,
+  Apple,
+  type LucideIcon
 } from 'lucide-react';
+
+// Icon mapping for category names - maps category/family names to lucide icons
+const categoryIconMap: Record<string, LucideIcon> = {
+  'Almuerzo': Sun,
+  'Hamburguesas': Beef,
+  'Alitas': Drumstick,
+  'Boneless': Bird,
+  'Picadas': UtensilsCrossed,
+  'Pollo Broaster': Flame,
+  'Perros Calientes': Sandwich,
+  'Salchipapas': Cookie,
+  'Entradas': Soup,
+  'Platos Especiales': Star,
+  'Bebidas': Coffee,
+  'Menú Infantil': Baby,
+  'Menu Infantil': Baby,
+  'Adicionales': PlusCircle,
+  'Pizzas': Pizza,
+  'Postres': IceCream,
+  'Ensaladas': Salad,
+  'Panadería': Wheat,
+  'Pescados': Fish,
+  'Desayunos': Egg,
+  'Frutas': Apple,
+};
+
+const getCategoryIcon = (name: string): LucideIcon => {
+  // Try exact match first
+  if (categoryIconMap[name]) return categoryIconMap[name];
+  // Try case-insensitive partial match
+  const lowerName = name.toLowerCase();
+  for (const [key, icon] of Object.entries(categoryIconMap)) {
+    if (lowerName.includes(key.toLowerCase()) || key.toLowerCase().includes(lowerName)) {
+      return icon;
+    }
+  }
+  return Package; // Default icon
+};
 
 const QuickSale: React.FC = () => {
   const { items, addItem, removeItem, updateQuantity, clearCart, total, subtotal } = useCart();
@@ -286,18 +346,20 @@ const QuickSale: React.FC = () => {
                     return familySubIds.includes(p.subfamily_id);
                   }).length;
                   if (count === 0) return null;
+                  const CategoryIcon = getCategoryIcon(family.name);
                   return (
                     <button
                       key={family.id}
                       onClick={() => { setSelectedFamily(family.id); setSearchTerm(''); }}
-                      className={`flex-shrink-0 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
+                      className={`flex-shrink-0 px-4 py-2.5 rounded-xl font-medium text-sm transition-all flex items-center gap-2 ${
                         selectedFamily === family.id
                           ? 'bg-orange-600 text-white shadow-md'
                           : 'bg-white text-gray-700 border border-gray-200 hover:border-orange-300 hover:bg-orange-50'
                       }`}
                     >
+                      <CategoryIcon className="w-4 h-4" />
                       {family.name}
-                      <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
+                      <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${
                         selectedFamily === family.id
                           ? 'bg-orange-500 text-white'
                           : 'bg-gray-100 text-gray-500'

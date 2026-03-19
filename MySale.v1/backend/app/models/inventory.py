@@ -9,7 +9,8 @@ class Group(Base):
     __tablename__ = "groups"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), unique=True, nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -21,8 +22,10 @@ class Family(Base):
     __tablename__ = "families"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     name = Column(String(100), nullable=False)
     group_id = Column(Integer, ForeignKey("groups.id"), nullable=False)
+    icon = Column(String(100), nullable=True)
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -35,6 +38,7 @@ class SubFamily(Base):
     __tablename__ = "subfamilies"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     name = Column(String(100), nullable=False)
     family_id = Column(Integer, ForeignKey("families.id"), nullable=False)
     description = Column(Text, nullable=True)

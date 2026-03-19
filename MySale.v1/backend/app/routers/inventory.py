@@ -10,7 +10,7 @@ from app.schemas.inventory import (
     FamilyCreate, FamilyResponse,
     SubFamilyCreate, SubFamilyResponse,
     ProductCreate, ProductUpdate, ProductResponse, ProductStockResponse,
-    StockAdjustment, PurchaseCreate
+    StockAdjustment, PurchaseCreate, BulkProductImport
 )
 from app.utils.auth import get_current_user, require_role, require_module
 
@@ -22,7 +22,10 @@ async def get_groups(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_module("inventory"))
 ):
-    return db.query(Group).filter(Group.is_active == True).all()
+    query = db.query(Group).filter(Group.is_active == True)
+    if current_user.tenant_id:
+        query = query.filter((Group.tenant_id == current_user.tenant_id) | (Group.tenant_id == None))
+    return query.all()
 
 
 @router.post("/groups", response_model=GroupResponse)
@@ -50,6 +53,8 @@ async def get_families(
     current_user: User = Depends(require_module("inventory"))
 ):
     query = db.query(Family).filter(Family.is_active == True)
+    if current_user.tenant_id:
+        query = query.filter((Family.tenant_id == current_user.tenant_id) | (Family.tenant_id == None))
     if group_id:
         query = query.filter(Family.group_id == group_id)
     return query.all()
@@ -80,6 +85,8 @@ async def get_subfamilies(
     current_user: User = Depends(require_module("inventory"))
 ):
     query = db.query(SubFamily).filter(SubFamily.is_active == True)
+    if current_user.tenant_id:
+        query = query.filter((SubFamily.tenant_id == current_user.tenant_id) | (SubFamily.tenant_id == None))
     if family_id:
         query = query.filter(SubFamily.family_id == family_id)
     return query.all()
@@ -114,6 +121,8 @@ async def get_products(
     current_user: User = Depends(require_module("inventory"))
 ):
     query = db.query(Product).filter(Product.is_active == True)
+    if current_user.tenant_id:
+        query = query.filter((Product.tenant_id == current_user.tenant_id) | (Product.tenant_id == None))
     
     if subfamily_id:
         query = query.filter(Product.subfamily_id == subfamily_id)
@@ -522,3 +531,108 @@ async def get_stock_alerts(
             })
     
     return alerts
+
+
+@router.post("/bulk-import")
+async def bulk_import_products(
+    data: BulkProductImport,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin"))
+):
+    """Bulk import products for a specific tenant. Creates groups, families, subfamilies, and products."""
+    tenant_id = data.tenant_id
+    
+    # Create or get the group for this tenant
+    group = db.query(Group).filter(
+        Group.name == data.group_name,
+        Group.tenant_id == tenant_id
+    ).first()
+    if not group:
+        group = Group(name=data.group_name, tenant_id=tenant_id, description=f"Grupo principal para tenant {tenant_id}")
+        db.add(group)
+        db.flush()
+    
+    created_count = 0
+    skipped_count = 0
+    
+    # Group products by category
+    categories: dict = {}
+    for p in data.products:
+        cat = p.get("category", "General")
+        if cat not in categories:
+            categories[cat] = []
+        categories[cat].append(p)
+    
+    for cat_name, cat_products in categories.items():
+        icon = cat_products[0].get("icon") if cat_products else None
+        
+        # Create or get family for this category
+        family = db.query(Family).filter(
+            Family.name == cat_name,
+            Family.tenant_id == tenant_id,
+            Family.group_id == group.id
+        ).first()
+        if not family:
+            family = Family(
+                name=cat_name,
+                group_id=group.id,
+                tenant_id=tenant_id,
+                icon=icon,
+                description=f"Categoría: {cat_name}"
+            )
+            db.add(family)
+            db.flush()
+        
+        # Create or get subfamily (same name as family for simplicity)
+        subfamily = db.query(SubFamily).filter(
+            SubFamily.name == cat_name,
+            SubFamily.tenant_id == tenant_id,
+            SubFamily.family_id == family.id
+        ).first()
+        if not subfamily:
+            subfamily = SubFamily(
+                name=cat_name,
+                family_id=family.id,
+                tenant_id=tenant_id,
+                description=f"Sub-categoría: {cat_name}"
+            )
+            db.add(subfamily)
+            db.flush()
+        
+        for prod in cat_products:
+            # Check if product already exists for this tenant
+            existing = db.query(Product).filter(
+                Product.name == prod["name"],
+                Product.tenant_id == tenant_id
+            ).first()
+            if existing:
+                skipped_count += 1
+                continue
+            
+            # Generate product code
+            code_prefix = cat_name[:3].upper()
+            count = db.query(Product).filter(Product.tenant_id == tenant_id).count()
+            code = f"{code_prefix}-{count + 1:04d}"
+            
+            product = Product(
+                code=code,
+                name=prod["name"],
+                description=prod.get("description", ""),
+                subfamily_id=subfamily.id,
+                group_id=group.id,
+                tenant_id=tenant_id,
+                sale_price=prod.get("price", 0),
+                unit=prod.get("unit", "unidad"),
+                is_active=True
+            )
+            db.add(product)
+            created_count += 1
+    
+    db.commit()
+    
+    return {
+        "message": f"Import completed: {created_count} products created, {skipped_count} skipped (already exist)",
+        "created": created_count,
+        "skipped": skipped_count,
+        "tenant_id": tenant_id
+    }

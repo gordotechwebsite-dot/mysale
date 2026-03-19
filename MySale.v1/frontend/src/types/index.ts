@@ -45,6 +45,7 @@ export interface Group {
   id: number;
   name: string;
   description: string | null;
+  tenant_id: number | null;
   is_active: boolean;
 }
 
@@ -52,7 +53,9 @@ export interface Family {
   id: number;
   name: string;
   group_id: number;
+  icon: string | null;
   description: string | null;
+  tenant_id: number | null;
   is_active: boolean;
 }
 
@@ -61,6 +64,7 @@ export interface SubFamily {
   name: string;
   family_id: number;
   description: string | null;
+  tenant_id: number | null;
   is_active: boolean;
 }
 
