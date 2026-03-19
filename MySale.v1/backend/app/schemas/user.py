@@ -52,6 +52,7 @@ class UserUpdate(BaseModel):
     photo_url: Optional[str] = None
     role_id: Optional[int] = None
     location_id: Optional[int] = None
+    tenant_id: Optional[int] = None
     is_active: Optional[bool] = None
     fingerprint_hash: Optional[str] = None
 
