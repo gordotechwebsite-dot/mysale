@@ -50,6 +50,8 @@ class UserUpdate(BaseModel):
     phone: Optional[str] = None
     cedula: Optional[str] = None
     photo_url: Optional[str] = None
+    password: Optional[str] = None
+    pin: Optional[str] = None
     role_id: Optional[int] = None
     location_id: Optional[int] = None
     tenant_id: Optional[int] = None
