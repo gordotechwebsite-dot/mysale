@@ -537,7 +537,7 @@ async def get_stock_alerts(
 async def bulk_import_products(
     data: BulkProductImport,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin"))
+    current_user: User = Depends(require_role("admin", "superuser"))
 ):
     """Bulk import products for a specific tenant. Creates groups, families, subfamilies, and products."""
     tenant_id = data.tenant_id
