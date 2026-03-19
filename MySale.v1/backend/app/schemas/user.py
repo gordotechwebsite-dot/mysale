@@ -68,6 +68,7 @@ class UserResponse(BaseModel):
     role_id: int
     role: Optional[RoleResponse] = None
     location_id: Optional[int]
+    tenant_id: Optional[int] = None
     is_active: bool
     points: int
     created_at: datetime
