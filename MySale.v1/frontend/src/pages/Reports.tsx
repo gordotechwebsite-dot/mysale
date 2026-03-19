@@ -429,6 +429,8 @@ const Reports: React.FC = () => {
       <div class="summary-card"><div class="label">Transacciones</div><div class="value">${salesReport.total_transactions || salesReport.summary?.total_transactions || 0}</div></div>
       <div class="summary-card"><div class="label">Efectivo</div><div class="value">${fmtCOP(salesReport.total_cash || salesReport.summary?.cash_sales || 0)}</div></div>
       <div class="summary-card"><div class="label">Tarjeta</div><div class="value">${fmtCOP(salesReport.total_card || salesReport.summary?.card_sales || 0)}</div></div>
+      <div class="summary-card"><div class="label">Nequi</div><div class="value">${fmtCOP(salesReport.total_nequi || 0)}</div></div>
+      <div class="summary-card"><div class="label">Bre-B</div><div class="value">${fmtCOP(salesReport.total_breb || 0)}</div></div>
     </div>`;
     let tableHTML = '';
     if (salesReport.details && salesReport.details.length > 0) {
@@ -436,7 +438,7 @@ const Reports: React.FC = () => {
         <td class="font-mono">${d.folio}</td><td>${d.date ? new Date(d.date).toLocaleDateString('es-CO') : ''}</td><td>${d.time || ''}</td>
         <td>${d.product_name}</td><td class="font-mono">${d.product_code || ''}</td><td class="text-right">${d.quantity}</td>
         <td class="text-right">${fmtCOP(d.unit_price)}</td><td class="text-right font-bold">${fmtCOP(d.subtotal)}</td>
-        <td>${d.payment_method === 'cash' ? 'Efectivo' : d.payment_method === 'card' ? 'Tarjeta' : 'Transfer.'}</td>
+        <td>${d.payment_method === 'cash' ? 'Efectivo' : d.payment_method === 'card' ? 'Tarjeta' : d.payment_method === 'nequi' ? 'Nequi' : d.payment_method === 'breb' ? 'Bre-B' : 'Transfer.'}</td>
         <td>${d.cashier_name || ''}</td><td>${d.location_name || ''}</td>
       </tr>`).join('');
       tableHTML = `<div class="section-title">Detalle de Ventas</div><table><tr><th>Folio</th><th>Fecha</th><th>Hora</th><th>Producto</th><th>Codigo</th><th class="text-right">Cant.</th><th class="text-right">P. Unit.</th><th class="text-right">Subtotal</th><th>Metodo</th><th>Cajero</th><th>Ubicacion</th></tr>${rows}</table>`;
@@ -770,7 +772,7 @@ const Reports: React.FC = () => {
 
               {salesReport && (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
                     <Card>
                       <CardContent className="pt-4">
                         <p className="text-sm text-gray-500">Total Ventas</p>
@@ -795,6 +797,18 @@ const Reports: React.FC = () => {
                       <CardContent className="pt-4">
                         <p className="text-sm text-gray-500">Tarjeta</p>
                         <p className="text-2xl font-bold">{formatCurrency(salesReport.total_card || salesReport.summary?.card_sales || 0)}</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm text-gray-500">Nequi</p>
+                        <p className="text-2xl font-bold text-indigo-600">{formatCurrency(salesReport.total_nequi || 0)}</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-4">
+                        <p className="text-sm text-gray-500">Bre-B</p>
+                        <p className="text-2xl font-bold text-pink-600">{formatCurrency(salesReport.total_breb || 0)}</p>
                       </CardContent>
                     </Card>
                   </div>
@@ -837,9 +851,11 @@ const Reports: React.FC = () => {
                                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                                       d.payment_method === 'cash' ? 'bg-green-100 text-green-700' :
                                       d.payment_method === 'card' ? 'bg-blue-100 text-blue-700' :
+                                      d.payment_method === 'nequi' ? 'bg-indigo-100 text-indigo-700' :
+                                      d.payment_method === 'breb' ? 'bg-pink-100 text-pink-700' :
                                       'bg-purple-100 text-purple-700'
                                     }`}>
-                                      {d.payment_method === 'cash' ? 'Efectivo' : d.payment_method === 'card' ? 'Tarjeta' : 'Transferencia'}
+                                      {d.payment_method === 'cash' ? 'Efectivo' : d.payment_method === 'card' ? 'Tarjeta' : d.payment_method === 'nequi' ? 'Nequi' : d.payment_method === 'breb' ? 'Bre-B' : 'Transferencia'}
                                     </span>
                                   </TableCell>
                                   <TableCell className="text-xs">{d.cashier_name}</TableCell>

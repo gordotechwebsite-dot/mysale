@@ -404,6 +404,8 @@ async def bulk_import_sales(
 
         day_total = 0.0
         day_cash_total = 0.0
+        day_card_total = 0.0
+        day_transfer_total = 0.0
 
         shift = Shift(
             user_id=data.cashier_id,
@@ -433,9 +435,14 @@ async def bulk_import_sales(
 
             # Map payment method
             pm = PaymentMethod.CASH
-            if "TAR" in sale_data.payment_method.upper() or "CARD" in sale_data.payment_method.upper():
+            pm_str = sale_data.payment_method.upper()
+            if "TAR" in pm_str or "CARD" in pm_str:
                 pm = PaymentMethod.CARD
-            elif "TRANS" in sale_data.payment_method.upper():
+            elif "NEQUI" in pm_str:
+                pm = PaymentMethod.NEQUI
+            elif "BREB" in pm_str or "BRE-B" in pm_str or "BRE_B" in pm_str:
+                pm = PaymentMethod.BREB
+            elif "TRANS" in pm_str:
                 pm = PaymentMethod.TRANSFER
 
             # Process items
@@ -500,12 +507,18 @@ async def bulk_import_sales(
             day_total += sale_total
             if pm == PaymentMethod.CASH:
                 day_cash_total += sale_total
+            elif pm == PaymentMethod.CARD:
+                day_card_total += sale_total
+            else:
+                day_transfer_total += sale_total
 
             created_sales += 1
 
         # Update shift totals
         shift.total_sales = day_total
         shift.total_cash_sales = day_cash_total
+        shift.total_card_sales = day_card_total
+        shift.total_transfer_sales = day_transfer_total
         shift.final_cash = 100000 + day_cash_total
 
     # Update location folio counter
@@ -519,4 +532,43 @@ async def bulk_import_sales(
         "created_shifts": created_shifts,
         "skipped_items": skipped_items,
         "errors": errors[:20] if errors else []
+    }
+
+
+class BulkDeleteRequest(BaseModel):
+    location_id: int
+
+
+@router.post("/bulk-delete")
+async def bulk_delete_sales(
+    data: BulkDeleteRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER))
+):
+    """Delete all sales and shifts for a location (for reimport)."""
+    location = db.query(Location).filter(Location.id == data.location_id).first()
+    if not location:
+        raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
+
+    # Delete sale items first
+    sales = db.query(Sale).filter(Sale.location_id == data.location_id).all()
+    sale_ids = [s.id for s in sales]
+    if sale_ids:
+        db.query(SaleItem).filter(SaleItem.sale_id.in_(sale_ids)).delete(synchronize_session=False)
+
+    # Delete sales
+    deleted_sales = db.query(Sale).filter(Sale.location_id == data.location_id).delete(synchronize_session=False)
+
+    # Delete shifts for this location
+    deleted_shifts = db.query(Shift).filter(Shift.location_id == data.location_id).delete(synchronize_session=False)
+
+    # Reset folio counter
+    location.folio_counter = 0
+
+    db.commit()
+
+    return {
+        "status": "success",
+        "deleted_sales": deleted_sales,
+        "deleted_shifts": deleted_shifts
     }

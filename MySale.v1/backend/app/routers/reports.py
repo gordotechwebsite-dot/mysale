@@ -48,6 +48,8 @@ async def get_sales_report(
     total_cash = sum(s.total for s in sales if s.payment_method == PaymentMethod.CASH)
     total_card = sum(s.total for s in sales if s.payment_method == PaymentMethod.CARD)
     total_transfer = sum(s.total for s in sales if s.payment_method == PaymentMethod.TRANSFER)
+    total_nequi = sum(s.total for s in sales if s.payment_method == PaymentMethod.NEQUI)
+    total_breb = sum(s.total for s in sales if s.payment_method == PaymentMethod.BREB)
     
     sales_by_day = {}
     for sale in sales:
@@ -85,6 +87,8 @@ async def get_sales_report(
         total_cash=total_cash,
         total_card=total_card,
         total_transfer=total_transfer,
+        total_nequi=total_nequi,
+        total_breb=total_breb,
         sales_by_day=list(sales_by_day.values()),
         details=details
     )

@@ -32,6 +32,8 @@ class SalesReportResponse(BaseModel):
     total_cash: float
     total_card: float
     total_transfer: float
+    total_nequi: float = 0.0
+    total_breb: float = 0.0
     sales_by_day: List[dict]
     details: List[SaleDetailReport] = []
 

@@ -9,6 +9,8 @@ class PaymentMethod(str, enum.Enum):
     CASH = "cash"
     CARD = "card"
     TRANSFER = "transfer"
+    NEQUI = "nequi"
+    BREB = "breb"
 
 
 class SaleType(str, enum.Enum):
