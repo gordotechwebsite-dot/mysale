@@ -194,6 +194,17 @@ async def update_user(
         )
     
     update_data = user_update.model_dump(exclude_unset=True)
+    
+    # Hash password if provided
+    if "password" in update_data:
+        user.hashed_password = get_password_hash(update_data.pop("password"))
+    
+    # Hash pin if provided
+    if "pin" in update_data:
+        pin_val = update_data.get("pin")
+        if pin_val:
+            user.pin_hash = get_pin_hash(pin_val)
+    
     for field, value in update_data.items():
         setattr(user, field, value)
     
