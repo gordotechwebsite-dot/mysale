@@ -619,7 +619,6 @@ async def bulk_import_products(
                 name=prod["name"],
                 description=prod.get("description", ""),
                 subfamily_id=subfamily.id,
-                group_id=group.id,
                 tenant_id=tenant_id,
                 sale_price=prod.get("price", 0),
                 unit=prod.get("unit", "unidad"),
