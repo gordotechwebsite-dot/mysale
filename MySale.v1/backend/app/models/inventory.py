@@ -53,6 +53,7 @@ class Product(Base):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
     code = Column(String(50), unique=True, nullable=False, index=True)
     barcode = Column(String(50), unique=True, nullable=True, index=True)
     name = Column(String(200), nullable=False)
