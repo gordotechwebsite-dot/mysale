@@ -24,6 +24,7 @@ import {
   Building2,
   ClipboardList,
   Bike,
+  Settings,
   LucideIcon,
   CheckCircle,
   XCircle,
@@ -570,6 +571,7 @@ const moduleIcons: Record<string, LucideIcon> = {
   work_report: ClipboardList,
   super_admin: Shield,
   deliveries: Bike,
+  settings: Settings,
 };
 
 // Map module codes to routes
@@ -591,6 +593,7 @@ const moduleRoutes: Record<string, string> = {
   super_admin: '/super-admin',
   locations_admin: '/locations',
   deliveries: '/deliveries',
+  settings: '/settings',
 };
 
 // Sidebar ordering by usage groups: Ventas > Operaciones > Administracion
@@ -611,6 +614,7 @@ const moduleSortOrder: Record<string, number> = {
   work_report: 24,
   locations: 25,
   locations_admin: 26,
+  settings: 29,
   super_admin: 30,
 };
 
@@ -632,6 +636,7 @@ const moduleGroup: Record<string, string> = {
   work_report: 'Administracion',
   locations: 'Administracion',
   locations_admin: 'Administracion',
+  settings: 'Administracion',
   super_admin: 'Administracion',
 };
 
@@ -639,7 +644,7 @@ const moduleGroup: Record<string, string> = {
 const adminOnlyModules = ['inventory', 'cost_control', 'expenses', 'reports', 'users', 'branches', 'work_report', 'locations'];
 
 // Modules that require superuser role
-const superuserOnlyModules = ['super_admin', 'locations_admin'];
+const superuserOnlyModules = ['super_admin', 'locations_admin', 'settings'];
 
 const Layout: React.FC = () => {
   const { user, logout, enabledModules } = useAuth();
@@ -687,6 +692,19 @@ const Layout: React.FC = () => {
         { path: '/', icon: LayoutDashboard, label: 'Dashboard', code: 'dashboard', group: 'Ventas', sortOrder: 1 },
         { path: '/pos', icon: ShoppingCart, label: 'Punto de Venta', code: 'pos', group: 'Ventas', sortOrder: 3 },
       ];
+
+  // Add Settings item for superusers (not a tenant module, always available)
+  if (isSuperuser && !menuItems.find(item => item.code === 'settings')) {
+    menuItems.push({
+      path: '/settings',
+      icon: Settings,
+      label: 'Perfil Negocio',
+      code: 'settings',
+      group: 'Administracion',
+      sortOrder: 29,
+    });
+    menuItems.sort((a, b) => a.sortOrder - b.sortOrder);
+  }
 
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: '#f6f7f9' }}>

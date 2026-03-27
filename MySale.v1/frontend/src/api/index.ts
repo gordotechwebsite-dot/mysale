@@ -1275,3 +1275,32 @@ export const updateDeliveryStatus = async (id: number, data: {
   const response = await api.put(`/api/deliveries/${id}/status`, data);
   return response.data;
 };
+
+// Business Profile
+export const getBusinessProfile = async () => {
+  const response = await api.get('/api/business-profile/');
+  return response.data;
+};
+
+export const updateBusinessProfile = async (data: {
+  name?: string;
+  razon_social?: string;
+  nit?: string;
+  slogan?: string;
+  address?: string;
+  contact_phone?: string;
+  contact_email?: string;
+  primary_color?: string;
+}) => {
+  const response = await api.put('/api/business-profile/', data);
+  return response.data;
+};
+
+export const uploadBusinessLogo = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post('/api/business-profile/logo', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};

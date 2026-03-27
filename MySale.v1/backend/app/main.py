@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 from contextlib import asynccontextmanager
 from app.database import engine, Base, SessionLocal
 from app.models import *
-from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants, integration, faq, biometric, branches, deliveries
+from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants, integration, faq, biometric, branches, deliveries, business_profile
 from app.routers.tenants import public_router as tenants_public_router
 
 
@@ -114,6 +116,21 @@ def run_migrations():
                 db.execute(text("ALTER TABLE tenants ADD COLUMN pos_password VARCHAR(100)"))
                 db.commit()
                 print("Migration: Added pos_password column to tenants table")
+            
+            if 'razon_social' not in tenant_cols:
+                db.execute(text("ALTER TABLE tenants ADD COLUMN razon_social VARCHAR(300)"))
+                db.commit()
+                print("Migration: Added razon_social column to tenants table")
+            
+            if 'nit' not in tenant_cols:
+                db.execute(text("ALTER TABLE tenants ADD COLUMN nit VARCHAR(50)"))
+                db.commit()
+                print("Migration: Added nit column to tenants table")
+            
+            if 'slogan' not in tenant_cols:
+                db.execute(text("ALTER TABLE tenants ADD COLUMN slogan TEXT"))
+                db.commit()
+                print("Migration: Added slogan column to tenants table")
         
         # Add delivery columns to sales table
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='sales'"))
@@ -434,6 +451,12 @@ app.include_router(integration.router)
 app.include_router(faq.router)
 app.include_router(biometric.router)
 app.include_router(deliveries.router)
+app.include_router(business_profile.router)
+
+# Serve uploaded logos as static files
+LOGO_UPLOAD_DIR = "/data/uploads/logos"
+os.makedirs(LOGO_UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads/logos", StaticFiles(directory=LOGO_UPLOAD_DIR), name="logos")
 
 
 @app.get("/healthz")

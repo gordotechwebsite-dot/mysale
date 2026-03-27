@@ -52,6 +52,9 @@ class TenantBase(BaseModel):
     pos_url: Optional[str] = None
     pos_username: Optional[str] = None
     pos_password: Optional[str] = None
+    razon_social: Optional[str] = None
+    nit: Optional[str] = None
+    slogan: Optional[str] = None
 
 
 class TenantCreate(TenantBase):
@@ -75,6 +78,9 @@ class TenantUpdate(BaseModel):
     pos_url: Optional[str] = None
     pos_username: Optional[str] = None
     pos_password: Optional[str] = None
+    razon_social: Optional[str] = None
+    nit: Optional[str] = None
+    slogan: Optional[str] = None
     is_active: Optional[bool] = None
 
 

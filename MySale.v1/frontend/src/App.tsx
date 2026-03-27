@@ -24,6 +24,7 @@ import Cash from './pages/Cash';
 import Branches from './pages/Branches';
 import WorkReport from './pages/WorkReport';
 import Deliveries from './pages/Deliveries';
+import Settings from './pages/Settings';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -88,6 +89,7 @@ function AppRoutes() {
         <Route path="work-report" element={<WorkReport />} />
         <Route path="super-admin" element={<SuperAdmin />} />
         <Route path="deliveries" element={<Deliveries />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
   );

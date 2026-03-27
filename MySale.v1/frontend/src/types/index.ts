@@ -530,6 +530,9 @@ export interface Tenant {
   contact_email: string | null;
   contact_phone: string | null;
   address: string | null;
+  razon_social: string | null;
+  nit: string | null;
+  slogan: string | null;
   payment_status: 'active' | 'pending' | 'overdue' | 'suspended';
   payment_due_date: string | null;
   monthly_fee: number;
@@ -572,6 +575,18 @@ export interface TenantPayment {
   reference: string | null;
   notes: string | null;
   created_at: string;
+}
+
+export interface BusinessProfile {
+  name: string;
+  logo_url: string | null;
+  razon_social: string | null;
+  nit: string | null;
+  slogan: string | null;
+  address: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  primary_color: string | null;
 }
 
 export interface AdminDashboard {

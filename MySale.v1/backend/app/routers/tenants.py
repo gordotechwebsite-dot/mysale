@@ -358,6 +358,12 @@ async def update_tenant(
         tenant.pos_username = data.pos_username
     if data.pos_password is not None:
         tenant.pos_password = data.pos_password
+    if data.razon_social is not None:
+        tenant.razon_social = data.razon_social
+    if data.nit is not None:
+        tenant.nit = data.nit
+    if data.slogan is not None:
+        tenant.slogan = data.slogan
     if data.is_active is not None:
         tenant.is_active = data.is_active
     
