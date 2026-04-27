@@ -562,6 +562,7 @@ async def add_items_to_ticket(
         )
         db.add(item)
     
+    db.flush()
     recalculate_ticket_totals(ticket, db)
     db.commit()
     db.refresh(ticket)
