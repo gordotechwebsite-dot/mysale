@@ -898,35 +898,32 @@ export default function TableManagement() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex gap-2 p-2 overflow-hidden">
-            {/* Left: Categories */}
-            <div className="flex flex-col gap-2 overflow-auto flex-shrink-0 pr-1">
-              {families.map(family => {
-                const CategoryIcon = getCategoryIcon(family.name);
-                return (
-                  <button
-                    key={family.id}
-                    onClick={() => setSelectedFamily(selectedFamily === family.id ? null : family.id)}
-                    className={`flex flex-col items-center gap-1 px-3 py-3 rounded-2xl transition-all min-w-[72px] ${
-                      selectedFamily === family.id
-                        ? 'bg-emerald-100 text-emerald-600 border-2 border-emerald-400'
-                        : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-emerald-200 hover:bg-emerald-50'
-                    }`}
-                  >
-                    <CategoryIcon className="w-6 h-6" />
-                    <span className="text-xs font-medium leading-tight text-center">{family.name}</span>
-                  </button>
-                );
-              })}
-              {families.length === 0 && (
-                <div className="p-3 text-gray-400 text-center text-sm">
-                  Sin categorías
-                </div>
-              )}
-            </div>
+          <div className="flex-1 flex flex-col gap-2 p-2 overflow-hidden">
+            {/* Categories */}
+            {families.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {families.map(family => {
+                  const CategoryIcon = getCategoryIcon(family.name);
+                  return (
+                    <button
+                      key={family.id}
+                      onClick={() => setSelectedFamily(selectedFamily === family.id ? null : family.id)}
+                      className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all min-w-[72px] ${
+                        selectedFamily === family.id
+                          ? 'bg-emerald-100 text-emerald-600 border-2 border-emerald-400'
+                          : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-emerald-200 hover:bg-emerald-50'
+                      }`}
+                    >
+                      <CategoryIcon className="w-5 h-5" />
+                      <span className="text-xs font-medium leading-tight text-center">{family.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-            {/* Center: Items table + Product grid */}
-            <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+            {/* Items table + Product grid */}
+            <div className="flex-1 flex flex-col overflow-hidden min-h-0">
               {/* Current order items - compact table */}
               <div className="bg-white rounded-lg mb-2 overflow-auto border border-gray-200 shadow-sm" style={{ maxHeight: '35%' }}>
                 <table className="w-full text-sm">
@@ -1820,33 +1817,30 @@ export default function TableManagement() {
               </DialogFooter>
             </div>
           ) : (
-            <div className="flex-1 flex gap-2 overflow-hidden">
-              <div className="flex flex-col gap-2 overflow-auto flex-shrink-0 pr-1">
-                {families.map(family => {
-                  const CategoryIcon = getCategoryIcon(family.name);
-                  return (
-                    <button
-                      key={family.id}
-                      onClick={() => setSelectedFamily(selectedFamily === family.id ? null : family.id)}
-                      className={`flex flex-col items-center gap-1 px-3 py-3 rounded-2xl transition-all min-w-[72px] ${
-                        selectedFamily === family.id
-                          ? 'bg-emerald-100 text-emerald-600 border-2 border-emerald-400'
-                          : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-emerald-200 hover:bg-emerald-50'
-                      }`}
-                    >
-                      <CategoryIcon className="w-6 h-6" />
-                      <span className="text-xs font-medium leading-tight text-center">{family.name}</span>
-                    </button>
-                  );
-                })}
-                {families.length === 0 && (
-                  <div className="p-3 text-sm text-gray-400 text-center">
-                    Sin categorías
-                  </div>
-                )}
-              </div>
+            <div className="flex-1 flex flex-col gap-2 overflow-hidden">
+              {families.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {families.map(family => {
+                    const CategoryIcon = getCategoryIcon(family.name);
+                    return (
+                      <button
+                        key={family.id}
+                        onClick={() => setSelectedFamily(selectedFamily === family.id ? null : family.id)}
+                        className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all min-w-[72px] ${
+                          selectedFamily === family.id
+                            ? 'bg-emerald-100 text-emerald-600 border-2 border-emerald-400'
+                            : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-emerald-200 hover:bg-emerald-50'
+                        }`}
+                      >
+                        <CategoryIcon className="w-5 h-5" />
+                        <span className="text-xs font-medium leading-tight text-center">{family.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
-              <div className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 flex flex-col overflow-hidden min-h-0">
                 <div className="bg-white rounded-lg mb-2 overflow-hidden border border-gray-200">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-100">
