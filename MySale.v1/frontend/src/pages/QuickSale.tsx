@@ -157,6 +157,9 @@ const QuickSale: React.FC = () => {
       ]);
       setFamilies(familiesData);
       setSubfamilies(subfamiliesData);
+      if (familiesData.length > 0) {
+        setSelectedFamily(familiesData[0].id);
+      }
       const posLocations = locs.filter(l => l.location_type === 'pos');
       // Use user's assigned location if available, otherwise first POS location
       if (user?.location_id) {
