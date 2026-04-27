@@ -317,7 +317,7 @@ const Deliveries: React.FC = () => {
             </div>
 
             {/* Order ticket - right */}
-            <Card className="w-[420px] flex flex-col mb-16">
+            <Card className="w-[420px] flex flex-col h-full overflow-hidden">
               <div className="p-2 px-3 border-b bg-purple-50">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-base flex items-center gap-2">
