@@ -404,7 +404,7 @@ const QuickSale: React.FC = () => {
                       </div>
                     )}
                     <p className="font-medium text-gray-800 text-xs leading-tight line-clamp-2 w-full">{product.name}</p>
-                    <p className="text-[10px] text-gray-400">{product.code}</p>
+
                     <p className="text-sm font-bold text-orange-600">
                       {formatCurrency(product.sale_price)}
                     </p>
