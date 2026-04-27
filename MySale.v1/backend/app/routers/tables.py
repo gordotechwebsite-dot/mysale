@@ -428,7 +428,7 @@ def recalculate_ticket_totals(ticket: Ticket, db: Session):
     
     subtotal = sum(item.subtotal for item in items)
     tax = subtotal * 0.0
-    total = subtotal + tax + ticket.tip + ticket.service_charge - ticket.discount
+    total = subtotal + tax + (ticket.tip or 0) + (ticket.service_charge or 0) - (ticket.discount or 0)
     
     ticket.subtotal = subtotal
     ticket.tax = tax
@@ -549,7 +549,7 @@ async def add_items_to_ticket(
         if not product:
             continue
         
-        subtotal = item_data.quantity * item_data.unit_price - item_data.discount
+        subtotal = item_data.quantity * item_data.unit_price - (item_data.discount or 0)
         
         item = TicketItem(
             ticket_id=ticket_id,
@@ -562,6 +562,7 @@ async def add_items_to_ticket(
         )
         db.add(item)
     
+    db.flush()
     recalculate_ticket_totals(ticket, db)
     db.commit()
     db.refresh(ticket)
@@ -763,7 +764,7 @@ async def move_ticket(
     
     old_table = db.query(Table).filter(Table.id == ticket.table_id).first()
     if old_table:
-        old_table.status = TableStatus.FREE
+        old_table.status = TableStatus.AVAILABLE
     
     ticket.table_id = data.new_table_id
     new_table.status = TableStatus.BILL_OPEN
@@ -808,7 +809,7 @@ async def merge_tickets(
             
             source_table = db.query(Table).filter(Table.id == source_ticket.table_id).first()
             if source_table:
-                source_table.status = TableStatus.FREE
+                source_table.status = TableStatus.AVAILABLE
             
             source_ticket.status = TicketStatus.CANCELLED
     
@@ -897,8 +898,7 @@ async def pay_ticket(
             ticket_id=ticket_id,
             payment_method=payment_data.payment_method,
             amount=payment_data.amount,
-            reference=payment_data.reference,
-            created_by_id=current_user.id
+            reference=payment_data.reference
         )
         db.add(payment)
     
@@ -907,7 +907,7 @@ async def pay_ticket(
     
     table = db.query(Table).filter(Table.id == ticket.table_id).first()
     if table:
-        table.status = TableStatus.FREE
+        table.status = TableStatus.AVAILABLE
     
     db.commit()
     db.refresh(ticket)
@@ -947,7 +947,7 @@ async def generate_precheck(
     
     table = db.query(Table).filter(Table.id == ticket.table_id).first()
     if table:
-        table.status = TableStatus.TO_PAY
+        table.status = TableStatus.BILL_OPEN
     
     db.commit()
     

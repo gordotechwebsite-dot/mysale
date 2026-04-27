@@ -22,6 +22,61 @@ interface ReceiptTicketProps {
   onClose: () => void;
 }
 
+const thermalStyles = `
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Courier New', 'Lucida Console', monospace;
+    font-size: 12px;
+    line-height: 1.3;
+    color: #000;
+    width: 80mm;
+    padding: 3mm;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .receipt-header { text-align: center; margin-bottom: 6px; }
+  .receipt-logo { max-width: 45mm; max-height: 18mm; margin: 0 auto 4px; display: block; object-fit: contain; }
+  .business-name { font-size: 15px; font-weight: bold; margin-bottom: 1px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .business-detail { font-size: 10px; color: #333; line-height: 1.3; }
+  .sep-dash { border: none; border-top: 1px dashed #000; margin: 5px 0; }
+  .sep-solid { border: none; border-top: 2px solid #000; margin: 5px 0; }
+  .sep-double { border: none; border-top: 3px double #000; margin: 5px 0; }
+  .doc-title { text-align: center; font-size: 14px; font-weight: bold; margin: 4px 0; letter-spacing: 1px; }
+  .info-row { display: flex; justify-content: space-between; font-size: 10px; line-height: 1.5; }
+  .info-label { color: #555; }
+  .info-value { font-weight: 600; }
+  .items-header { display: flex; font-size: 10px; font-weight: bold; padding: 3px 0; border-bottom: 1px solid #000; margin-bottom: 3px; }
+  .items-header span:first-child { flex: 1; }
+  .items-header span:nth-child(2) { width: 30px; text-align: center; }
+  .items-header span:nth-child(3) { width: 55px; text-align: right; }
+  .items-header span:nth-child(4) { width: 60px; text-align: right; }
+  .item-row { margin-bottom: 3px; }
+  .item-name { font-size: 11px; font-weight: 600; }
+  .item-detail { display: flex; font-size: 10px; color: #333; }
+  .item-detail span:first-child { flex: 1; }
+  .item-detail span:nth-child(2) { width: 30px; text-align: center; }
+  .item-detail span:nth-child(3) { width: 55px; text-align: right; }
+  .item-detail span:nth-child(4) { width: 60px; text-align: right; }
+  .item-discount { font-size: 9px; color: #666; text-align: right; }
+  .totals-section { margin-top: 4px; }
+  .totals-row { display: flex; justify-content: space-between; font-size: 11px; padding: 1px 0; }
+  .total-final { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; padding: 3px 0; }
+  .payment-section { margin-top: 4px; }
+  .footer { text-align: center; margin-top: 8px; }
+  .footer-thanks { font-size: 12px; font-weight: bold; margin-bottom: 2px; }
+  .footer-slogan { font-size: 10px; color: #555; font-style: italic; }
+  .footer-brand { font-size: 9px; color: #999; margin-top: 6px; }
+  .items-count { font-size: 10px; color: #555; text-align: right; margin-top: 2px; }
+`;
+
 const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
   const [business, setBusiness] = useState<BusinessInfo | null>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -83,6 +138,8 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
     return labels[method] || method;
   };
 
+  const totalItems = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+
   const handlePrint = () => {
     const printContent = receiptRef.current;
     if (!printContent) return;
@@ -95,42 +152,8 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Ticket - ${sale.folio}</title>
-        <style>
-          @page {
-            size: 80mm auto;
-            margin: 0;
-          }
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-          body {
-            font-family: 'Courier New', 'Lucida Console', monospace;
-            font-size: 12px;
-            line-height: 1.4;
-            color: #000;
-            width: 80mm;
-            padding: 4mm;
-          }
-          .receipt-header { text-align: center; margin-bottom: 8px; }
-          .receipt-logo { max-width: 50mm; max-height: 20mm; margin: 0 auto 6px; display: block; object-fit: contain; }
-          .business-name { font-size: 16px; font-weight: bold; margin-bottom: 2px; }
-          .business-detail { font-size: 11px; color: #333; }
-          .separator { border-top: 1px dashed #000; margin: 6px 0; }
-          .separator-double { border-top: 2px solid #000; margin: 6px 0; }
-          .info-row { display: flex; justify-content: space-between; font-size: 11px; }
-          .info-label { color: #555; }
-          .items-header { display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; padding-bottom: 4px; border-bottom: 1px solid #000; margin-bottom: 4px; }
-          .item-row { margin-bottom: 4px; }
-          .item-name { font-size: 12px; font-weight: 600; }
-          .item-detail { display: flex; justify-content: space-between; font-size: 11px; color: #333; }
-          .totals-row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
-          .total-final { font-size: 16px; font-weight: bold; }
-          .footer { text-align: center; margin-top: 8px; font-size: 11px; color: #555; }
-          .footer-thanks { font-size: 13px; font-weight: bold; color: #000; margin-bottom: 4px; }
-        </style>
+        <title>Factura - ${sale.folio}</title>
+        <style>${thermalStyles}</style>
       </head>
       <body>
         ${printContent.innerHTML}
@@ -157,22 +180,19 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
           width: '380px',
         }}
       >
-        {/* Modal header with action buttons */}
+        {/* Modal header */}
         <div
           className="flex items-center justify-between px-5 py-3"
           style={{ borderBottom: '1px solid #e5e7eb' }}
         >
           <h3 className="font-semibold text-base" style={{ color: '#111827' }}>
-            Ticket de Venta
+            Factura de Venta
           </h3>
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white transition-all"
-              style={{
-                backgroundColor: '#00a86b',
-                borderRadius: '8px',
-              }}
+              style={{ backgroundColor: '#00a86b', borderRadius: '8px' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00965f'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00a86b'; }}
             >
@@ -191,14 +211,14 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
           </div>
         </div>
 
-        {/* Receipt content (scrollable) */}
+        {/* Receipt content */}
         <div className="flex-1 overflow-auto px-5 py-4">
           <div
             ref={receiptRef}
             style={{
               fontFamily: "'Courier New', 'Lucida Console', monospace",
               fontSize: '12px',
-              lineHeight: '1.4',
+              lineHeight: '1.3',
               color: '#000',
               backgroundColor: '#fff',
               padding: '12px',
@@ -206,133 +226,100 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
               borderRadius: '8px',
             }}
           >
-            {/* Header: Logo + Business Info */}
-            <div className="receipt-header" style={{ textAlign: 'center', marginBottom: '8px' }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '6px' }}>
               {getLogoSrc() && (
                 <img
                   src={getLogoSrc()!}
                   alt="Logo"
-                  className="receipt-logo"
                   style={{
-                    maxWidth: '140px',
-                    maxHeight: '60px',
-                    margin: '0 auto 8px',
+                    maxWidth: '130px',
+                    maxHeight: '55px',
+                    margin: '0 auto 6px',
                     display: 'block',
                     objectFit: 'contain',
                   }}
                 />
               )}
-              <div
-                className="business-name"
-                style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '2px' }}
-              >
+              <div style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '1px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 {business?.name || 'Mi Negocio'}
               </div>
               {business?.razon_social && (
-                <div className="business-detail" style={{ fontSize: '11px', color: '#333' }}>
-                  {business.razon_social}
-                </div>
+                <div style={{ fontSize: '10px', color: '#333' }}>{business.razon_social}</div>
               )}
               {business?.nit && (
-                <div className="business-detail" style={{ fontSize: '11px', color: '#333' }}>
-                  NIT: {business.nit}
-                </div>
+                <div style={{ fontSize: '10px', color: '#333' }}>NIT: {business.nit}</div>
               )}
               {business?.address && (
-                <div className="business-detail" style={{ fontSize: '11px', color: '#333' }}>
-                  {business.address}
-                </div>
+                <div style={{ fontSize: '10px', color: '#333' }}>{business.address}</div>
               )}
               {business?.contact_phone && (
-                <div className="business-detail" style={{ fontSize: '11px', color: '#333' }}>
-                  Tel: {business.contact_phone}
-                </div>
+                <div style={{ fontSize: '10px', color: '#333' }}>Tel: {business.contact_phone}</div>
               )}
               {business?.contact_email && (
-                <div className="business-detail" style={{ fontSize: '11px', color: '#333' }}>
-                  {business.contact_email}
-                </div>
+                <div style={{ fontSize: '10px', color: '#333' }}>{business.contact_email}</div>
               )}
             </div>
 
-            {/* Separator */}
-            <div style={{ borderTop: '2px solid #000', margin: '6px 0' }} />
+            {/* Document title */}
+            <div style={{ borderTop: '2px solid #000', margin: '5px 0' }} />
+            <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: 'bold', margin: '4px 0', letterSpacing: '1px' }}>
+              FACTURA DE VENTA
+            </div>
+            <div style={{ borderTop: '2px solid #000', margin: '5px 0' }} />
 
-            {/* Sale Info */}
+            {/* Sale info */}
             <div style={{ marginBottom: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' }}>
                 <span style={{ color: '#555' }}>Folio:</span>
-                <span style={{ fontWeight: 'bold' }}>{sale.folio}</span>
+                <span style={{ fontWeight: 600 }}>{sale.folio}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' }}>
                 <span style={{ color: '#555' }}>Fecha:</span>
                 <span>{formatDate(sale.created_at)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' }}>
                 <span style={{ color: '#555' }}>Hora:</span>
                 <span>{formatTime(sale.created_at)}</span>
               </div>
               {sale.cashier_name && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' }}>
                   <span style={{ color: '#555' }}>Cajero:</span>
                   <span>{sale.cashier_name}</span>
                 </div>
               )}
               {sale.location_name && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' }}>
                   <span style={{ color: '#555' }}>Sede:</span>
                   <span>{sale.location_name}</span>
                 </div>
               )}
             </div>
 
-            {/* Separator */}
-            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-
             {/* Items header */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '11px',
-                fontWeight: 'bold',
-                paddingBottom: '4px',
-                borderBottom: '1px solid #000',
-                marginBottom: '4px',
-              }}
-            >
+            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
+            <div style={{ display: 'flex', fontSize: '10px', fontWeight: 'bold', paddingBottom: '3px', borderBottom: '1px solid #000', marginBottom: '3px' }}>
               <span style={{ flex: 1 }}>Producto</span>
-              <span style={{ width: '70px', textAlign: 'right' }}>Subtotal</span>
+              <span style={{ width: '30px', textAlign: 'center' }}>Ud</span>
+              <span style={{ width: '55px', textAlign: 'right' }}>P.Unit</span>
+              <span style={{ width: '60px', textAlign: 'right' }}>Subtotal</span>
             </div>
 
             {/* Items */}
-            <div style={{ marginBottom: '4px' }}>
+            <div style={{ marginBottom: '3px' }}>
               {sale.items.map((item, idx) => (
-                <div key={idx} style={{ marginBottom: '6px' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 600 }}>
+                <div key={idx} style={{ marginBottom: '3px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600 }}>
                     {item.product_name || `Producto #${item.product_id}`}
                   </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontSize: '11px',
-                      color: '#333',
-                    }}
-                  >
-                    <span>
-                      {item.quantity} x {formatCurrency(item.unit_price)}
-                    </span>
-                    <span>{formatCurrency(item.subtotal)}</span>
+                  <div style={{ display: 'flex', fontSize: '10px', color: '#333' }}>
+                    <span style={{ flex: 1 }}></span>
+                    <span style={{ width: '30px', textAlign: 'center' }}>{item.quantity}</span>
+                    <span style={{ width: '55px', textAlign: 'right' }}>{formatCurrency(item.unit_price)}</span>
+                    <span style={{ width: '60px', textAlign: 'right' }}>{formatCurrency(item.subtotal)}</span>
                   </div>
                   {item.discount > 0 && (
-                    <div
-                      style={{
-                        fontSize: '10px',
-                        color: '#dc2626',
-                        textAlign: 'right',
-                      }}
-                    >
+                    <div style={{ fontSize: '9px', color: '#666', textAlign: 'right' }}>
                       Desc: -{formatCurrency(item.discount)}
                     </div>
                   )}
@@ -340,87 +327,72 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
               ))}
             </div>
 
-            {/* Separator */}
-            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
+            {/* Items count */}
+            <div style={{ fontSize: '10px', color: '#555', textAlign: 'right', marginTop: '2px' }}>
+              {totalItems} artículo{totalItems !== 1 ? 's' : ''}
+            </div>
 
             {/* Totals */}
-            <div style={{ marginBottom: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '2px 0' }}>
+            <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
+            <div style={{ marginTop: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '1px 0' }}>
                 <span>Subtotal:</span>
                 <span>{formatCurrency(sale.subtotal)}</span>
               </div>
               {sale.discount > 0 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    fontSize: '12px',
-                    padding: '2px 0',
-                    color: '#dc2626',
-                  }}
-                >
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '1px 0', color: '#dc2626' }}>
                   <span>Descuento:</span>
                   <span>-{formatCurrency(sale.discount)}</span>
                 </div>
               )}
               {sale.tax > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '2px 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '1px 0' }}>
                   <span>Impuesto:</span>
                   <span>{formatCurrency(sale.tax)}</span>
                 </div>
               )}
             </div>
 
-            {/* Total final */}
-            <div style={{ borderTop: '2px solid #000', margin: '4px 0' }} />
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                padding: '4px 0',
-              }}
-            >
+            {/* Total */}
+            <div style={{ borderTop: '3px double #000', margin: '5px 0' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: 'bold', padding: '3px 0' }}>
               <span>TOTAL:</span>
               <span>{formatCurrency(sale.total)}</span>
             </div>
-            <div style={{ borderTop: '2px solid #000', margin: '4px 0' }} />
+            <div style={{ borderTop: '3px double #000', margin: '5px 0' }} />
 
-            {/* Payment info */}
-            <div style={{ marginTop: '6px', marginBottom: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                <span style={{ color: '#555' }}>Metodo de pago:</span>
+            {/* Payment */}
+            <div style={{ marginTop: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' }}>
+                <span style={{ color: '#555' }}>Método de pago:</span>
                 <span style={{ fontWeight: 'bold' }}>{paymentMethodLabel(sale.payment_method)}</span>
               </div>
               {sale.amount_received != null && sale.payment_method === 'cash' && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' }}>
                   <span style={{ color: '#555' }}>Recibido:</span>
                   <span>{formatCurrency(sale.amount_received)}</span>
                 </div>
               )}
               {sale.change_given != null && sale.change_given > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 'bold' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 'bold', lineHeight: '1.5' }}>
                   <span>Cambio:</span>
                   <span>{formatCurrency(sale.change_given)}</span>
                 </div>
               )}
             </div>
 
-            {/* Separator */}
-            <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
-
             {/* Footer */}
+            <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
             <div style={{ textAlign: 'center', marginTop: '8px' }}>
-              <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>
-                Gracias por su compra!
+              <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '2px' }}>
+                ¡Gracias por su compra!
               </div>
               {business?.slogan && (
-                <div style={{ fontSize: '11px', color: '#555', fontStyle: 'italic' }}>
+                <div style={{ fontSize: '10px', color: '#555', fontStyle: 'italic' }}>
                   {business.slogan}
                 </div>
               )}
-              <div style={{ fontSize: '10px', color: '#999', marginTop: '8px' }}>
+              <div style={{ fontSize: '9px', color: '#999', marginTop: '6px' }}>
                 Powered by MySale POS
               </div>
             </div>
@@ -435,11 +407,7 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium transition-colors"
-            style={{
-              color: '#6b7280',
-              borderRadius: '8px',
-              border: '1px solid #e5e7eb',
-            }}
+            style={{ color: '#6b7280', borderRadius: '8px', border: '1px solid #e5e7eb' }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#f3f4f6'; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
           >
@@ -448,15 +416,12 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
           <button
             onClick={handlePrint}
             className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white transition-all"
-            style={{
-              backgroundColor: '#00a86b',
-              borderRadius: '8px',
-            }}
+            style={{ backgroundColor: '#00a86b', borderRadius: '8px' }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00965f'; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00a86b'; }}
           >
             <Printer size={16} />
-            Imprimir Ticket
+            Imprimir Factura
           </button>
         </div>
       </div>
