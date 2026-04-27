@@ -291,7 +291,7 @@ const Deliveries: React.FC = () => {
                       >
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-gray-800 truncate">{product.name}</p>
-                          <p className="text-xs text-gray-500">{product.code}</p>
+
                           <p className="text-lg font-bold text-purple-600 mt-1">
                             {formatCurrency(product.sale_price)}
                           </p>
