@@ -947,7 +947,7 @@ async def generate_precheck(
     
     table = db.query(Table).filter(Table.id == ticket.table_id).first()
     if table:
-        table.status = TableStatus.TO_PAY
+        table.status = TableStatus.BILL_OPEN
     
     db.commit()
     
