@@ -549,7 +549,7 @@ async def add_items_to_ticket(
         if not product:
             continue
         
-        subtotal = item_data.quantity * item_data.unit_price - item_data.discount
+        subtotal = item_data.quantity * item_data.unit_price - (item_data.discount or 0)
         
         item = TicketItem(
             ticket_id=ticket_id,
