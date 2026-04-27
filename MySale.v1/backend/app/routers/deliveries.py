@@ -6,7 +6,7 @@ from app.database import get_db
 from app.models.user import User
 from app.models.shift import Shift, ShiftStatus
 from app.models.sale import Sale, SaleItem, PaymentMethod, SaleType, DeliveryStatus
-from app.models.inventory import Product, ProductStock, StockMovement, MovementType
+from app.models.inventory import Product
 from app.models.location import Location
 from app.schemas.delivery import DeliveryCreate, DeliveryResponse, DeliveryItemResponse, DeliveryUpdateStatus
 from app.utils.auth import get_current_user
@@ -148,23 +148,11 @@ async def create_delivery(
                 detail=f"Producto {item_data.product_id} no encontrado"
             )
         
-        stock = db.query(ProductStock).filter(
-            ProductStock.product_id == item_data.product_id,
-            ProductStock.location_id == shift.location_id
-        ).first()
-        
-        if not stock or stock.quantity < item_data.quantity:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Stock insuficiente para {product.name}"
-            )
-        
         item_subtotal = product.sale_price * item_data.quantity
         item_discount = item_data.discount
         
         sale_items.append({
             "product": product,
-            "stock": stock,
             "quantity": item_data.quantity,
             "unit_price": product.sale_price,
             "cost_at_sale": product.weighted_cost,
@@ -221,19 +209,6 @@ async def create_delivery(
         )
         db.add(sale_item)
         
-        item_info["stock"].quantity -= item_info["quantity"]
-        
-        movement = StockMovement(
-            product_id=item_info["product"].id,
-            location_id=shift.location_id,
-            movement_type=MovementType.SALE,
-            quantity=-item_info["quantity"],
-            reference_id=sale.id,
-            reference_type="delivery",
-            created_by_id=current_user.id
-        )
-        db.add(movement)
-    
     shift.total_sales += grand_total
     if data.payment_method == PaymentMethod.CASH:
         shift.total_cash_sales += grand_total
