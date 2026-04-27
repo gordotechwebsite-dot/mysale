@@ -28,7 +28,7 @@ import {
   Zap,
   Scale,
   Package,
-  LayoutGrid,
+
   Sun,
   Beef,
   Drumstick,
@@ -324,18 +324,7 @@ const QuickSale: React.FC = () => {
           {/* Category Cards */}
           {families.length > 0 && (
             <div className="mb-3">
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                <button
-                  onClick={() => { setSelectedFamily(null); setSearchTerm(''); }}
-                  className={`flex-shrink-0 px-4 py-2.5 rounded-xl font-medium text-sm transition-all flex items-center gap-2 ${
-                    selectedFamily === null
-                      ? 'bg-orange-600 text-white shadow-md'
-                      : 'bg-white text-gray-700 border border-gray-200 hover:border-orange-300 hover:bg-orange-50'
-                  }`}
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                  Todos
-                </button>
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                 {families.map((family) => {
                   const count = products.filter(p => {
                     const familySubIds = subfamilies.filter(sf => sf.family_id === family.id).map(sf => sf.id);
@@ -346,22 +335,15 @@ const QuickSale: React.FC = () => {
                   return (
                     <button
                       key={family.id}
-                      onClick={() => { setSelectedFamily(family.id); setSearchTerm(''); }}
-                      className={`flex-shrink-0 px-4 py-2.5 rounded-xl font-medium text-sm transition-all flex items-center gap-2 ${
+                      onClick={() => { setSelectedFamily(selectedFamily === family.id ? null : family.id); setSearchTerm(''); }}
+                      className={`flex-shrink-0 flex flex-col items-center gap-1 px-4 py-3 rounded-2xl transition-all min-w-[72px] ${
                         selectedFamily === family.id
-                          ? 'bg-orange-600 text-white shadow-md'
-                          : 'bg-white text-gray-700 border border-gray-200 hover:border-orange-300 hover:bg-orange-50'
+                          ? 'bg-orange-100 text-orange-600 border-2 border-orange-400'
+                          : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-orange-200 hover:bg-orange-50'
                       }`}
                     >
-                      <CategoryIcon className="w-4 h-4" />
-                      {family.name}
-                      <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${
-                        selectedFamily === family.id
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}>
-                        {count}
-                      </span>
+                      <CategoryIcon className="w-6 h-6" />
+                      <span className="text-xs font-medium leading-tight text-center">{family.name}</span>
                     </button>
                   );
                 })}

@@ -54,11 +54,50 @@ import {
   Send,
   RotateCw,
   Move,
-  Search
+  Search,
+  Package,
+  Sun,
+  Beef,
+  Drumstick,
+  Bird,
+  UtensilsCrossed,
+  Flame,
+  Salad,
+  Soup,
+  Star,
+  Coffee,
+  Baby,
+  PlusCircle,
+  Pizza,
+  Sandwich,
+  Cookie,
+  IceCream,
+  Wheat,
+  Fish,
+  Egg,
+  Apple,
+  type LucideIcon
 } from 'lucide-react';
 import TableReceiptTicket from '../components/TableReceiptTicket';
 import PrecheckTicket from '../components/PrecheckTicket';
 
+const categoryIconMap: Record<string, LucideIcon> = {
+  'Almuerzo': Sun, 'Hamburguesas': Beef, 'Alitas': Drumstick, 'Boneless': Bird,
+  'Picadas': UtensilsCrossed, 'Pollo Broaster': Flame, 'Perros Calientes': Sandwich,
+  'Salchipapas': Cookie, 'Entradas': Soup, 'Platos Especiales': Star, 'Bebidas': Coffee,
+  'Menú Infantil': Baby, 'Menu Infantil': Baby, 'Adicionales': PlusCircle, 'Pizzas': Pizza,
+  'Postres': IceCream, 'Ensaladas': Salad, 'Panadería': Wheat, 'Pescados': Fish,
+  'Desayunos': Egg, 'Frutas': Apple, 'Comidas': UtensilsCrossed,
+};
+
+const getCategoryIcon = (name: string): LucideIcon => {
+  if (categoryIconMap[name]) return categoryIconMap[name];
+  const lowerName = name.toLowerCase();
+  for (const [key, icon] of Object.entries(categoryIconMap)) {
+    if (lowerName.includes(key.toLowerCase()) || key.toLowerCase().includes(lowerName)) return icon;
+  }
+  return Package;
+};
 
 interface CartItem {
   product: Product;
@@ -860,41 +899,30 @@ export default function TableManagement() {
           </div>
         ) : (
           <div className="flex-1 flex gap-2 p-2 overflow-hidden">
-            {/* Left: Categories sidebar */}
-            <div className="w-40 flex flex-col bg-white rounded-lg overflow-hidden flex-shrink-0 border border-gray-200 shadow-sm">
-              <div className="px-3 py-2 bg-gray-100 font-bold text-center text-gray-800 text-sm border-b border-gray-200">
-                CATEGORÍAS
-              </div>
-              <div className="flex-1 overflow-auto">
-                <button
-                  onClick={() => setSelectedFamily(null)}
-                  className={`w-full px-3 py-3 text-left text-sm font-medium border-b border-gray-100 transition-colors ${
-                    selectedFamily === null
-                      ? 'bg-emerald-500 text-white'
-                      : 'bg-white hover:bg-gray-50 text-gray-700'
-                  }`}
-                >
-                  Todas
-                </button>
-                {families.map(family => (
+            {/* Left: Categories */}
+            <div className="flex flex-col gap-2 overflow-auto flex-shrink-0 pr-1">
+              {families.map(family => {
+                const CategoryIcon = getCategoryIcon(family.name);
+                return (
                   <button
                     key={family.id}
-                    onClick={() => setSelectedFamily(family.id)}
-                    className={`w-full px-3 py-3 text-left text-sm font-medium border-b border-gray-100 transition-colors ${
+                    onClick={() => setSelectedFamily(selectedFamily === family.id ? null : family.id)}
+                    className={`flex flex-col items-center gap-1 px-3 py-3 rounded-2xl transition-all min-w-[72px] ${
                       selectedFamily === family.id
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-white hover:bg-gray-50 text-gray-700'
+                        ? 'bg-emerald-100 text-emerald-600 border-2 border-emerald-400'
+                        : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-emerald-200 hover:bg-emerald-50'
                     }`}
                   >
-                    {family.name}
+                    <CategoryIcon className="w-6 h-6" />
+                    <span className="text-xs font-medium leading-tight text-center">{family.name}</span>
                   </button>
-                ))}
-                {families.length === 0 && (
-                  <div className="p-3 text-gray-400 text-center text-sm">
-                    Sin categorías
-                  </div>
-                )}
-              </div>
+                );
+              })}
+              {families.length === 0 && (
+                <div className="p-3 text-gray-400 text-center text-sm">
+                  Sin categorías
+                </div>
+              )}
             </div>
 
             {/* Center: Items table + Product grid */}
@@ -1793,30 +1821,29 @@ export default function TableManagement() {
             </div>
           ) : (
             <div className="flex-1 flex gap-2 overflow-hidden">
-              <div className="w-40 flex flex-col bg-white rounded-lg overflow-hidden border border-gray-200">
-                <div className="p-2 bg-gray-100 font-semibold text-sm text-center text-gray-800 border-b border-gray-200">
-                  Categorías
-                </div>
-                <div className="flex-1 overflow-auto">
-                  {families.map(family => (
+              <div className="flex flex-col gap-2 overflow-auto flex-shrink-0 pr-1">
+                {families.map(family => {
+                  const CategoryIcon = getCategoryIcon(family.name);
+                  return (
                     <button
                       key={family.id}
-                      onClick={() => setSelectedFamily(family.id)}
-                      className={`w-full p-3 text-left text-sm font-medium border-b border-gray-100 transition-colors ${
+                      onClick={() => setSelectedFamily(selectedFamily === family.id ? null : family.id)}
+                      className={`flex flex-col items-center gap-1 px-3 py-3 rounded-2xl transition-all min-w-[72px] ${
                         selectedFamily === family.id
-                          ? 'bg-emerald-500 text-white'
-                          : 'bg-white hover:bg-gray-50 text-gray-700'
+                          ? 'bg-emerald-100 text-emerald-600 border-2 border-emerald-400'
+                          : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-emerald-200 hover:bg-emerald-50'
                       }`}
                     >
-                      {family.name}
+                      <CategoryIcon className="w-6 h-6" />
+                      <span className="text-xs font-medium leading-tight text-center">{family.name}</span>
                     </button>
-                  ))}
-                  {families.length === 0 && (
-                    <div className="p-3 text-sm text-gray-400 text-center">
-                      Sin categorías
-                    </div>
-                  )}
-                </div>
+                  );
+                })}
+                {families.length === 0 && (
+                  <div className="p-3 text-sm text-gray-400 text-center">
+                    Sin categorías
+                  </div>
+                )}
               </div>
 
               <div className="flex-1 flex flex-col overflow-hidden">
