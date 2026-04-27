@@ -252,12 +252,10 @@ const Deliveries: React.FC = () => {
 
 
   return (
-    <div className="h-[calc(100vh-80px)] -mt-4 flex flex-col">
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1">
-          <div className="flex gap-3 h-full">
+    <div className="h-[calc(100vh-80px)] -mt-4 flex flex-col overflow-hidden">
+      <div className="flex-1 flex gap-3 min-h-0">
             {/* Product selection - left */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 min-w-0 flex flex-col">
               <div className="mb-4">
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -317,7 +315,7 @@ const Deliveries: React.FC = () => {
             </div>
 
             {/* Order ticket - right */}
-            <Card className="w-[420px] flex flex-col h-full overflow-hidden">
+            <Card className="w-[420px] flex-shrink-0 flex flex-col">
               <div className="p-2 px-3 border-b bg-purple-50">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-base flex items-center gap-2">
@@ -507,8 +505,6 @@ const Deliveries: React.FC = () => {
                 </Button>
               </div>
             </Card>
-          </div>
-        </div>
       </div>
 
       {/* Payment Dialog */}
