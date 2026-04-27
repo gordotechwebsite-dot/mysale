@@ -897,8 +897,7 @@ async def pay_ticket(
             ticket_id=ticket_id,
             payment_method=payment_data.payment_method,
             amount=payment_data.amount,
-            reference=payment_data.reference,
-            created_by_id=current_user.id
+            reference=payment_data.reference
         )
         db.add(payment)
     
