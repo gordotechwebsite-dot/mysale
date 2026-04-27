@@ -154,3 +154,29 @@ async def upload_logo(
     db.commit()
 
     return {"logo_url": logo_url, "message": "Logo actualizado exitosamente"}
+
+
+@router.get("/receipt-info", response_model=BusinessProfileResponse)
+async def get_receipt_info(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get business profile for receipt/ticket printing. Accessible by any authenticated user."""
+    if not current_user.tenant_id:
+        raise HTTPException(status_code=400, detail="Usuario no asociado a un negocio")
+
+    tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Negocio no encontrado")
+
+    return BusinessProfileResponse(
+        name=tenant.name,
+        logo_url=tenant.logo_url,
+        razon_social=tenant.razon_social,
+        nit=tenant.nit,
+        slogan=tenant.slogan,
+        address=tenant.address,
+        contact_phone=tenant.contact_phone,
+        contact_email=tenant.contact_email,
+        primary_color=tenant.primary_color,
+    )

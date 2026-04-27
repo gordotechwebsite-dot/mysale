@@ -52,6 +52,7 @@ import {
   Apple,
   type LucideIcon
 } from 'lucide-react';
+import ReceiptTicket from '../components/ReceiptTicket';
 
 // Icon mapping for category names - maps category/family names to lucide icons
 const categoryIconMap: Record<string, LucideIcon> = {
@@ -109,6 +110,7 @@ const QuickSale: React.FC = () => {
   const [amountReceived, setAmountReceived] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
   const [weightedProductInfo, setWeightedProductInfo] = useState<{
     product_name: string;
@@ -266,13 +268,8 @@ const QuickSale: React.FC = () => {
       setLastSale(sale);
       clearCart();
       setShowPayment(false);
-      setShowSuccess(true);
+      setShowReceipt(true);
       setAmountReceived('');
-      
-      setTimeout(() => {
-        setShowSuccess(false);
-        searchRef.current?.focus();
-      }, 2000);
     } catch (error: any) {
       alert(error.response?.data?.detail || 'Error al procesar la venta');
     } finally {
@@ -648,6 +645,16 @@ const QuickSale: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {showReceipt && lastSale && (
+        <ReceiptTicket
+          sale={lastSale}
+          onClose={() => {
+            setShowReceipt(false);
+            searchRef.current?.focus();
+          }}
+        />
+      )}
     </div>
   );
 };
