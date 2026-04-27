@@ -385,7 +385,7 @@ const QuickSale: React.FC = () => {
                 <p>No hay productos en esta categoria</p>
               </div>
             ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2">
+              <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))' }}>
                 {filteredProducts.map((product) => (
                   <button
                     key={product.id}
