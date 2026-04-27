@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List, Optional
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.models.table import (
@@ -60,14 +64,17 @@ def get_table_response(table: Table, db: Session) -> TableResponse:
     
     zone = db.query(Zone).filter(Zone.id == table.zone_id).first()
     
+    shape_val = table.shape.value if hasattr(table.shape, 'value') else str(table.shape) if table.shape else 'square'
+    status_val = table.status.value if hasattr(table.status, 'value') else str(table.status) if table.status else 'available'
+    
     return TableResponse(
         id=table.id,
         name=table.name,
         zone_id=table.zone_id,
         zone_name=zone.name if zone else None,
         capacity=table.capacity,
-        shape=table.shape.value,
-        status=table.status.value,
+        shape=shape_val,
+        status=status_val,
         position_x=table.position_x,
         position_y=table.position_y,
         width=table.width,
@@ -124,12 +131,21 @@ async def get_zones_with_tables(
     
     result = []
     for zone in zones:
-        tables = db.query(Table).filter(
-            Table.zone_id == zone.id,
-            Table.is_active == True
-        ).all()
+        try:
+            tables = db.query(Table).filter(
+                Table.zone_id == zone.id,
+                Table.is_active == True
+            ).all()
+        except Exception as e:
+            logger.error(f"Error querying tables for zone {zone.id}: {e}")
+            tables = []
         
-        table_responses = [get_table_response(t, db) for t in tables]
+        table_responses = []
+        for t in tables:
+            try:
+                table_responses.append(get_table_response(t, db))
+            except Exception as e:
+                logger.error(f"Error loading table {t.id}: {e}")
         
         result.append(ZoneWithTablesResponse(
             id=zone.id,
@@ -143,6 +159,16 @@ async def get_zones_with_tables(
         ))
     
     return result
+
+
+@router.get("/debug-tables")
+async def debug_tables(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Debug endpoint to check raw table data in the database."""
+    rows = db.execute(text("SELECT id, name, zone_id, status, shape FROM tables WHERE is_active = 1")).fetchall()
+    return [{"id": r[0], "name": r[1], "zone_id": r[2], "status": r[3], "shape": r[4]} for r in rows]
 
 
 @router.post("/zones", response_model=ZoneResponse)
