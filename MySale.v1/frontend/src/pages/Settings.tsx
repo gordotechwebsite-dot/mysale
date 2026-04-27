@@ -195,7 +195,7 @@ export default function Settings() {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
-                style={{ border: '1px solid #e5e7eb', focusRingColor: '#00a86b' }}
+                style={{ border: '1px solid #e5e7eb' }}
                 placeholder="Ej: Foodgo"
               />
             </div>
