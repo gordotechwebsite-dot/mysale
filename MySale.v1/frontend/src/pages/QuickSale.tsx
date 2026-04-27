@@ -291,7 +291,7 @@ const QuickSale: React.FC = () => {
   const quickAmounts = [50000, 100000, 200000];
 
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col gap-4 overflow-hidden">
+    <div className="h-[calc(100vh-180px)] flex flex-col gap-4 overflow-hidden">
       <div className="flex-1 flex gap-4 min-h-0">
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="mb-4">
@@ -485,7 +485,7 @@ const QuickSale: React.FC = () => {
             )}
           </div>
 
-          <div className="p-4 border-t bg-orange-50">
+          <div className="p-4 pb-5 border-t bg-orange-50">
             <div className="flex justify-between items-center mb-4">
               <span className="text-gray-600">Subtotal:</span>
               <span className="font-semibold">{formatCurrency(subtotal)}</span>
