@@ -428,7 +428,7 @@ def recalculate_ticket_totals(ticket: Ticket, db: Session):
     
     subtotal = sum(item.subtotal for item in items)
     tax = subtotal * 0.0
-    total = subtotal + tax + ticket.tip + ticket.service_charge - ticket.discount
+    total = subtotal + tax + (ticket.tip or 0) + (ticket.service_charge or 0) - (ticket.discount or 0)
     
     ticket.subtotal = subtotal
     ticket.tax = tax
