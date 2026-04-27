@@ -252,7 +252,7 @@ const Deliveries: React.FC = () => {
 
 
   return (
-    <div className="h-[calc(100vh-80px)] -mt-4 flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-180px)] flex flex-col overflow-hidden">
       <div className="flex-1 flex gap-3 min-h-0">
             {/* Product selection - left */}
             <div className="flex-1 min-w-0 flex flex-col">
@@ -480,7 +480,7 @@ const Deliveries: React.FC = () => {
               </div>
 
               {/* Totals */}
-              <div className="p-2 px-3 border-t bg-purple-50">
+              <div className="p-2 px-3 pb-4 border-t bg-purple-50">
                 <div className="flex justify-between items-center mb-0.5 text-sm">
                   <span className="text-gray-600">Subtotal:</span>
                   <span className="font-semibold">{formatCurrency(subtotal)}</span>
