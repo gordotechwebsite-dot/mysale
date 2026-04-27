@@ -1276,7 +1276,13 @@ export const updateDeliveryStatus = async (id: number, data: {
   return response.data;
 };
 
-// Business Profile
+// Business Profile (receipt info - accessible by any authenticated user)
+export const getReceiptInfo = async () => {
+  const response = await api.get('/api/business-profile/receipt-info');
+  return response.data;
+};
+
+// Business Profile (admin only)
 export const getBusinessProfile = async () => {
   const response = await api.get('/api/business-profile/');
   return response.data;
