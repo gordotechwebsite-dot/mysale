@@ -52,8 +52,11 @@ import {
   Minus,
   Send,
   RotateCw,
-  Move
+  Move,
+  Search
 } from 'lucide-react';
+import TableReceiptTicket from '../components/TableReceiptTicket';
+import PrecheckTicket from '../components/PrecheckTicket';
 
 
 interface CartItem {
@@ -115,6 +118,11 @@ export default function TableManagement() {
   const [tip, setTip] = useState(0);
 
   const [openingTicket, setOpeningTicket] = useState(false);
+  const [showTableReceipt, setShowTableReceipt] = useState(false);
+  const [paidTicketData, setPaidTicketData] = useState<{ ticket: Ticket; method: string; amount: number; tip: number } | null>(null);
+  const [showPrecheckTicket, setShowPrecheckTicket] = useState(false);
+  const [precheckTicketData, setPrecheckTicketData] = useState<Ticket | null>(null);
+  const [productSearchQuery, setProductSearchQuery] = useState('');
 
   // Real-time clock for table timers
   const [now, setNow] = useState(Date.now());
@@ -656,7 +664,8 @@ export default function TableManagement() {
     if (!currentTicket) return;
     try {
       await generatePrecheck(currentTicket.id);
-      toast.success('Precuenta generada');
+      setPrecheckTicketData({ ...currentTicket });
+      setShowPrecheckTicket(true);
       loadZones();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
@@ -676,6 +685,7 @@ export default function TableManagement() {
   const handlePayTicket = async () => {
     if (!currentTicket) return;
     try {
+      const ticketSnapshot = { ...currentTicket };
       await payTicket(currentTicket.id, {
         payments: [{
           payment_method: paymentMethod,
@@ -685,6 +695,8 @@ export default function TableManagement() {
         tip: tip || undefined
       });
       toast.success('Pago procesado exitosamente');
+      setPaidTicketData({ ticket: ticketSnapshot, method: paymentMethod, amount: paymentAmount, tip });
+      setShowTableReceipt(true);
       setShowPaymentDialog(false);
       setShowTicketDialog(false);
       setCurrentTicket(null);
@@ -733,9 +745,10 @@ export default function TableManagement() {
 
   const currentZone = zones.find(z => z.id === selectedZone);
   const filteredProducts = products.filter(p => {
-    const matchesSearch = productSearch === '' || 
-      p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-      p.code.toLowerCase().includes(productSearch.toLowerCase());
+    const query = productSearchQuery || productSearch;
+    const matchesSearch = query === '' ||
+      p.name.toLowerCase().includes(query.toLowerCase()) ||
+      p.code.toLowerCase().includes(query.toLowerCase());
     return matchesSearch;
   });
 
@@ -838,17 +851,28 @@ export default function TableManagement() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex gap-3 p-3 overflow-hidden">
-            <div className="w-48 flex flex-col bg-slate-800 rounded-lg overflow-hidden">
-              <div className="p-3 bg-slate-700 font-bold text-center text-white">
+          <div className="flex-1 flex gap-2 p-2 overflow-hidden">
+            {/* Left: Categories sidebar */}
+            <div className="w-40 flex flex-col bg-slate-800 rounded-lg overflow-hidden flex-shrink-0">
+              <div className="px-3 py-2 bg-slate-700 font-bold text-center text-white text-sm">
                 CATEGORÍAS
               </div>
               <div className="flex-1 overflow-auto">
+                <button
+                  onClick={() => setSelectedFamily(null)}
+                  className={`w-full px-3 py-3 text-left text-sm font-medium border-b border-slate-700 transition-colors ${
+                    selectedFamily === null
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                  }`}
+                >
+                  Todas
+                </button>
                 {families.map(family => (
                   <button
                     key={family.id}
                     onClick={() => setSelectedFamily(family.id)}
-                    className={`w-full p-4 text-left font-medium border-b border-slate-700 transition-colors ${
+                    className={`w-full px-3 py-3 text-left text-sm font-medium border-b border-slate-700 transition-colors ${
                       selectedFamily === family.id
                         ? 'bg-emerald-600 text-white'
                         : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
@@ -858,42 +882,41 @@ export default function TableManagement() {
                   </button>
                 ))}
                 {families.length === 0 && (
-                  <div className="p-4 text-slate-400 text-center">
+                  <div className="p-3 text-slate-400 text-center text-sm">
                     Sin categorías
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="bg-slate-800 rounded-lg mb-3 overflow-hidden max-h-[40%]">
-                <table className="w-full">
-                  <thead className="bg-slate-700 sticky top-0">
+            {/* Center: Items table + Product grid */}
+            <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+              {/* Current order items - compact table */}
+              <div className="bg-slate-800 rounded-lg mb-2 overflow-auto" style={{ maxHeight: '35%' }}>
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-700 sticky top-0 z-10">
                     <tr>
-                      <th className="p-3 text-left font-bold text-white">DESCRIPCIÓN</th>
-                      <th className="p-3 text-center font-bold text-white w-24">CANT</th>
-                      <th className="p-3 text-right font-bold text-white w-32">PRECIO</th>
-                      <th className="p-3 text-right font-bold text-white w-32">TOTAL</th>
-                      <th className="p-3 w-16"></th>
+                      <th className="px-3 py-2 text-left font-bold text-white">PRODUCTO</th>
+                      <th className="px-2 py-2 text-center font-bold text-white w-16">CANT</th>
+                      <th className="px-2 py-2 text-right font-bold text-white w-24">PRECIO</th>
+                      <th className="px-2 py-2 text-right font-bold text-white w-24">TOTAL</th>
+                      <th className="px-2 py-2 w-10"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-700 overflow-auto">
+                  <tbody className="divide-y divide-slate-700">
                     {currentTicket.items.map(item => (
                       <tr key={item.id} className="hover:bg-slate-700/50">
-                        <td className="p-3 text-white">
+                        <td className="px-3 py-2 text-white">
                           {item.product_name}
-                          {item.comanda_id && <span className="ml-2 text-xs text-emerald-400">(Enviado)</span>}
+                          {item.comanda_id && <span className="ml-1 text-xs text-emerald-400">(Enviado)</span>}
                         </td>
-                        <td className="p-3 text-center text-white text-lg">{item.quantity}</td>
-                        <td className="p-3 text-right text-white">${item.unit_price.toLocaleString()}</td>
-                        <td className="p-3 text-right font-bold text-white">${item.subtotal.toLocaleString()}</td>
-                        <td className="p-3">
+                        <td className="px-2 py-2 text-center text-white">{item.quantity}</td>
+                        <td className="px-2 py-2 text-right text-white">${item.unit_price.toLocaleString()}</td>
+                        <td className="px-2 py-2 text-right font-bold text-white">${item.subtotal.toLocaleString()}</td>
+                        <td className="px-2 py-2">
                           {!item.comanda_id && (
-                            <button
-                              onClick={() => handleRemoveItem(item.id)}
-                              className="text-red-400 hover:text-red-300 p-1"
-                            >
-                              <Trash2 className="w-5 h-5" />
+                            <button onClick={() => handleRemoveItem(item.id)} className="text-red-400 hover:text-red-300">
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           )}
                         </td>
@@ -901,78 +924,102 @@ export default function TableManagement() {
                     ))}
                     {cart.map(item => (
                       <tr key={`cart-${item.product.id}`} className="bg-amber-900/30 hover:bg-amber-900/40">
-                        <td className="p-3 text-amber-300">{item.product.name} (nuevo)</td>
-                        <td className="p-3 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => updateCartQuantity(item.product.id, -1)}
-                              className="w-8 h-8 bg-slate-600 rounded flex items-center justify-center hover:bg-slate-500"
-                            >
-                              <Minus className="w-4 h-4" />
+                        <td className="px-3 py-2 text-amber-300">{item.product.name} <span className="text-xs">(nuevo)</span></td>
+                        <td className="px-2 py-2 text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <button onClick={() => updateCartQuantity(item.product.id, -1)} className="w-6 h-6 bg-slate-600 rounded flex items-center justify-center hover:bg-slate-500">
+                              <Minus className="w-3 h-3" />
                             </button>
-                            <span className="w-8 text-center text-lg text-white">{item.quantity}</span>
-                            <button
-                              onClick={() => updateCartQuantity(item.product.id, 1)}
-                              className="w-8 h-8 bg-slate-600 rounded flex items-center justify-center hover:bg-slate-500"
-                            >
-                              <Plus className="w-4 h-4" />
+                            <span className="w-6 text-center text-white">{item.quantity}</span>
+                            <button onClick={() => updateCartQuantity(item.product.id, 1)} className="w-6 h-6 bg-slate-600 rounded flex items-center justify-center hover:bg-slate-500">
+                              <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
-                        <td className="p-3 text-right text-amber-300">${item.product.sale_price.toLocaleString()}</td>
-                        <td className="p-3 text-right font-bold text-amber-300">${(item.product.sale_price * item.quantity).toLocaleString()}</td>
-                        <td className="p-3">
-                          <button
-                            onClick={() => removeFromCart(item.product.id)}
-                            className="text-red-400 hover:text-red-300 p-1"
-                          >
-                            <X className="w-5 h-5" />
+                        <td className="px-2 py-2 text-right text-amber-300">${item.product.sale_price.toLocaleString()}</td>
+                        <td className="px-2 py-2 text-right font-bold text-amber-300">${(item.product.sale_price * item.quantity).toLocaleString()}</td>
+                        <td className="px-2 py-2">
+                          <button onClick={() => removeFromCart(item.product.id)} className="text-red-400 hover:text-red-300">
+                            <X className="w-4 h-4" />
                           </button>
                         </td>
                       </tr>
                     ))}
                     {currentTicket.items.length === 0 && cart.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="p-6 text-center text-slate-400 text-lg">
+                        <td colSpan={5} className="p-4 text-center text-slate-400">
                           Sin productos en la cuenta
                         </td>
                       </tr>
                     )}
                   </tbody>
+                  {(currentTicket.items.length > 0 || cart.length > 0) && (
+                    <tfoot className="bg-slate-700">
+                      <tr>
+                        <td colSpan={3} className="px-3 py-2 text-right font-bold text-white">TOTAL:</td>
+                        <td className="px-2 py-2 text-right font-bold text-emerald-400 text-lg">${(currentTicket.total + cartTotal).toLocaleString()}</td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  )}
                 </table>
               </div>
 
-              <div className="flex-1 overflow-auto bg-slate-800 rounded-lg p-3">
-                <div className="grid grid-cols-5 gap-3">
+              {/* Product search */}
+              <div className="relative mb-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar producto..."
+                  value={productSearchQuery}
+                  onChange={(e) => setProductSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+                {productSearchQuery && (
+                  <button onClick={() => setProductSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Product grid - responsive cards */}
+              <div className="flex-1 overflow-auto bg-slate-800 rounded-lg p-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
                   {filteredProducts
-                    .filter(p => !selectedFamily || p.subfamily_id === selectedFamily || 
+                    .filter(p => !selectedFamily || p.subfamily_id === selectedFamily ||
                       families.find(f => f.id === selectedFamily && products.some(prod => prod.id === p.id)))
-                    .slice(0, 30)
                     .map(product => (
                       <button
                         key={product.id}
                         onClick={() => addToCartWithQuantity(product)}
-                        className="p-4 bg-slate-700 hover:bg-slate-600 rounded-lg text-center transition-colors"
+                        className="flex flex-col items-center justify-center p-3 bg-slate-700 hover:bg-emerald-700 rounded-lg text-center transition-colors border border-slate-600 hover:border-emerald-500 min-h-[72px]"
                       >
-                        <div className="font-medium text-white truncate">{product.name}</div>
-                        <div className="text-emerald-400 font-bold text-lg">${product.sale_price.toLocaleString()}</div>
+                        <div className="font-medium text-white text-xs leading-tight line-clamp-2 mb-1">{product.name}</div>
+                        <div className="text-emerald-400 font-bold text-sm">${product.sale_price.toLocaleString()}</div>
                       </button>
                     ))}
+                  {filteredProducts.filter(p => !selectedFamily || p.subfamily_id === selectedFamily ||
+                    families.find(f => f.id === selectedFamily && products.some(prod => prod.id === p.id))).length === 0 && (
+                    <div className="col-span-full p-8 text-center text-slate-400">
+                      No se encontraron productos
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="w-56 flex flex-col gap-3">
-              <div className="bg-slate-800 rounded-lg p-3">
-                <div className="text-center text-2xl font-bold mb-3 h-12 bg-slate-700 rounded flex items-center justify-center text-white">
+            {/* Right: Numpad + Action buttons */}
+            <div className="w-48 flex flex-col gap-2 flex-shrink-0">
+              <div className="bg-slate-800 rounded-lg p-2">
+                <div className="text-center text-xl font-bold mb-2 h-10 bg-slate-700 rounded flex items-center justify-center text-white">
                   {quantityInput || '1'}
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5">
                   {['7', '8', '9', '4', '5', '6', '1', '2', '3', 'C', '0', '<'].map(key => (
                     <button
                       key={key}
                       onClick={() => handleNumpadClick(key)}
-                      className={`p-4 rounded font-bold text-xl transition-colors ${
+                      className={`p-3 rounded font-bold text-lg transition-colors ${
                         key === 'C' ? 'bg-red-600 hover:bg-red-500 text-white' :
                         key === '<' ? 'bg-amber-600 hover:bg-amber-500 text-white' :
                         'bg-slate-700 hover:bg-slate-600 text-white'
@@ -984,28 +1031,28 @@ export default function TableManagement() {
                 </div>
               </div>
 
-              <div className="flex-1 flex flex-col gap-2">
+              <div className="flex-1 flex flex-col gap-1.5">
                 {cart.length > 0 && (
                   <Button
-                    className="bg-amber-500 hover:bg-amber-600 h-12 text-lg"
+                    className="bg-amber-500 hover:bg-amber-600 h-10 text-sm"
                     onClick={handleAddItemsToTicket}
                   >
-                    <Plus className="w-5 h-5 mr-2" />
-                    Agregar
+                    <Plus className="w-4 h-4 mr-1" />
+                    Agregar ({cart.length})
                   </Button>
                 )}
                 <Button
                   variant="outline"
-                  className="h-12 text-lg"
+                  className="h-10 text-sm"
                   onClick={handleSendToKitchen}
                   disabled={currentTicket.items.filter(i => !i.comanda_id).length === 0}
                 >
-                  <Send className="w-5 h-5 mr-2" />
-                  Enviar
+                  <Send className="w-4 h-4 mr-1" />
+                  Enviar Cocina
                 </Button>
                 <Button
                   variant="outline"
-                  className="h-12 text-lg"
+                  className="h-10 text-sm"
                   onClick={() => {
                     if (currentTicket) {
                       moveTicketIdRef.current = currentTicket.id;
@@ -1016,22 +1063,22 @@ export default function TableManagement() {
                     }
                   }}
                 >
-                  <ArrowRightLeft className="w-5 h-5 mr-2" />
+                  <ArrowRightLeft className="w-4 h-4 mr-1" />
                   Mover
                 </Button>
                 <Button
                   variant="outline"
-                  className="h-12 text-lg"
+                  className="h-10 text-sm"
                   onClick={handlePrecheck}
                 >
-                  <Receipt className="w-5 h-5 mr-2" />
+                  <Receipt className="w-4 h-4 mr-1" />
                   Precuenta
                 </Button>
                 <Button
-                  className="bg-emerald-500 hover:bg-emerald-600 h-12 text-lg"
+                  className="bg-emerald-500 hover:bg-emerald-600 h-10 text-sm"
                   onClick={handleOpenPayment}
                 >
-                  <CreditCard className="w-5 h-5 mr-2" />
+                  <CreditCard className="w-4 h-4 mr-1" />
                   Cobrar
                 </Button>
               </div>
@@ -1108,6 +1155,29 @@ export default function TableManagement() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {showTableReceipt && paidTicketData && (
+          <TableReceiptTicket
+            ticket={paidTicketData.ticket}
+            paymentMethod={paidTicketData.method}
+            paymentAmount={paidTicketData.amount}
+            tip={paidTicketData.tip}
+            onClose={() => {
+              setShowTableReceipt(false);
+              setPaidTicketData(null);
+            }}
+          />
+        )}
+
+        {showPrecheckTicket && precheckTicketData && (
+          <PrecheckTicket
+            ticket={precheckTicketData}
+            onClose={() => {
+              setShowPrecheckTicket(false);
+              setPrecheckTicketData(null);
+            }}
+          />
+        )}
 
       </div>
     );
@@ -2185,6 +2255,29 @@ export default function TableManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {showTableReceipt && paidTicketData && (
+        <TableReceiptTicket
+          ticket={paidTicketData.ticket}
+          paymentMethod={paidTicketData.method}
+          paymentAmount={paidTicketData.amount}
+          tip={paidTicketData.tip}
+          onClose={() => {
+            setShowTableReceipt(false);
+            setPaidTicketData(null);
+          }}
+        />
+      )}
+
+      {showPrecheckTicket && precheckTicketData && (
+        <PrecheckTicket
+          ticket={precheckTicketData}
+          onClose={() => {
+            setShowPrecheckTicket(false);
+            setPrecheckTicketData(null);
+          }}
+        />
+      )}
     </div>
   );
 }
