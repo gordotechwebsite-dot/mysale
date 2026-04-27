@@ -78,6 +78,7 @@ export default function TableManagement() {
   const [editMode, setEditMode] = useState(false);
 
   const [showZoneDialog, setShowZoneDialog] = useState(false);
+  const [savingZone, setSavingZone] = useState(false);
   const [showTableDialog, setShowTableDialog] = useState(false);
   const [showTicketDialog, setShowTicketDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -307,6 +308,7 @@ export default function TableManagement() {
       toast.error('Seleccione una ubicación primero');
       return;
     }
+    setSavingZone(true);
     try {
       await createZone({
         name: zoneName,
@@ -322,6 +324,8 @@ export default function TableManagement() {
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       toast.error(err.response?.data?.detail || 'Error al crear zona');
+    } finally {
+      setSavingZone(false);
     }
   };
 
@@ -1665,8 +1669,8 @@ export default function TableManagement() {
             <Button variant="outline" onClick={() => setShowZoneDialog(false)} className="text-gray-600 border-gray-300 hover:bg-gray-50">
               Cancelar
             </Button>
-            <Button onClick={editingZone ? handleUpdateZone : handleCreateZone} className="bg-gray-900 hover:bg-gray-800 text-white" disabled={!zoneName.trim()}>
-              {editingZone ? 'Guardar Cambios' : 'Crear Zona'}
+            <Button type="button" onClick={editingZone ? handleUpdateZone : handleCreateZone} className="bg-gray-900 hover:bg-gray-800 text-white" disabled={!zoneName.trim() || savingZone}>
+              {savingZone ? 'Guardando...' : (editingZone ? 'Guardar Cambios' : 'Crear Zona')}
             </Button>
           </DialogFooter>
         </DialogContent>
