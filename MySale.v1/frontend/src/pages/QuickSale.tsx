@@ -35,7 +35,6 @@ import {
   Bird,
   UtensilsCrossed,
   Flame,
-  Dog,
   Salad,
   Soup,
   Star,
