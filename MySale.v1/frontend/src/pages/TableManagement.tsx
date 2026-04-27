@@ -800,8 +800,8 @@ export default function TableManagement() {
 
   if (orderMode && selectedTable) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-slate-900">
-        <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
+      <div className="fixed inset-0 z-50 flex flex-col bg-gray-50">
+        <div className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200 shadow-sm">
           <div className="flex items-center gap-4">
             <Button
               onClick={handleExitOrderMode}
@@ -810,7 +810,7 @@ export default function TableManagement() {
               <X className="w-5 h-5 mr-2" />
               Volver a Mesas
             </Button>
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-2xl font-bold text-gray-900">
               {selectedTable.name} {currentTicket ? `- Cuenta #${currentTicket.id}` : '- Nueva Cuenta'}
             </h1>
           </div>
@@ -818,34 +818,34 @@ export default function TableManagement() {
 
         {!currentTicket ? (
           <div className="flex-1 flex items-center justify-center">
-            <div className="bg-slate-800 p-8 rounded-lg w-96 space-y-4">
-              <h2 className="text-xl font-bold text-white text-center mb-6">Abrir Nueva Cuenta</h2>
+            <div className="bg-white p-8 rounded-xl w-96 space-y-4 shadow-lg border border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 text-center mb-6">Abrir Nueva Cuenta</h2>
               <div>
-                <Label className="text-white">Nombre del Cliente (opcional)</Label>
+                <Label className="text-gray-700">Nombre del Cliente (opcional)</Label>
                 <Input
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Nombre del cliente"
-                  className="bg-slate-700 border-slate-600 text-white text-lg h-12"
+                  className="bg-gray-50 border-gray-300 text-gray-900 text-lg h-12"
                 />
               </div>
               <div>
-                <Label className="text-white">Número de Personas</Label>
+                <Label className="text-gray-700">Número de Personas</Label>
                 <Input
                   type="number"
                   value={numPeople}
                   onChange={(e) => setNumPeople(parseInt(e.target.value) || 1)}
                   min={1}
-                  className="bg-slate-700 border-slate-600 text-white text-lg h-12"
+                  className="bg-gray-50 border-gray-300 text-gray-900 text-lg h-12"
                 />
               </div>
               <div>
-                <Label className="text-white">Notas</Label>
+                <Label className="text-gray-700">Notas</Label>
                 <Input
                   value={ticketNotes}
                   onChange={(e) => setTicketNotes(e.target.value)}
                   placeholder="Notas adicionales"
-                  className="bg-slate-700 border-slate-600 text-white text-lg h-12"
+                  className="bg-gray-50 border-gray-300 text-gray-900 text-lg h-12"
                 />
               </div>
               <div className="flex gap-4 pt-4">
@@ -861,17 +861,17 @@ export default function TableManagement() {
         ) : (
           <div className="flex-1 flex gap-2 p-2 overflow-hidden">
             {/* Left: Categories sidebar */}
-            <div className="w-40 flex flex-col bg-slate-800 rounded-lg overflow-hidden flex-shrink-0">
-              <div className="px-3 py-2 bg-slate-700 font-bold text-center text-white text-sm">
+            <div className="w-40 flex flex-col bg-white rounded-lg overflow-hidden flex-shrink-0 border border-gray-200 shadow-sm">
+              <div className="px-3 py-2 bg-gray-100 font-bold text-center text-gray-800 text-sm border-b border-gray-200">
                 CATEGORÍAS
               </div>
               <div className="flex-1 overflow-auto">
                 <button
                   onClick={() => setSelectedFamily(null)}
-                  className={`w-full px-3 py-3 text-left text-sm font-medium border-b border-slate-700 transition-colors ${
+                  className={`w-full px-3 py-3 text-left text-sm font-medium border-b border-gray-100 transition-colors ${
                     selectedFamily === null
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-white hover:bg-gray-50 text-gray-700'
                   }`}
                 >
                   Todas
@@ -880,17 +880,17 @@ export default function TableManagement() {
                   <button
                     key={family.id}
                     onClick={() => setSelectedFamily(family.id)}
-                    className={`w-full px-3 py-3 text-left text-sm font-medium border-b border-slate-700 transition-colors ${
+                    className={`w-full px-3 py-3 text-left text-sm font-medium border-b border-gray-100 transition-colors ${
                       selectedFamily === family.id
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-white hover:bg-gray-50 text-gray-700'
                     }`}
                   >
                     {family.name}
                   </button>
                 ))}
                 {families.length === 0 && (
-                  <div className="p-3 text-slate-400 text-center text-sm">
+                  <div className="p-3 text-gray-400 text-center text-sm">
                     Sin categorías
                   </div>
                 )}
@@ -900,27 +900,27 @@ export default function TableManagement() {
             {/* Center: Items table + Product grid */}
             <div className="flex-1 flex flex-col overflow-hidden min-w-0">
               {/* Current order items - compact table */}
-              <div className="bg-slate-800 rounded-lg mb-2 overflow-auto" style={{ maxHeight: '35%' }}>
+              <div className="bg-white rounded-lg mb-2 overflow-auto border border-gray-200 shadow-sm" style={{ maxHeight: '35%' }}>
                 <table className="w-full text-sm">
-                  <thead className="bg-slate-700 sticky top-0 z-10">
+                  <thead className="bg-gray-100 sticky top-0 z-10">
                     <tr>
-                      <th className="px-3 py-2 text-left font-bold text-white">PRODUCTO</th>
-                      <th className="px-2 py-2 text-center font-bold text-white w-16">CANT</th>
-                      <th className="px-2 py-2 text-right font-bold text-white w-24">PRECIO</th>
-                      <th className="px-2 py-2 text-right font-bold text-white w-24">TOTAL</th>
+                      <th className="px-3 py-2 text-left font-bold text-gray-700">PRODUCTO</th>
+                      <th className="px-2 py-2 text-center font-bold text-gray-700 w-16">CANT</th>
+                      <th className="px-2 py-2 text-right font-bold text-gray-700 w-24">PRECIO</th>
+                      <th className="px-2 py-2 text-right font-bold text-gray-700 w-24">TOTAL</th>
                       <th className="px-2 py-2 w-10"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-700">
+                  <tbody className="divide-y divide-gray-100">
                     {currentTicket.items.map(item => (
-                      <tr key={item.id} className="hover:bg-slate-700/50">
-                        <td className="px-3 py-2 text-white">
+                      <tr key={item.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 text-gray-900">
                           {item.product_name}
-                          {item.comanda_id && <span className="ml-1 text-xs text-emerald-400">(Enviado)</span>}
+                          {item.comanda_id && <span className="ml-1 text-xs text-emerald-600">(Enviado)</span>}
                         </td>
-                        <td className="px-2 py-2 text-center text-white">{item.quantity}</td>
-                        <td className="px-2 py-2 text-right text-white">${item.unit_price.toLocaleString()}</td>
-                        <td className="px-2 py-2 text-right font-bold text-white">${item.subtotal.toLocaleString()}</td>
+                        <td className="px-2 py-2 text-center text-gray-700">{item.quantity}</td>
+                        <td className="px-2 py-2 text-right text-gray-700">${item.unit_price.toLocaleString()}</td>
+                        <td className="px-2 py-2 text-right font-bold text-gray-900">${item.subtotal.toLocaleString()}</td>
                         <td className="px-2 py-2">
                           {!item.comanda_id && (
                             <button onClick={() => handleRemoveItem(item.id)} className="text-red-400 hover:text-red-300">
@@ -931,21 +931,21 @@ export default function TableManagement() {
                       </tr>
                     ))}
                     {cart.map(item => (
-                      <tr key={`cart-${item.product.id}`} className="bg-amber-900/30 hover:bg-amber-900/40">
-                        <td className="px-3 py-2 text-amber-300">{item.product.name} <span className="text-xs">(nuevo)</span></td>
+                      <tr key={`cart-${item.product.id}`} className="bg-amber-50 hover:bg-amber-100">
+                        <td className="px-3 py-2 text-amber-700">{item.product.name} <span className="text-xs">(nuevo)</span></td>
                         <td className="px-2 py-2 text-center">
                           <div className="flex items-center justify-center gap-1">
-                            <button onClick={() => updateCartQuantity(item.product.id, -1)} className="w-6 h-6 bg-slate-600 rounded flex items-center justify-center hover:bg-slate-500">
+                            <button onClick={() => updateCartQuantity(item.product.id, -1)} className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center hover:bg-gray-300">
                               <Minus className="w-3 h-3" />
                             </button>
-                            <span className="w-6 text-center text-white">{item.quantity}</span>
-                            <button onClick={() => updateCartQuantity(item.product.id, 1)} className="w-6 h-6 bg-slate-600 rounded flex items-center justify-center hover:bg-slate-500">
+                            <span className="w-6 text-center text-gray-900">{item.quantity}</span>
+                            <button onClick={() => updateCartQuantity(item.product.id, 1)} className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center hover:bg-gray-300">
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
-                        <td className="px-2 py-2 text-right text-amber-300">${item.product.sale_price.toLocaleString()}</td>
-                        <td className="px-2 py-2 text-right font-bold text-amber-300">${(item.product.sale_price * item.quantity).toLocaleString()}</td>
+                        <td className="px-2 py-2 text-right text-amber-700">${item.product.sale_price.toLocaleString()}</td>
+                        <td className="px-2 py-2 text-right font-bold text-amber-700">${(item.product.sale_price * item.quantity).toLocaleString()}</td>
                         <td className="px-2 py-2">
                           <button onClick={() => removeFromCart(item.product.id)} className="text-red-400 hover:text-red-300">
                             <X className="w-4 h-4" />
@@ -955,17 +955,17 @@ export default function TableManagement() {
                     ))}
                     {currentTicket.items.length === 0 && cart.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="p-4 text-center text-slate-400">
+                        <td colSpan={5} className="p-4 text-center text-gray-400">
                           Sin productos en la cuenta
                         </td>
                       </tr>
                     )}
                   </tbody>
                   {(currentTicket.items.length > 0 || cart.length > 0) && (
-                    <tfoot className="bg-slate-700">
+                    <tfoot className="bg-gray-100">
                       <tr>
-                        <td colSpan={3} className="px-3 py-2 text-right font-bold text-white">TOTAL:</td>
-                        <td className="px-2 py-2 text-right font-bold text-emerald-400 text-lg">${(currentTicket.total + cartTotal).toLocaleString()}</td>
+                        <td colSpan={3} className="px-3 py-2 text-right font-bold text-gray-800">TOTAL:</td>
+                        <td className="px-2 py-2 text-right font-bold text-emerald-600 text-lg">${(currentTicket.total + cartTotal).toLocaleString()}</td>
                         <td></td>
                       </tr>
                     </tfoot>
@@ -975,23 +975,23 @@ export default function TableManagement() {
 
               {/* Product search */}
               <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Buscar producto..."
                   value={productSearchQuery}
                   onChange={(e) => setProductSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="w-full pl-9 pr-8 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
                 {productSearchQuery && (
-                  <button onClick={() => setProductSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                  <button onClick={() => setProductSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
                     <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
 
               {/* Product grid - responsive cards */}
-              <div className="flex-1 overflow-auto bg-slate-800 rounded-lg p-2">
+              <div className="flex-1 overflow-auto bg-white rounded-lg p-2 border border-gray-200 shadow-sm">
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
                   {filteredProducts
                     .filter(p => !selectedFamily || subFamilies.some(sf => sf.family_id === selectedFamily && sf.id === p.subfamily_id))
@@ -999,14 +999,14 @@ export default function TableManagement() {
                       <button
                         key={product.id}
                         onClick={() => addToCartWithQuantity(product)}
-                        className="flex flex-col items-center justify-center p-3 bg-slate-700 hover:bg-emerald-700 rounded-lg text-center transition-colors border border-slate-600 hover:border-emerald-500 min-h-[72px]"
+                        className="flex flex-col items-center justify-center p-3 bg-gray-50 hover:bg-emerald-50 rounded-lg text-center transition-colors border border-gray-200 hover:border-emerald-400 min-h-[72px]"
                       >
-                        <div className="font-medium text-white text-xs leading-tight line-clamp-2 mb-1">{product.name}</div>
-                        <div className="text-emerald-400 font-bold text-sm">${product.sale_price.toLocaleString()}</div>
+                        <div className="font-medium text-gray-800 text-xs leading-tight line-clamp-2 mb-1">{product.name}</div>
+                        <div className="text-emerald-600 font-bold text-sm">${product.sale_price.toLocaleString()}</div>
                       </button>
                     ))}
                   {filteredProducts.filter(p => !selectedFamily || subFamilies.some(sf => sf.family_id === selectedFamily && sf.id === p.subfamily_id)).length === 0 && (
-                    <div className="col-span-full p-8 text-center text-slate-400">
+                    <div className="col-span-full p-8 text-center text-gray-400">
                       No se encontraron productos
                     </div>
                   )}
@@ -1016,8 +1016,8 @@ export default function TableManagement() {
 
             {/* Right: Numpad + Action buttons */}
             <div className="w-48 flex flex-col gap-2 flex-shrink-0">
-              <div className="bg-slate-800 rounded-lg p-2">
-                <div className="text-center text-xl font-bold mb-2 h-10 bg-slate-700 rounded flex items-center justify-center text-white">
+              <div className="bg-white rounded-lg p-2 border border-gray-200 shadow-sm">
+                <div className="text-center text-xl font-bold mb-2 h-10 bg-gray-100 rounded flex items-center justify-center text-gray-900">
                   {quantityInput || '1'}
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
@@ -1028,7 +1028,7 @@ export default function TableManagement() {
                       className={`p-3 rounded font-bold text-lg transition-colors ${
                         key === 'C' ? 'bg-red-600 hover:bg-red-500 text-white' :
                         key === '<' ? 'bg-amber-600 hover:bg-amber-500 text-white' :
-                        'bg-slate-700 hover:bg-slate-600 text-white'
+                        'bg-gray-100 hover:bg-gray-200 text-gray-900'
                       }`}
                     >
                       {key}
@@ -1093,18 +1093,18 @@ export default function TableManagement() {
         )}
 
         <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-          <DialogContent className="bg-slate-800 text-white border-slate-700">
+          <DialogContent className="bg-white text-gray-900 border-gray-200">
             <DialogHeader>
               <DialogTitle>Cobrar Cuenta</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="text-center text-3xl font-bold text-emerald-400">
+              <div className="text-center text-3xl font-bold text-emerald-600">
                 ${currentTicket?.total.toLocaleString()}
               </div>
               <div>
                 <Label>Método de Pago</Label>
                 <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <SelectTrigger className="bg-slate-700 border-slate-600">
+                  <SelectTrigger className="bg-gray-50 border-gray-300">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1121,10 +1121,10 @@ export default function TableManagement() {
                     type="number"
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
-                    className="bg-slate-700 border-slate-600"
+                    className="bg-gray-50 border-gray-300"
                   />
                   {paymentAmount > (currentTicket?.total || 0) && (
-                    <div className="text-amber-400 mt-2">
+                    <div className="text-amber-600 mt-2">
                       Cambio: ${(paymentAmount - (currentTicket?.total || 0)).toLocaleString()}
                     </div>
                   )}
@@ -1137,7 +1137,7 @@ export default function TableManagement() {
                     value={paymentReference}
                     onChange={(e) => setPaymentReference(e.target.value)}
                     placeholder="Número de referencia"
-                    className="bg-slate-700 border-slate-600"
+                    className="bg-gray-50 border-gray-300"
                   />
                 </div>
               )}
@@ -1147,7 +1147,7 @@ export default function TableManagement() {
                   type="number"
                   value={tip}
                   onChange={(e) => setTip(parseFloat(e.target.value) || 0)}
-                  className="bg-slate-700 border-slate-600"
+                  className="bg-gray-50 border-gray-300"
                 />
               </div>
             </div>
@@ -1740,12 +1740,12 @@ export default function TableManagement() {
         }
         setShowTicketDialog(open);
       }}>
-        <DialogContent className="bg-slate-800 text-white border-slate-700 max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="bg-white text-gray-900 border-gray-200 max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>{selectedTable?.name} - {currentTicket ? `Cuenta #${currentTicket.id}` : 'Abrir Cuenta'}</span>
               {currentTicket && (
-                <span className="text-emerald-400 font-bold text-lg">
+                <span className="text-emerald-600 font-bold text-lg">
                   Total: ${currentTicket.total.toLocaleString()}
                 </span>
               )}
@@ -1760,7 +1760,7 @@ export default function TableManagement() {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Nombre del cliente"
-                  className="bg-slate-700 border-slate-600"
+                  className="bg-gray-50 border-gray-300"
                 />
               </div>
               <div>
@@ -1770,7 +1770,7 @@ export default function TableManagement() {
                   value={numPeople}
                   onChange={(e) => setNumPeople(parseInt(e.target.value) || 1)}
                   min={1}
-                  className="bg-slate-700 border-slate-600"
+                  className="bg-gray-50 border-gray-300"
                 />
               </div>
               <div>
@@ -1779,7 +1779,7 @@ export default function TableManagement() {
                   value={ticketNotes}
                   onChange={(e) => setTicketNotes(e.target.value)}
                   placeholder="Notas adicionales"
-                  className="bg-slate-700 border-slate-600"
+                  className="bg-gray-50 border-gray-300"
                 />
               </div>
               <DialogFooter>
@@ -1793,8 +1793,8 @@ export default function TableManagement() {
             </div>
           ) : (
             <div className="flex-1 flex gap-2 overflow-hidden">
-              <div className="w-40 flex flex-col bg-slate-700 rounded-lg overflow-hidden">
-                <div className="p-2 bg-slate-600 font-semibold text-sm text-center">
+              <div className="w-40 flex flex-col bg-white rounded-lg overflow-hidden border border-gray-200">
+                <div className="p-2 bg-gray-100 font-semibold text-sm text-center text-gray-800 border-b border-gray-200">
                   Categorías
                 </div>
                 <div className="flex-1 overflow-auto">
@@ -1802,17 +1802,17 @@ export default function TableManagement() {
                     <button
                       key={family.id}
                       onClick={() => setSelectedFamily(family.id)}
-                      className={`w-full p-3 text-left text-sm font-medium border-b border-slate-600 transition-colors ${
+                      className={`w-full p-3 text-left text-sm font-medium border-b border-gray-100 transition-colors ${
                         selectedFamily === family.id
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-white hover:bg-gray-50 text-gray-700'
                       }`}
                     >
                       {family.name}
                     </button>
                   ))}
                   {families.length === 0 && (
-                    <div className="p-3 text-sm text-slate-400 text-center">
+                    <div className="p-3 text-sm text-gray-400 text-center">
                       Sin categorías
                     </div>
                   )}
@@ -1820,9 +1820,9 @@ export default function TableManagement() {
               </div>
 
               <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="bg-slate-700 rounded-lg mb-2 overflow-hidden">
+                <div className="bg-white rounded-lg mb-2 overflow-hidden border border-gray-200">
                   <table className="w-full text-sm">
-                    <thead className="bg-slate-600">
+                    <thead className="bg-gray-100">
                       <tr>
                         <th className="p-2 text-left font-semibold">DESCRIPCIÓN</th>
                         <th className="p-2 text-center font-semibold w-20">CANT</th>
@@ -1831,12 +1831,12 @@ export default function TableManagement() {
                         <th className="p-2 w-10"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-600">
+                    <tbody className="divide-y divide-gray-100">
                       {currentTicket.items.map(item => (
-                        <tr key={item.id} className="hover:bg-slate-600/50">
+                        <tr key={item.id} className="hover:bg-gray-50">
                           <td className="p-2">
                             {item.product_name}
-                            {item.comanda_id && <span className="ml-2 text-xs text-emerald-400">(Enviado)</span>}
+                            {item.comanda_id && <span className="ml-2 text-xs text-emerald-600">(Enviado)</span>}
                           </td>
                           <td className="p-2 text-center">{item.quantity}</td>
                           <td className="p-2 text-right">${item.unit_price.toLocaleString()}</td>
@@ -1854,27 +1854,27 @@ export default function TableManagement() {
                         </tr>
                       ))}
                       {cart.map(item => (
-                        <tr key={`cart-${item.product.id}`} className="bg-amber-900/20 hover:bg-amber-900/30">
-                          <td className="p-2 text-amber-300">{item.product.name} (nuevo)</td>
+                        <tr key={`cart-${item.product.id}`} className="bg-amber-50 hover:bg-amber-100">
+                          <td className="p-2 text-amber-700">{item.product.name} (nuevo)</td>
                           <td className="p-2 text-center">
                             <div className="flex items-center justify-center gap-1">
                               <button
                                 onClick={() => updateCartQuantity(item.product.id, -1)}
-                                className="w-5 h-5 bg-slate-600 rounded flex items-center justify-center"
+                                className="w-5 h-5 bg-gray-200 rounded flex items-center justify-center"
                               >
                                 <Minus className="w-3 h-3" />
                               </button>
                               <span className="w-6 text-center">{item.quantity}</span>
                               <button
                                 onClick={() => updateCartQuantity(item.product.id, 1)}
-                                className="w-5 h-5 bg-slate-600 rounded flex items-center justify-center"
+                                className="w-5 h-5 bg-gray-200 rounded flex items-center justify-center"
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
                             </div>
                           </td>
-                          <td className="p-2 text-right text-amber-300">${item.product.sale_price.toLocaleString()}</td>
-                          <td className="p-2 text-right font-semibold text-amber-300">${(item.product.sale_price * item.quantity).toLocaleString()}</td>
+                          <td className="p-2 text-right text-amber-700">${item.product.sale_price.toLocaleString()}</td>
+                          <td className="p-2 text-right font-semibold text-amber-700">${(item.product.sale_price * item.quantity).toLocaleString()}</td>
                           <td className="p-2">
                             <button
                               onClick={() => removeFromCart(item.product.id)}
@@ -1887,23 +1887,23 @@ export default function TableManagement() {
                       ))}
                       {currentTicket.items.length === 0 && cart.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="p-4 text-center text-slate-400">
+                          <td colSpan={5} className="p-4 text-center text-gray-400">
                             Sin productos en la cuenta
                           </td>
                         </tr>
                       )}
                     </tbody>
-                    <tfoot className="bg-slate-600">
+                    <tfoot className="bg-gray-100">
                       <tr>
                         <td colSpan={3} className="p-2 text-right font-bold">TOTAL:</td>
-                        <td className="p-2 text-right font-bold text-emerald-400">${(currentTicket.total + cartTotal).toLocaleString()}</td>
+                        <td className="p-2 text-right font-bold text-emerald-600">${(currentTicket.total + cartTotal).toLocaleString()}</td>
                         <td></td>
                       </tr>
                     </tfoot>
                   </table>
                 </div>
 
-                <div className="flex-1 overflow-auto bg-slate-700 rounded-lg p-2">
+                <div className="flex-1 overflow-auto bg-white rounded-lg p-2 border border-gray-200">
                   <div className="grid grid-cols-4 gap-2">
                     {filteredProducts
                       .filter(p => !selectedFamily || subFamilies.some(sf => sf.family_id === selectedFamily && sf.id === p.subfamily_id))
@@ -1912,10 +1912,10 @@ export default function TableManagement() {
                         <button
                           key={product.id}
                           onClick={() => addToCartWithQuantity(product)}
-                          className="p-2 bg-slate-600 hover:bg-slate-500 rounded-lg text-center transition-colors"
+                          className="p-2 bg-gray-50 hover:bg-emerald-50 rounded-lg text-center transition-colors border border-gray-200 hover:border-emerald-400"
                         >
                           <div className="font-medium text-xs truncate">{product.name}</div>
-                          <div className="text-emerald-400 font-bold text-sm">${product.sale_price.toLocaleString()}</div>
+                          <div className="text-emerald-600 font-bold text-sm">${product.sale_price.toLocaleString()}</div>
                         </button>
                       ))}
                   </div>
@@ -1923,8 +1923,8 @@ export default function TableManagement() {
               </div>
 
               <div className="w-44 flex flex-col gap-2">
-                <div className="bg-slate-700 rounded-lg p-2">
-                  <div className="text-center text-lg font-bold mb-2 h-8 bg-slate-600 rounded flex items-center justify-center">
+                <div className="bg-white rounded-lg p-2 border border-gray-200">
+                  <div className="text-center text-lg font-bold mb-2 h-8 bg-gray-100 rounded flex items-center justify-center text-gray-900">
                     {quantityInput || '1'}
                   </div>
                   <div className="grid grid-cols-3 gap-1">
@@ -1935,7 +1935,7 @@ export default function TableManagement() {
                         className={`p-3 rounded font-bold text-lg transition-colors ${
                           key === 'C' ? 'bg-red-600 hover:bg-red-500' :
                           key === '<' ? 'bg-amber-600 hover:bg-amber-500' :
-                          'bg-slate-600 hover:bg-slate-500'
+                          'bg-gray-100 hover:bg-gray-200 text-gray-900'
                         }`}
                       >
                         {key}
@@ -2007,21 +2007,21 @@ export default function TableManagement() {
       </Dialog>
 
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="bg-slate-800 text-white border-slate-700">
+        <DialogContent className="bg-white text-gray-900 border-gray-200">
           <DialogHeader>
             <DialogTitle>Procesar Pago</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="text-center p-4 bg-slate-700 rounded-lg">
-              <div className="text-sm text-slate-400">Total a Pagar</div>
-              <div className="text-3xl font-bold text-emerald-400">
+            <div className="text-center p-4 bg-gray-100 rounded-lg">
+              <div className="text-sm text-gray-500">Total a Pagar</div>
+              <div className="text-3xl font-bold text-emerald-600">
                 ${currentTicket?.total.toLocaleString()}
               </div>
             </div>
             <div>
               <Label>Método de Pago</Label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger className="bg-slate-700 border-slate-600">
+                <SelectTrigger className="bg-gray-50 border-gray-300">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2037,7 +2037,7 @@ export default function TableManagement() {
                 type="number"
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
-                className="bg-slate-700 border-slate-600"
+                className="bg-gray-50 border-gray-300"
               />
             </div>
             {paymentMethod !== 'cash' && (
@@ -2047,7 +2047,7 @@ export default function TableManagement() {
                   value={paymentReference}
                   onChange={(e) => setPaymentReference(e.target.value)}
                   placeholder="Número de referencia"
-                  className="bg-slate-700 border-slate-600"
+                  className="bg-gray-50 border-gray-300"
                 />
               </div>
             )}
@@ -2057,13 +2057,13 @@ export default function TableManagement() {
                 type="number"
                 value={tip}
                 onChange={(e) => setTip(parseFloat(e.target.value) || 0)}
-                className="bg-slate-700 border-slate-600"
+                className="bg-gray-50 border-gray-300"
               />
             </div>
             {paymentMethod === 'cash' && paymentAmount > (currentTicket?.total || 0) && (
               <div className="p-3 bg-emerald-900/30 rounded-lg">
-                <div className="text-sm text-slate-400">Cambio</div>
-                <div className="text-xl font-bold text-emerald-400">
+                <div className="text-sm text-gray-500">Cambio</div>
+                <div className="text-xl font-bold text-emerald-600">
                   ${(paymentAmount - (currentTicket?.total || 0)).toLocaleString()}
                 </div>
               </div>
@@ -2085,47 +2085,47 @@ export default function TableManagement() {
       </Dialog>
 
       <Dialog open={showTableMenu} onOpenChange={setShowTableMenu}>
-        <DialogContent className="bg-slate-100 text-slate-800 border-0 max-w-xs p-0 overflow-hidden [&>button]:hidden gap-0 rounded-lg shadow-xl">
+        <DialogContent className="bg-white text-gray-800 border-0 max-w-xs p-0 overflow-hidden [&>button]:hidden gap-0 rounded-lg shadow-xl">
           <div className="flex flex-col">
             <button
               onClick={() => handleMenuAction('load_order')}
-              className="px-4 py-3 hover:bg-slate-200 border-b border-slate-300 font-semibold text-slate-700 text-center rounded-t-lg"
+              className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center rounded-t-lg"
             >
               CARGAR PEDIDO
             </button>
             <button
               onClick={() => handleMenuAction('close_order')}
-              className="px-4 py-3 hover:bg-slate-200 border-b border-slate-300 font-semibold text-slate-700 text-center"
+              className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
             >
               CERRAR PEDIDO
             </button>
             <button
               onClick={() => handleMenuAction('reserve')}
-              className="px-4 py-3 hover:bg-slate-200 border-b border-slate-300 font-semibold text-slate-700 text-center"
+              className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
             >
               {selectedTable?.status === 'reserved' ? 'VER RESERVA' : 'RESERVAR'}
             </button>
             <button
               onClick={() => handleMenuAction('change_table')}
-              className="px-4 py-3 hover:bg-slate-200 border-b border-slate-300 font-semibold text-slate-700 text-center"
+              className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
             >
               CAMBIAR DE MESA
             </button>
             <button
               onClick={() => handleMenuAction('delete_order')}
-              className="px-4 py-3 hover:bg-slate-200 border-b border-slate-300 font-semibold text-slate-700 text-center"
+              className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
             >
               ELIMINAR PEDIDO
             </button>
             <button
               onClick={() => handleMenuAction('num_people')}
-              className="px-4 py-3 hover:bg-slate-200 border-b border-slate-300 font-semibold text-slate-700 text-center"
+              className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
             >
               NUMERO DE PERSONAS
             </button>
             <button
               onClick={() => handleMenuAction('exit')}
-              className="px-4 py-3 hover:bg-slate-200 font-semibold text-slate-700 text-center"
+              className="px-4 py-3 hover:bg-gray-100 font-semibold text-gray-700 text-center"
             >
               SALIR
             </button>
@@ -2134,7 +2134,7 @@ export default function TableManagement() {
       </Dialog>
 
       <Dialog open={showReserveDialog} onOpenChange={setShowReserveDialog}>
-        <DialogContent className="bg-slate-800 text-white border-slate-700">
+        <DialogContent className="bg-white text-gray-900 border-gray-200">
           <DialogHeader>
             <DialogTitle>Reservar Mesa {selectedTable?.name}</DialogTitle>
           </DialogHeader>
@@ -2145,7 +2145,7 @@ export default function TableManagement() {
                 value={reservationName}
                 onChange={(e) => setReservationName(e.target.value)}
                 placeholder="Nombre del cliente"
-                className="bg-slate-700 border-slate-600"
+                className="bg-gray-50 border-gray-300"
               />
             </div>
             <div>
@@ -2154,7 +2154,7 @@ export default function TableManagement() {
                 type="time"
                 value={reservationTime}
                 onChange={(e) => setReservationTime(e.target.value)}
-                className="bg-slate-700 border-slate-600"
+                className="bg-gray-50 border-gray-300"
               />
             </div>
             <div>
@@ -2164,7 +2164,7 @@ export default function TableManagement() {
                 value={reservationPhone}
                 onChange={(e) => setReservationPhone(e.target.value)}
                 placeholder="Numero de telefono"
-                className="bg-slate-700 border-slate-600"
+                className="bg-gray-50 border-gray-300"
               />
             </div>
           </div>
@@ -2234,7 +2234,7 @@ export default function TableManagement() {
       </Dialog>
 
       <Dialog open={showPeopleDialog} onOpenChange={setShowPeopleDialog}>
-        <DialogContent className="bg-slate-800 text-white border-slate-700">
+        <DialogContent className="bg-white text-gray-900 border-gray-200">
           <DialogHeader>
             <DialogTitle>Numero de Personas - {selectedTable?.name}</DialogTitle>
           </DialogHeader>
@@ -2246,7 +2246,7 @@ export default function TableManagement() {
                 value={numPeople}
                 onChange={(e) => setNumPeople(parseInt(e.target.value) || 1)}
                 min={1}
-                className="bg-slate-700 border-slate-600"
+                className="bg-gray-50 border-gray-300"
               />
             </div>
           </div>
