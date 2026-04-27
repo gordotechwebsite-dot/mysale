@@ -174,9 +174,33 @@ def run_migrations():
                 db.commit()
                 print("Migration: Added reserved_time column to tables table")
             
-            # Migrate old 'round' shape values to 'pair'
-            db.execute(text("UPDATE tables SET shape = 'PAIR' WHERE shape = 'ROUND'"))
+            if 'reserved_phone' not in table_cols:
+                db.execute(text("ALTER TABLE tables ADD COLUMN reserved_phone VARCHAR(20)"))
+                db.commit()
+                print("Migration: Added reserved_phone column to tables table")
+            
+            # Normalize shape/status values to lowercase (enum expects lowercase)
+            db.execute(text("UPDATE tables SET shape = LOWER(shape) WHERE shape != LOWER(shape)"))
+            db.execute(text("UPDATE tables SET status = LOWER(status) WHERE status != LOWER(status)"))
+            # Migrate old 'round' shape to 'pair'
+            db.execute(text("UPDATE tables SET shape = 'pair' WHERE LOWER(shape) = 'round'"))
             db.commit()
+        
+        # Add missing columns to tickets table
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='tickets'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(tickets)"))
+            ticket_cols = [row[1] for row in result.fetchall()]
+            
+            if 'opened_at' not in ticket_cols:
+                db.execute(text("ALTER TABLE tickets ADD COLUMN opened_at DATETIME"))
+                db.commit()
+                print("Migration: Added opened_at column to tickets table")
+            
+            if 'service_charge' not in ticket_cols:
+                db.execute(text("ALTER TABLE tickets ADD COLUMN service_charge FLOAT DEFAULT 0"))
+                db.commit()
+                print("Migration: Added service_charge column to tickets table")
         
         # Ensure all tenants have access to all modules (assign missing modules)
         from app.models.tenant import Tenant, TenantModule
