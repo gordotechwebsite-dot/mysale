@@ -291,9 +291,9 @@ const QuickSale: React.FC = () => {
   const quickAmounts = [50000, 100000, 200000];
 
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col gap-4">
-      <div className="flex-1 flex gap-4">
-        <div className="flex-1 flex flex-col">
+    <div className="h-[calc(100vh-140px)] flex flex-col gap-4 overflow-hidden">
+      <div className="flex-1 flex gap-4 min-h-0">
+        <div className="flex-1 min-w-0 flex flex-col">
           <div className="mb-4">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -415,7 +415,7 @@ const QuickSale: React.FC = () => {
           </div>
         </div>
 
-        <Card className="w-96 flex flex-col">
+        <Card className="w-80 flex-shrink-0 flex flex-col">
           <div className="p-4 border-b bg-orange-50">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg flex items-center gap-2">
