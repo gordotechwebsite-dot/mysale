@@ -16,8 +16,11 @@ from app.utils.auth import get_current_user, require_role
 router = APIRouter(prefix="/api/locations", tags=["Ubicaciones"])
 
 
-def filter_by_tenant(query, model, tenant_id):
-    """Helper function to filter queries by tenant_id if present."""
+def filter_by_tenant(query, model, tenant_id, user_role=None):
+    """Helper function to filter queries by tenant_id if present.
+    Superusers with no tenant see all locations."""
+    if user_role and user_role == RoleType.SUPERUSER and not tenant_id:
+        return query
     if tenant_id:
         return query.filter(model.tenant_id == tenant_id)
     return query.filter(model.tenant_id.is_(None))
@@ -29,7 +32,8 @@ async def get_locations(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Location)
-    query = filter_by_tenant(query, Location, current_user.tenant_id)
+    role_type = current_user.role.role_type if current_user.role else None
+    query = filter_by_tenant(query, Location, current_user.tenant_id, user_role=role_type)
     return query.all()
 
 
@@ -42,7 +46,8 @@ async def get_locations_dashboard(
         Location.location_type == LocationType.POS,
         Location.is_active == True
     )
-    query = filter_by_tenant(query, Location, current_user.tenant_id)
+    role_type = current_user.role.role_type if current_user.role else None
+    query = filter_by_tenant(query, Location, current_user.tenant_id, user_role=role_type)
     locations = query.all()
     
     today = datetime.utcnow().date()
@@ -131,7 +136,8 @@ async def create_location(
     current_user: User = Depends(require_role(RoleType.SUPERUSER))
 ):
     query = db.query(Location).filter(Location.code == location.code)
-    query = filter_by_tenant(query, Location, current_user.tenant_id)
+    role_type = current_user.role.role_type if current_user.role else None
+    query = filter_by_tenant(query, Location, current_user.tenant_id, user_role=role_type)
     existing = query.first()
     if existing:
         raise HTTPException(
@@ -153,7 +159,8 @@ async def get_location(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Location).filter(Location.id == location_id)
-    query = filter_by_tenant(query, Location, current_user.tenant_id)
+    role_type = current_user.role.role_type if current_user.role else None
+    query = filter_by_tenant(query, Location, current_user.tenant_id, user_role=role_type)
     location = query.first()
     if not location:
         raise HTTPException(
@@ -171,7 +178,8 @@ async def update_location(
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
     query = db.query(Location).filter(Location.id == location_id)
-    query = filter_by_tenant(query, Location, current_user.tenant_id)
+    role_type = current_user.role.role_type if current_user.role else None
+    query = filter_by_tenant(query, Location, current_user.tenant_id, user_role=role_type)
     location = query.first()
     if not location:
         raise HTTPException(
@@ -195,7 +203,8 @@ async def delete_location(
     current_user: User = Depends(require_role(RoleType.SUPERUSER))
 ):
     query = db.query(Location).filter(Location.id == location_id)
-    query = filter_by_tenant(query, Location, current_user.tenant_id)
+    role_type = current_user.role.role_type if current_user.role else None
+    query = filter_by_tenant(query, Location, current_user.tenant_id, user_role=role_type)
     location = query.first()
     if not location:
         raise HTTPException(
