@@ -385,31 +385,27 @@ const QuickSale: React.FC = () => {
                 <p>No hay productos en esta categoria</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2">
                 {filteredProducts.map((product) => (
                   <button
                     key={product.id}
                     onClick={() => handleProductClick(product)}
-                    className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-orange-50 transition-all text-left border-2 border-transparent hover:border-orange-500 active:scale-95"
+                    className="bg-white p-2.5 rounded-lg shadow-sm hover:shadow-md hover:bg-orange-50 transition-all text-center border border-gray-100 hover:border-orange-400 active:scale-95 flex flex-col items-center gap-1.5"
                   >
-                    <div className="flex items-center gap-3">
-                      {(product as any).image_url ? (
-                        <img
-                          src={`${import.meta.env.VITE_API_URL}${(product as any).image_url}`}
-                          alt={product.name}
-                          className="w-14 h-14 object-contain rounded-lg flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Package className="w-7 h-7 text-gray-300" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-800 truncate text-sm">{product.name}</p>
-                        <p className="text-xs text-gray-400">{product.code}</p>
+                    {(product as any).image_url ? (
+                      <img
+                        src={`${import.meta.env.VITE_API_URL}${(product as any).image_url}`}
+                        alt={product.name}
+                        className="w-10 h-10 object-contain rounded-md"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-gray-50 rounded-md flex items-center justify-center">
+                        <Package className="w-5 h-5 text-gray-300" />
                       </div>
-                    </div>
-                    <p className="text-lg font-bold text-orange-600 mt-2">
+                    )}
+                    <p className="font-medium text-gray-800 text-xs leading-tight line-clamp-2 w-full">{product.name}</p>
+                    <p className="text-[10px] text-gray-400">{product.code}</p>
+                    <p className="text-sm font-bold text-orange-600">
                       {formatCurrency(product.sale_price)}
                     </p>
                   </button>
