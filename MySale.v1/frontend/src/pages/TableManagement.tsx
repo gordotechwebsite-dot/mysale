@@ -19,9 +19,10 @@ import {
   generatePrecheck,
   getProducts,
   getLocations,
-  getFamilies
+  getFamilies,
+  getSubFamilies
 } from '../api';
-import type { ZoneWithTables, Table, Ticket, Product, Location, Family } from '../types';
+import type { ZoneWithTables, Table, Ticket, Product, Location, Family, SubFamily } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -109,6 +110,7 @@ export default function TableManagement() {
   const [productSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [families, setFamilies] = useState<Family[]>([]);
+  const [subFamilies, setSubFamilies] = useState<SubFamily[]>([]);
   const [selectedFamily, setSelectedFamily] = useState<number | null>(null);
   const [quantityInput, setQuantityInput] = useState('');
 
@@ -279,12 +281,14 @@ export default function TableManagement() {
 
   const loadProducts = async () => {
     try {
-      const [productsData, familiesData] = await Promise.all([
+      const [productsData, familiesData, subFamiliesData] = await Promise.all([
         getProducts({ location_id: selectedLocation || undefined }),
-        getFamilies()
+        getFamilies(),
+        getSubFamilies()
       ]);
       setProducts(productsData);
       setFamilies(familiesData);
+      setSubFamilies(subFamiliesData);
       if (familiesData.length > 0 && !selectedFamily) {
         setSelectedFamily(familiesData[0].id);
       }
@@ -986,8 +990,7 @@ export default function TableManagement() {
               <div className="flex-1 overflow-auto bg-slate-800 rounded-lg p-2">
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
                   {filteredProducts
-                    .filter(p => !selectedFamily || p.subfamily_id === selectedFamily ||
-                      families.find(f => f.id === selectedFamily && products.some(prod => prod.id === p.id)))
+                    .filter(p => !selectedFamily || subFamilies.some(sf => sf.family_id === selectedFamily && sf.id === p.subfamily_id))
                     .map(product => (
                       <button
                         key={product.id}
@@ -998,8 +1001,7 @@ export default function TableManagement() {
                         <div className="text-emerald-400 font-bold text-sm">${product.sale_price.toLocaleString()}</div>
                       </button>
                     ))}
-                  {filteredProducts.filter(p => !selectedFamily || p.subfamily_id === selectedFamily ||
-                    families.find(f => f.id === selectedFamily && products.some(prod => prod.id === p.id))).length === 0 && (
+                  {filteredProducts.filter(p => !selectedFamily || subFamilies.some(sf => sf.family_id === selectedFamily && sf.id === p.subfamily_id)).length === 0 && (
                     <div className="col-span-full p-8 text-center text-slate-400">
                       No se encontraron productos
                     </div>
@@ -1900,8 +1902,7 @@ export default function TableManagement() {
                 <div className="flex-1 overflow-auto bg-slate-700 rounded-lg p-2">
                   <div className="grid grid-cols-4 gap-2">
                     {filteredProducts
-                      .filter(p => !selectedFamily || p.subfamily_id === selectedFamily || 
-                        families.find(f => f.id === selectedFamily && products.some(prod => prod.id === p.id)))
+                      .filter(p => !selectedFamily || subFamilies.some(sf => sf.family_id === selectedFamily && sf.id === p.subfamily_id))
                       .slice(0, 24)
                       .map(product => (
                         <button
