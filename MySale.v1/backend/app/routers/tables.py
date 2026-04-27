@@ -763,7 +763,7 @@ async def move_ticket(
     
     old_table = db.query(Table).filter(Table.id == ticket.table_id).first()
     if old_table:
-        old_table.status = TableStatus.FREE
+        old_table.status = TableStatus.AVAILABLE
     
     ticket.table_id = data.new_table_id
     new_table.status = TableStatus.BILL_OPEN
@@ -808,7 +808,7 @@ async def merge_tickets(
             
             source_table = db.query(Table).filter(Table.id == source_ticket.table_id).first()
             if source_table:
-                source_table.status = TableStatus.FREE
+                source_table.status = TableStatus.AVAILABLE
             
             source_ticket.status = TicketStatus.CANCELLED
     
@@ -907,7 +907,7 @@ async def pay_ticket(
     
     table = db.query(Table).filter(Table.id == ticket.table_id).first()
     if table:
-        table.status = TableStatus.FREE
+        table.status = TableStatus.AVAILABLE
     
     db.commit()
     db.refresh(ticket)
