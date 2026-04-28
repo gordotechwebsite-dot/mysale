@@ -327,7 +327,7 @@ const QuickSale: React.FC = () => {
           {/* Category Cards */}
           {families.length > 0 && (
             <div className="mb-3">
-              <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(90px, 1fr))` }}>
+              <div className="grid grid-cols-6 gap-2">
                 {families.map((family) => {
                   const count = products.filter(p => {
                     const familySubIds = subfamilies.filter(sf => sf.family_id === family.id).map(sf => sf.id);

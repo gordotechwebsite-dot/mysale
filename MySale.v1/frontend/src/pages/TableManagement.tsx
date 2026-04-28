@@ -901,7 +901,7 @@ export default function TableManagement() {
           <div className="flex-1 flex flex-col gap-2 p-2 overflow-hidden">
             {/* Categories */}
             {families.length > 0 && (
-              <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(90px, 1fr))` }}>
+              <div className="grid grid-cols-6 gap-2">
                 {families.map(family => {
                   const CategoryIcon = getCategoryIcon(family.name);
                   return (
@@ -1819,7 +1819,7 @@ export default function TableManagement() {
           ) : (
             <div className="flex-1 flex flex-col gap-2 overflow-hidden">
               {families.length > 0 && (
-                <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(90px, 1fr))` }}>
+                <div className="grid grid-cols-6 gap-2">
                   {families.map(family => {
                     const CategoryIcon = getCategoryIcon(family.name);
                     return (
