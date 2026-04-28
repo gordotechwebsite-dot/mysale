@@ -3,7 +3,8 @@ import {
   getGroups, getFamilies, getSubFamilies, getProducts,
   createGroup, createFamily, createSubFamily, createProduct, registerPurchase,
   getLocations, getTransfers, createTransfer, receiveTransfer,
-  getLosses, createLoss
+  getLosses, createLoss,
+  updateProduct, deleteProduct, deleteFamily, deleteSubFamily, deleteGroup
 } from '../api';
 import type { Group, Family, SubFamily, Product, Location, Transfer, Loss } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,9 +40,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Package, Search, Loader2, ShoppingBag, Truck, Trash2, Check, AlertTriangle } from 'lucide-react';
+import { Plus, Package, Search, Loader2, ShoppingBag, Truck, Trash2, Check, AlertTriangle, Pencil } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Inventory: React.FC = () => {
+  const { user } = useAuth();
+  const isSuperuser = user?.role?.role_type === 'superuser';
   const [groups, setGroups] = useState<Group[]>([]);
   const [families, setFamilies] = useState<Family[]>([]);
   const [subFamilies, setSubFamilies] = useState<SubFamily[]>([]);
@@ -59,6 +63,9 @@ const Inventory: React.FC = () => {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showPurchase, setShowPurchase] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showEditProduct, setShowEditProduct] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editProductData, setEditProductData] = useState({ name: '', sale_price: '', code: '', barcode: '', min_stock: '', max_stock: '' });
 
   const [newGroup, setNewGroup] = useState({ name: '', description: '' });
   const [newFamily, setNewFamily] = useState({ name: '', group_id: '', description: '' });
@@ -231,6 +238,81 @@ const Inventory: React.FC = () => {
     setSelectedProduct(product);
     setPurchase({ ...purchase, product_id: product.id });
     setShowPurchase(true);
+  };
+
+  const openEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setEditProductData({
+      name: product.name,
+      sale_price: product.sale_price.toString(),
+      code: product.code,
+      barcode: product.barcode || '',
+      min_stock: product.min_stock.toString(),
+      max_stock: product.max_stock.toString()
+    });
+    setShowEditProduct(true);
+  };
+
+  const handleEditProduct = async () => {
+    if (!editingProduct) return;
+    setIsProcessing(true);
+    try {
+      await updateProduct(editingProduct.id, {
+        name: editProductData.name,
+        sale_price: parseFloat(editProductData.sale_price),
+        code: editProductData.code,
+        barcode: editProductData.barcode || undefined,
+        min_stock: parseInt(editProductData.min_stock),
+        max_stock: parseInt(editProductData.max_stock)
+      });
+      await loadProducts();
+      setShowEditProduct(false);
+      setEditingProduct(null);
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Error al editar producto');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeleteProduct = async (product: Product) => {
+    if (!confirm(`¿Eliminar el producto "${product.name}"? Esta acción no se puede deshacer.`)) return;
+    try {
+      await deleteProduct(product.id);
+      await loadProducts();
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Error al eliminar producto');
+    }
+  };
+
+  const handleDeleteFamily = async (family: Family) => {
+    if (!confirm(`¿Eliminar la familia "${family.name}"? Se eliminarán también sus subfamilias sin productos.`)) return;
+    try {
+      await deleteFamily(family.id);
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Error al eliminar familia');
+    }
+  };
+
+  const handleDeleteSubFamily = async (sf: SubFamily) => {
+    if (!confirm(`¿Eliminar la subfamilia "${sf.name}"?`)) return;
+    try {
+      await deleteSubFamily(sf.id);
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Error al eliminar subfamilia');
+    }
+  };
+
+  const handleDeleteGroup = async (group: Group) => {
+    if (!confirm(`¿Eliminar el grupo "${group.name}"?`)) return;
+    try {
+      await deleteGroup(group.id);
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Error al eliminar grupo');
+    }
   };
 
   // Transfer handlers
@@ -502,14 +584,35 @@ const Inventory: React.FC = () => {
                         <TableCell>{formatCurrency(product.weighted_cost)}</TableCell>
                         <TableCell>{product.min_stock} / {product.max_stock}</TableCell>
                         <TableCell>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openPurchaseDialog(product)}
-                          >
-                            <ShoppingBag className="w-4 h-4 mr-1" />
-                            Compra
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openPurchaseDialog(product)}
+                            >
+                              <ShoppingBag className="w-4 h-4 mr-1" />
+                              Compra
+                            </Button>
+                            {isSuperuser && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openEditProduct(product)}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleDeleteProduct(product)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -534,9 +637,16 @@ const Inventory: React.FC = () => {
               <CardContent>
                 <div className="space-y-2">
                   {groups.map(g => (
-                    <div key={g.id} className="p-3 bg-gray-50 rounded-lg">
-                      <p className="font-medium">{g.name}</p>
-                      {g.description && <p className="text-sm text-gray-500">{g.description}</p>}
+                    <div key={g.id} className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">{g.name}</p>
+                        {g.description && <p className="text-sm text-gray-500">{g.description}</p>}
+                      </div>
+                      {isSuperuser && (
+                        <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700" onClick={() => handleDeleteGroup(g)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -555,11 +665,18 @@ const Inventory: React.FC = () => {
               <CardContent>
                 <div className="space-y-2">
                   {families.map(f => (
-                    <div key={f.id} className="p-3 bg-gray-50 rounded-lg">
-                      <p className="font-medium">{f.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {groups.find(g => g.id === f.group_id)?.name}
-                      </p>
+                    <div key={f.id} className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">{f.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {groups.find(g => g.id === f.group_id)?.name}
+                        </p>
+                      </div>
+                      {isSuperuser && (
+                        <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700" onClick={() => handleDeleteFamily(f)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -578,11 +695,18 @@ const Inventory: React.FC = () => {
               <CardContent>
                 <div className="space-y-2">
                   {subFamilies.map(sf => (
-                    <div key={sf.id} className="p-3 bg-gray-50 rounded-lg">
-                      <p className="font-medium">{sf.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {families.find(f => f.id === sf.family_id)?.name}
-                      </p>
+                    <div key={sf.id} className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">{sf.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {families.find(f => f.id === sf.family_id)?.name}
+                        </p>
+                      </div>
+                      {isSuperuser && (
+                        <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700" onClick={() => handleDeleteSubFamily(sf)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1094,6 +1218,59 @@ const Inventory: React.FC = () => {
               disabled={isProcessing || !purchase.location_id || !purchase.quantity || !purchase.unit_cost}
             >
               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Registrar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showEditProduct} onOpenChange={setShowEditProduct}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Producto</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="Nombre *"
+              value={editProductData.name}
+              onChange={(e) => setEditProductData({ ...editProductData, name: e.target.value })}
+            />
+            <Input
+              placeholder="Codigo *"
+              value={editProductData.code}
+              onChange={(e) => setEditProductData({ ...editProductData, code: e.target.value })}
+            />
+            <Input
+              placeholder="Codigo de barras"
+              value={editProductData.barcode}
+              onChange={(e) => setEditProductData({ ...editProductData, barcode: e.target.value })}
+            />
+            <Input
+              type="number"
+              placeholder="Precio de venta *"
+              value={editProductData.sale_price}
+              onChange={(e) => setEditProductData({ ...editProductData, sale_price: e.target.value })}
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                type="number"
+                placeholder="Stock minimo"
+                value={editProductData.min_stock}
+                onChange={(e) => setEditProductData({ ...editProductData, min_stock: e.target.value })}
+              />
+              <Input
+                type="number"
+                placeholder="Stock maximo"
+                value={editProductData.max_stock}
+                onChange={(e) => setEditProductData({ ...editProductData, max_stock: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditProduct(false)}>Cancelar</Button>
+            <Button
+              onClick={handleEditProduct}
+              disabled={isProcessing || !editProductData.name || !editProductData.sale_price}
+            >
+              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar'}
             </Button>
           </DialogFooter>
         </DialogContent>

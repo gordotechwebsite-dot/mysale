@@ -157,6 +157,21 @@ export const deleteProduct = async (id: number): Promise<{ message: string }> =>
   return response.data;
 };
 
+export const deleteFamily = async (id: number): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/inventory/families/${id}`);
+  return response.data;
+};
+
+export const deleteSubFamily = async (id: number): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/inventory/subfamilies/${id}`);
+  return response.data;
+};
+
+export const deleteGroup = async (id: number): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/inventory/groups/${id}`);
+  return response.data;
+};
+
 export const uploadProductImage = async (productId: number, file: File): Promise<{ image_url: string }> => {
   const formData = new FormData();
   formData.append('file', file);
