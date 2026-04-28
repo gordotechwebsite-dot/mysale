@@ -179,6 +179,14 @@ def run_migrations():
                 db.commit()
                 print("Migration: Added reserved_phone column to tables table")
             
+            if 'is_active' not in table_cols:
+                db.execute(text("ALTER TABLE tables ADD COLUMN is_active BOOLEAN DEFAULT 1"))
+                db.commit()
+                print("Migration: Added is_active column to tables table")
+            
+            db.execute(text("UPDATE tables SET is_active = 1 WHERE is_active IS NULL"))
+            db.commit()
+            
             # Normalize shape/status values to lowercase (enum expects lowercase)
             db.execute(text("UPDATE tables SET shape = LOWER(shape) WHERE shape != LOWER(shape)"))
             db.execute(text("UPDATE tables SET status = LOWER(status) WHERE status != LOWER(status)"))

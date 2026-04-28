@@ -167,8 +167,8 @@ async def debug_tables(
     current_user: User = Depends(get_current_user)
 ):
     """Debug endpoint to check raw table data in the database."""
-    rows = db.execute(text("SELECT id, name, zone_id, status, shape FROM tables WHERE is_active = 1")).fetchall()
-    return [{"id": r[0], "name": r[1], "zone_id": r[2], "status": r[3], "shape": r[4]} for r in rows]
+    rows = db.execute(text("SELECT id, name, zone_id, status, shape, is_active FROM tables")).fetchall()
+    return [{"id": r[0], "name": r[1], "zone_id": r[2], "status": r[3], "shape": r[4], "is_active": r[5]} for r in rows]
 
 
 @router.post("/zones", response_model=ZoneResponse)

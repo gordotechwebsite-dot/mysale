@@ -5,6 +5,10 @@ from app.database import get_db
 from app.models.user import User, RoleType
 from app.models.inventory import Group, Family, SubFamily, Product, ProductStock, StockMovement, MovementType
 from app.models.location import Location
+from app.models.sale import SaleItem
+from app.models.table import TicketItem
+from app.models.transfer import TransferItem
+from app.models.loss import LossItem
 from app.schemas.inventory import (
     GroupCreate, GroupResponse,
     FamilyCreate, FamilyResponse,
@@ -328,6 +332,14 @@ async def delete_product(
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
+    has_sales = db.query(SaleItem).filter(SaleItem.product_id == product_id).first()
+    has_tickets = db.query(TicketItem).filter(TicketItem.product_id == product_id).first()
+    has_transfers = db.query(TransferItem).filter(TransferItem.product_id == product_id).first()
+    has_losses = db.query(LossItem).filter(LossItem.product_id == product_id).first()
+    if has_sales or has_tickets or has_transfers or has_losses:
+        product.is_active = False
+        db.commit()
+        return {"message": "Producto desactivado (tiene registros en ventas/mesas/traspasos)"}
     db.query(ProductStock).filter(ProductStock.product_id == product_id).delete()
     db.query(StockMovement).filter(StockMovement.product_id == product_id).delete()
     db.delete(product)
