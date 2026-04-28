@@ -318,6 +318,81 @@ async def update_product(
     )
 
 
+@router.delete("/products/{product_id}")
+async def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER)),
+    _module_check: User = Depends(require_module("inventory"))
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    db.query(ProductStock).filter(ProductStock.product_id == product_id).delete()
+    db.query(StockMovement).filter(StockMovement.product_id == product_id).delete()
+    db.delete(product)
+    db.commit()
+    return {"message": "Producto eliminado"}
+
+
+@router.delete("/families/{family_id}")
+async def delete_family(
+    family_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER)),
+    _module_check: User = Depends(require_module("inventory"))
+):
+    family = db.query(Family).filter(Family.id == family_id).first()
+    if not family:
+        raise HTTPException(status_code=404, detail="Familia no encontrada")
+    subfamilies = db.query(SubFamily).filter(SubFamily.family_id == family_id).all()
+    for sf in subfamilies:
+        products = db.query(Product).filter(Product.subfamily_id == sf.id).all()
+        if products:
+            raise HTTPException(status_code=400, detail=f"No se puede eliminar: la subfamilia '{sf.name}' tiene productos asociados")
+    for sf in subfamilies:
+        db.delete(sf)
+    db.delete(family)
+    db.commit()
+    return {"message": "Familia eliminada"}
+
+
+@router.delete("/subfamilies/{subfamily_id}")
+async def delete_subfamily(
+    subfamily_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER)),
+    _module_check: User = Depends(require_module("inventory"))
+):
+    subfamily = db.query(SubFamily).filter(SubFamily.id == subfamily_id).first()
+    if not subfamily:
+        raise HTTPException(status_code=404, detail="Subfamilia no encontrada")
+    products = db.query(Product).filter(Product.subfamily_id == subfamily_id).all()
+    if products:
+        raise HTTPException(status_code=400, detail="No se puede eliminar: tiene productos asociados")
+    db.delete(subfamily)
+    db.commit()
+    return {"message": "Subfamilia eliminada"}
+
+
+@router.delete("/groups/{group_id}")
+async def delete_group(
+    group_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER)),
+    _module_check: User = Depends(require_module("inventory"))
+):
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+    families = db.query(Family).filter(Family.group_id == group_id).all()
+    if families:
+        raise HTTPException(status_code=400, detail="No se puede eliminar: tiene familias asociadas")
+    db.delete(group)
+    db.commit()
+    return {"message": "Grupo eliminado"}
+
+
 @router.post("/purchase")
 async def register_purchase(
     purchase: PurchaseCreate,
