@@ -257,6 +257,7 @@ export const createSale = async (data: {
   items: { product_id: number; quantity: number; discount?: number }[];
   amount_received?: number;
   notes?: string;
+  location_id?: number;
 }): Promise<Sale> => {
   const response = await api.post('/api/sales/', data);
   return response.data;

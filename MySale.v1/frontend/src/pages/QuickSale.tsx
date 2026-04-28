@@ -273,7 +273,8 @@ const QuickSale: React.FC = () => {
           quantity: item.quantity,
           discount: item.discount
         })),
-        amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) || total : undefined
+        amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) || total : undefined,
+        location_id: selectedLocation
       };
       
       const sale = await createSale(saleData);
