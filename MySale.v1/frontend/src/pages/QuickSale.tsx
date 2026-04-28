@@ -273,7 +273,8 @@ const QuickSale: React.FC = () => {
           quantity: item.quantity,
           discount: item.discount
         })),
-        amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) || total : undefined
+        amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) || total : undefined,
+        location_id: selectedLocation
       };
       
       const sale = await createSale(saleData);
@@ -334,10 +335,10 @@ const QuickSale: React.FC = () => {
             )}
           </div>
 
-          {/* Category Tabs */}
+          {/* Category Cards */}
           {families.length > 0 && (
-            <div className="mb-4">
-              <div className="flex flex-wrap gap-2">
+            <div className="mb-3">
+              <div className="grid grid-cols-6 gap-2">
                 {families.map((family) => {
                   const count = products.filter(p => {
                     const familySubIds = subfamilies.filter(sf => sf.family_id === family.id).map(sf => sf.id);
@@ -349,14 +350,14 @@ const QuickSale: React.FC = () => {
                     <button
                       key={family.id}
                       onClick={() => { setSelectedFamily(selectedFamily === family.id ? null : family.id); setSearchTerm(''); }}
-                      className={`flex items-center gap-2 px-5 py-3 rounded-full transition-all text-sm font-semibold ${
+                      className={`flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-all ${
                         selectedFamily === family.id
-                          ? 'bg-violet-100 text-violet-700 border-2 border-violet-400 shadow-sm'
-                          : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-violet-300 hover:bg-violet-50'
+                          ? 'bg-purple-100 text-purple-600 border-2 border-purple-400'
+                          : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-purple-200 hover:bg-purple-50'
                       }`}
                     >
                       <CategoryIcon className="w-5 h-5" />
-                      <span>{family.name}</span>
+                      <span className="text-xs font-medium leading-tight text-center">{family.name}</span>
                     </button>
                   );
                 })}

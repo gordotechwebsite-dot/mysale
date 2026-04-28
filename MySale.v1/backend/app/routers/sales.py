@@ -148,12 +148,26 @@ async def create_sale(
     ).first()
     
     if not shift:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Debe abrir un turno antes de realizar ventas"
-        )
+        if sale_data.location_id:
+            location = db.query(Location).filter(Location.id == sale_data.location_id).first()
+            if not location:
+                raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
+            shift = Shift(
+                user_id=current_user.id,
+                location_id=location.id,
+                initial_cash=0.0,
+                notes="Turno auto-creado por Venta Rápida"
+            )
+            db.add(shift)
+            db.flush()
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Debe abrir un turno antes de realizar ventas"
+            )
+    else:
+        location = db.query(Location).filter(Location.id == shift.location_id).first()
     
-    location = db.query(Location).filter(Location.id == shift.location_id).first()
     if not location:
         raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
     

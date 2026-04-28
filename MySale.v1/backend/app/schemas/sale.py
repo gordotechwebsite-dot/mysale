@@ -15,6 +15,7 @@ class SaleCreate(BaseModel):
     items: List[SaleItemCreate]
     amount_received: Optional[float] = None
     notes: Optional[str] = None
+    location_id: Optional[int] = None
 
 
 class SaleItemResponse(BaseModel):
