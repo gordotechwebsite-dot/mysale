@@ -1,3 +1,4 @@
+import { toast } from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { getLocationsDashboard, createLocation, updateLocation } from '../api';
 import type { LocationDashboard } from '../api';
@@ -66,7 +67,7 @@ const Locations: React.FC = () => {
       await loadLocations();
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Error al subir la imagen');
+      toast.error('Error al subir la imagen');
     } finally {
       setUploadingImageFor(null);
     }
@@ -89,7 +90,7 @@ const Locations: React.FC = () => {
         name: '', code: '', location_type: 'pos', address: '', daily_base_cash: '100000', folio_prefix: ''
       });
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al crear ubicacion');
+      toast.error(error.response?.data?.detail || 'Error al crear ubicacion');
     } finally {
       setIsProcessing(false);
     }

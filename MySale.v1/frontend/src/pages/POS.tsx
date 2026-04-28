@@ -1,3 +1,4 @@
+import { toast } from 'react-hot-toast';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useShift } from '../context/ShiftContext';
@@ -117,7 +118,7 @@ const POS: React.FC = () => {
       setShowReceipt(true);
       setAmountReceived('');
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al procesar la venta');
+      toast.error(error.response?.data?.detail || 'Error al procesar la venta');
     } finally {
       setIsProcessing(false);
     }

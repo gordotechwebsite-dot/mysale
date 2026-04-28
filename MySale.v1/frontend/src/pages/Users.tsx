@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { toast } from 'react-hot-toast';
 import { getUsers, createUser, deleteUser, getRoles, getLocations, resetUserPin, toggleUserActive } from '../api';
 import type { User, Role, Location } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,7 +73,7 @@ const Users: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert('La imagen no debe superar 2MB');
+        toast.error('La imagen no debe superar 2MB');
         return;
       }
       const reader = new FileReader();
@@ -96,7 +97,7 @@ const Users: React.FC = () => {
       setShowCredentials(true);
       setNewUser({ full_name: '', phone: '', cedula: '', username: '', password: '', pin: '', role_id: '', location_id: '', photo_url: '' });
       setPhotoPreview(null);
-    } catch (error: any) { alert(error.response?.data?.detail || 'Error al crear usuario'); }
+    } catch (error: any) { toast.error(error.response?.data?.detail || 'Error al crear usuario'); }
     finally { setIsProcessing(false); }
   };
 
@@ -104,7 +105,7 @@ const Users: React.FC = () => {
     if (!userToDelete) return;
     setIsProcessing(true);
     try { await deleteUser(userToDelete.id); await loadData(); setShowDeleteConfirm(false); setUserToDelete(null); }
-    catch (error: any) { alert(error.response?.data?.detail || 'Error al eliminar usuario'); }
+    catch (error: any) { toast.error(error.response?.data?.detail || 'Error al eliminar usuario'); }
     finally { setIsProcessing(false); }
   };
 
@@ -129,7 +130,7 @@ const Users: React.FC = () => {
       setSelectedUser({ ...selectedUser, pin: result.pin });
       setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, pin: result.pin } : u));
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al resetear PIN');
+      toast.error(error.response?.data?.detail || 'Error al resetear PIN');
     } finally {
       setIsResettingPin(false);
     }
@@ -144,7 +145,7 @@ const Users: React.FC = () => {
       setSelectedUser({ ...selectedUser, is_active: newStatus });
       setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, is_active: newStatus } : u));
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al cambiar estado del usuario');
+      toast.error(error.response?.data?.detail || 'Error al cambiar estado del usuario');
     } finally {
       setIsProcessing(false);
     }

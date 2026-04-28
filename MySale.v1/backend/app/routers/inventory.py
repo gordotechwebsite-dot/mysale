@@ -10,9 +10,9 @@ from app.models.table import TicketItem
 from app.models.transfer import TransferItem
 from app.models.loss import LossItem
 from app.schemas.inventory import (
-    GroupCreate, GroupResponse,
-    FamilyCreate, FamilyResponse,
-    SubFamilyCreate, SubFamilyResponse,
+    GroupCreate, GroupUpdate, GroupResponse,
+    FamilyCreate, FamilyUpdate, FamilyResponse,
+    SubFamilyCreate, SubFamilyUpdate, SubFamilyResponse,
     ProductCreate, ProductUpdate, ProductResponse, ProductStockResponse,
     StockAdjustment, PurchaseCreate, BulkProductImport
 )
@@ -50,6 +50,24 @@ async def create_group(
     return db_group
 
 
+@router.put("/groups/{group_id}", response_model=GroupResponse)
+async def update_group(
+    group_id: int,
+    data: GroupUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN)),
+    _module_check: User = Depends(require_module("inventory"))
+):
+    group = db.query(Group).filter(Group.id == group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(group, field, value)
+    db.commit()
+    db.refresh(group)
+    return group
+
+
 @router.get("/families", response_model=List[FamilyResponse])
 async def get_families(
     group_id: Optional[int] = None,
@@ -82,6 +100,24 @@ async def create_family(
     return db_family
 
 
+@router.put("/families/{family_id}", response_model=FamilyResponse)
+async def update_family(
+    family_id: int,
+    data: FamilyUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN)),
+    _module_check: User = Depends(require_module("inventory"))
+):
+    family = db.query(Family).filter(Family.id == family_id).first()
+    if not family:
+        raise HTTPException(status_code=404, detail="Familia no encontrada")
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(family, field, value)
+    db.commit()
+    db.refresh(family)
+    return family
+
+
 @router.get("/subfamilies", response_model=List[SubFamilyResponse])
 async def get_subfamilies(
     family_id: Optional[int] = None,
@@ -112,6 +148,24 @@ async def create_subfamily(
     db.commit()
     db.refresh(db_subfamily)
     return db_subfamily
+
+
+@router.put("/subfamilies/{subfamily_id}", response_model=SubFamilyResponse)
+async def update_subfamily(
+    subfamily_id: int,
+    data: SubFamilyUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN)),
+    _module_check: User = Depends(require_module("inventory"))
+):
+    subfamily = db.query(SubFamily).filter(SubFamily.id == subfamily_id).first()
+    if not subfamily:
+        raise HTTPException(status_code=404, detail="SubFamilia no encontrada")
+    for field, value in data.model_dump(exclude_unset=True).items():
+        setattr(subfamily, field, value)
+    db.commit()
+    db.refresh(subfamily)
+    return subfamily
 
 
 @router.get("/products", response_model=List[ProductResponse])

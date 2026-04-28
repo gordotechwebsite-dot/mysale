@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'react-hot-toast';
 import { Settings as SettingsIcon, Upload, Save, Building2, FileText, Hash, MessageSquare, MapPin, Phone, Mail, Palette, Loader2, CheckCircle } from 'lucide-react';
 import { getBusinessProfile, updateBusinessProfile, uploadBusinessLogo } from '../api';
 
@@ -67,9 +68,10 @@ export default function Settings() {
       setSaving(true);
       await updateBusinessProfile(form);
       setSaved(true);
+      toast.success('Perfil guardado correctamente');
       setTimeout(() => setSaved(false), 3000);
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al guardar el perfil');
+      toast.error(error.response?.data?.detail || 'Error al guardar el perfil');
     } finally {
       setSaving(false);
     }
@@ -90,7 +92,7 @@ export default function Settings() {
       setLogoUrl(result.logo_url);
       setLogoPreview(null);
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al subir el logo');
+      toast.error(error.response?.data?.detail || 'Error al subir el logo');
       setLogoPreview(null);
     } finally {
       setUploadingLogo(false);

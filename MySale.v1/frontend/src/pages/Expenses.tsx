@@ -1,3 +1,4 @@
+import { toast } from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { getExpenses, createExpense, getLocations } from '../api';
 import type { Expense, Location } from '../types';
@@ -95,7 +96,7 @@ const Expenses: React.FC = () => {
         invoice_number: '', supplier: '', expense_date: new Date().toISOString().split('T')[0]
       });
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al registrar gasto');
+      toast.error(error.response?.data?.detail || 'Error al registrar gasto');
     } finally {
       setIsProcessing(false);
     }

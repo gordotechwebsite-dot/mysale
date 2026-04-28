@@ -1,3 +1,4 @@
+import { toast } from 'react-hot-toast';
 import React, { useEffect, useState } from 'react';
 import { getLocationsDashboard, updateLocation, type LocationDashboard } from '../api';
 import { Card, CardContent } from '@/components/ui/card';
@@ -57,7 +58,7 @@ const LocationsDashboard: React.FC = () => {
       setSelectedLocation(null);
     } catch (error) {
       console.error('Error saving image:', error);
-      alert('Error al guardar la imagen');
+      toast.error('Error al guardar la imagen');
     } finally {
       setIsSaving(false);
     }

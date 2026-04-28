@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { toast } from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
@@ -216,7 +217,7 @@ const Deliveries: React.FC = () => {
   const handlePayment = async () => {
     if (items.length === 0 || !selectedLocation) return;
     if (!customerName || !customerPhone || !customerAddress) {
-      alert('Complete los datos del cliente (nombre, telefono, direccion)');
+      toast.error('Complete los datos del cliente (nombre, telefono, direccion)');
       return;
     }
 
@@ -256,7 +257,7 @@ const Deliveries: React.FC = () => {
         searchRef.current?.focus();
       }, 2000);
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al registrar domicilio');
+      toast.error(error.response?.data?.detail || 'Error al registrar domicilio');
     } finally {
       setIsProcessing(false);
     }

@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Clock, Loader2, Download, FileText } from 'lucide-react';
+import { Clock, Loader2, Download, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Shifts: React.FC = () => {
@@ -31,6 +31,8 @@ const Shifts: React.FC = () => {
   const [filterUser, setFilterUser] = useState<string>('');
   const [filterStartDate, setFilterStartDate] = useState<string>('');
   const [filterEndDate, setFilterEndDate] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const isAdmin = user?.role?.role_type === 'superuser' || user?.role?.role_type === 'admin';
 
@@ -67,6 +69,7 @@ const Shifts: React.FC = () => {
       if (filterEndDate) params.end_date = filterEndDate + 'T23:59:59';
       const data = await getWorkSessions(params);
       setSessions(data);
+      setCurrentPage(1);
     } catch (error) {
       console.error('Error loading sessions:', error);
     }
@@ -257,7 +260,7 @@ const Shifts: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sessions.map((s) => {
+                {sessions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((s) => {
                   const minutes = s.total_minutes ?? (s.clock_out ? Math.floor((new Date(s.clock_out).getTime() - new Date(s.clock_in).getTime())/60000) : Math.floor((Date.now() - new Date(s.clock_in).getTime())/60000));
                   const h = Math.floor(minutes/60);
                   const m = minutes%60;
@@ -274,6 +277,32 @@ const Shifts: React.FC = () => {
               </TableBody>
             </Table>
           </div>
+
+          {sessions.length > itemsPerPage && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <span className="text-sm text-gray-500">
+                Mostrando {Math.min((currentPage - 1) * itemsPerPage + 1, sessions.length)}-{Math.min(currentPage * itemsPerPage, sessions.length)} de {sessions.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                {Array.from({ length: Math.ceil(sessions.length / itemsPerPage) }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === Math.ceil(sessions.length / itemsPerPage) || Math.abs(p - currentPage) <= 1)
+                  .map((p, idx, arr) => (
+                    <React.Fragment key={p}>
+                      {idx > 0 && arr[idx - 1] !== p - 1 && <span className="text-gray-400">...</span>}
+                      <Button variant={p === currentPage ? 'default' : 'outline'} size="sm" className="w-8 h-8 p-0" onClick={() => setCurrentPage(p)}>
+                        {p}
+                      </Button>
+                    </React.Fragment>
+                  ))}
+                <Button variant="outline" size="sm" disabled={currentPage >= Math.ceil(sessions.length / itemsPerPage)} onClick={() => setCurrentPage(p => p + 1)}>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { toast } from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { getProducts, getLocations, createSale, decodeWeightedBarcode, getFamilies, getSubFamilies } from '../api';
@@ -226,11 +227,11 @@ const QuickSale: React.FC = () => {
         setSearchTerm('');
         searchRef.current?.focus();
       } else {
-        alert(result.error || 'Producto pesable no encontrado');
+        toast.error(result.error || 'Producto pesable no encontrado');
       }
     } catch (error) {
       console.error('Error decoding weighted barcode:', error);
-      alert('Error al decodificar codigo de barras');
+      toast.error('Error al decodificar codigo de barras');
     }
   };
 
@@ -273,7 +274,7 @@ const QuickSale: React.FC = () => {
       setShowReceipt(true);
       setAmountReceived('');
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al procesar la venta');
+      toast.error(error.response?.data?.detail || 'Error al procesar la venta');
     } finally {
       setIsProcessing(false);
     }

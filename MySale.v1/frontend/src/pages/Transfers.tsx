@@ -1,3 +1,4 @@
+import { toast } from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getTransfers, createTransfer, receiveTransfer, getLocations, getProducts } from '../api';
@@ -110,7 +111,7 @@ const Transfers: React.FC = () => {
       setShowAddTransfer(false);
       setNewTransfer({ from_location_id: '', to_location_id: '', notes: '', items: [] });
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al crear transferencia');
+      toast.error(error.response?.data?.detail || 'Error al crear transferencia');
     } finally {
       setIsProcessing(false);
     }
@@ -122,7 +123,7 @@ const Transfers: React.FC = () => {
       await receiveTransfer(id);
       await loadData();
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al recibir transferencia');
+      toast.error(error.response?.data?.detail || 'Error al recibir transferencia');
     }
   };
 

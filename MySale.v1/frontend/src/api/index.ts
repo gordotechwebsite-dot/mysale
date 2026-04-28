@@ -172,6 +172,21 @@ export const deleteGroup = async (id: number): Promise<{ message: string }> => {
   return response.data;
 };
 
+export const updateGroup = async (id: number, data: { name?: string; description?: string }) => {
+  const response = await api.put(`/api/inventory/groups/${id}`, data);
+  return response.data;
+};
+
+export const updateFamily = async (id: number, data: { name?: string; description?: string }) => {
+  const response = await api.put(`/api/inventory/families/${id}`, data);
+  return response.data;
+};
+
+export const updateSubFamily = async (id: number, data: { name?: string; description?: string }) => {
+  const response = await api.put(`/api/inventory/subfamilies/${id}`, data);
+  return response.data;
+};
+
 export const uploadProductImage = async (productId: number, file: File): Promise<{ image_url: string }> => {
   const formData = new FormData();
   formData.append('file', file);

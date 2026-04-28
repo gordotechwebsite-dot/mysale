@@ -9,6 +9,11 @@ class GroupCreate(BaseModel):
     tenant_id: Optional[int] = None
 
 
+class GroupUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
 class GroupResponse(BaseModel):
     id: int
     name: str
@@ -27,6 +32,11 @@ class FamilyCreate(BaseModel):
     icon: Optional[str] = None
     description: Optional[str] = None
     tenant_id: Optional[int] = None
+
+
+class FamilyUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
 
 
 class FamilyResponse(BaseModel):
@@ -48,6 +58,11 @@ class SubFamilyCreate(BaseModel):
     family_id: int
     description: Optional[str] = None
     tenant_id: Optional[int] = None
+
+
+class SubFamilyUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
 
 
 class SubFamilyResponse(BaseModel):

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
@@ -93,7 +94,7 @@ const Dashboard: React.FC = () => {
       setShowOpenShift(false);
       navigate('/pos');
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al abrir turno');
+      toast.error(error.response?.data?.detail || 'Error al abrir turno');
     } finally {
       setIsProcessing(false);
     }
@@ -116,7 +117,7 @@ const Dashboard: React.FC = () => {
         await refreshShift();
         loadData();
       } catch (error: any) {
-        alert(error.response?.data?.detail || 'Error al cerrar turno');
+        toast.error(error.response?.data?.detail || 'Error al cerrar turno');
       } finally {
         setIsProcessing(false);
       }

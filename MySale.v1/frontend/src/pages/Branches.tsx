@@ -1,3 +1,4 @@
+import { toast } from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import { Building2, Plus, Edit, Trash2, MapPin, Phone, Search } from 'lucide-react';
 import { getBranches, createBranch, updateBranch, deleteBranch, Branch } from '../api';
@@ -45,7 +46,7 @@ export default function Branches() {
       setFormData({ name: '', code: '', city: '', address: '', phone: '' });
       loadBranches();
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al guardar la sede');
+      toast.error(error.response?.data?.detail || 'Error al guardar la sede');
     }
   };
 
@@ -67,7 +68,7 @@ export default function Branches() {
       await deleteBranch(branch.id);
       loadBranches();
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al desactivar la sede');
+      toast.error(error.response?.data?.detail || 'Error al desactivar la sede');
     }
   };
 

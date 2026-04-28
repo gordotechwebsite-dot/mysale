@@ -1,3 +1,4 @@
+import { toast } from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getLosses, createLoss, getLocations, getProducts } from '../api';
@@ -122,7 +123,7 @@ const Losses: React.FC = () => {
       setShowAddLoss(false);
       setNewLoss({ location_id: '', loss_type: '', description: '', items: [] });
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Error al registrar merma');
+      toast.error(error.response?.data?.detail || 'Error al registrar merma');
     } finally {
       setIsProcessing(false);
     }

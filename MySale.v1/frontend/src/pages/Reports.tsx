@@ -1,3 +1,4 @@
+import { toast } from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { getSalesReport, getInventoryReport, exportSalesExcel, exportInventoryExcel, getLocations, getEmployeesSummaryReport, getProfitabilityReport, exportEmployeesExcel, exportProfitabilityExcel, getUsers, getPurchasesReport, exportPurchasesExcel, getDeliveries, getCashCloses, createCashClose, deleteCashClose } from '../api';
 import type { Delivery, CashClose } from '../types';
@@ -219,7 +220,7 @@ const Reports: React.FC = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting:', error);
-      alert('Error al exportar el reporte');
+      toast.error('Error al exportar el reporte');
     }
   };
 
@@ -234,7 +235,7 @@ const Reports: React.FC = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting:', error);
-      alert('Error al exportar el reporte');
+      toast.error('Error al exportar el reporte');
     }
   };
 
@@ -253,7 +254,7 @@ const Reports: React.FC = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting:', error);
-      alert('Error al exportar el reporte');
+      toast.error('Error al exportar el reporte');
     }
   };
 
@@ -288,7 +289,7 @@ const Reports: React.FC = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting:', error);
-      alert('Error al exportar el reporte');
+      toast.error('Error al exportar el reporte');
     }
   };
 
@@ -367,7 +368,7 @@ const Reports: React.FC = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting:', error);
-      alert('Error al exportar el reporte');
+      toast.error('Error al exportar el reporte');
     }
   };
 
