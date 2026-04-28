@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, Text, Enum
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -76,8 +76,8 @@ class Table(Base):
     zone_id = Column(Integer, ForeignKey("zones.id"), nullable=True)
     name = Column(String(50), nullable=False)
     capacity = Column(Integer, default=4)
-    shape = Column(Enum(TableShape), default=TableShape.SQUARE)
-    status = Column(Enum(TableStatus), default=TableStatus.AVAILABLE)
+    shape = Column(String(20), default="square")
+    status = Column(String(20), default="available")
     position_x = Column(Integer, default=0)
     position_y = Column(Integer, default=0)
     width = Column(Integer, default=100)
@@ -104,7 +104,7 @@ class Ticket(Base):
     waiter_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     customer_name = Column(String(100))
     num_people = Column(Integer, default=1)
-    status = Column(Enum(TicketStatus), default=TicketStatus.OPEN)
+    status = Column(String(20), default="open")
     subtotal = Column(Float, default=0)
     tax = Column(Float, default=0)
     tip = Column(Float, default=0)
@@ -135,7 +135,7 @@ class TicketItem(Base):
     discount = Column(Float, default=0)
     subtotal = Column(Float, nullable=False)
     notes = Column(Text)
-    status = Column(Enum(TicketItemStatus), default=TicketItemStatus.PENDING)
+    status = Column(String(20), default="pending")
     created_at = Column(DateTime, default=datetime.utcnow)
     
     ticket = relationship("Ticket", back_populates="items")
@@ -147,8 +147,8 @@ class Comanda(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     ticket_id = Column(Integer, ForeignKey("tickets.id"), nullable=False)
-    area = Column(Enum(ComandaArea), default=ComandaArea.KITCHEN)
-    status = Column(Enum(ComandaStatus), default=ComandaStatus.PENDING)
+    area = Column(String(20), default="kitchen")
+    status = Column(String(20), default="pending")
     notes = Column(Text)
     is_printed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
