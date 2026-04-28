@@ -9,9 +9,7 @@ logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.models.table import (
-    Zone, Table, Ticket, TicketItem, Comanda, TicketPayment,
-    TableStatus, TableShape, TicketStatus, TicketItemStatus,
-    ComandaArea, ComandaStatus
+    Zone, Table, Ticket, TicketItem, Comanda, TicketPayment
 )
 from app.models.inventory import Product
 from app.models.user import User
@@ -40,7 +38,7 @@ def filter_by_tenant(query, model, tenant_id):
 def get_table_response(table: Table, db: Session) -> TableResponse:
     current_ticket = db.query(Ticket).filter(
         Ticket.table_id == table.id,
-        Ticket.status.in_([TicketStatus.OPEN, TicketStatus.TO_PAY])
+        Ticket.status.in_(["open", "to_pay"])
     ).first()
     
     pending_comandas = 0
@@ -51,7 +49,7 @@ def get_table_response(table: Table, db: Session) -> TableResponse:
     if current_ticket:
         pending_comandas = db.query(Comanda).filter(
             Comanda.ticket_id == current_ticket.id,
-            Comanda.status.in_([ComandaStatus.PENDING, ComandaStatus.IN_PREPARATION])
+            Comanda.status.in_(["pending", "in_preparation"])
         ).count()
         ticket_total = current_ticket.total if current_ticket.total > 0 else None
         if current_ticket.opened_at:
@@ -64,8 +62,8 @@ def get_table_response(table: Table, db: Session) -> TableResponse:
     
     zone = db.query(Zone).filter(Zone.id == table.zone_id).first()
     
-    shape_val = table.shape.value if hasattr(table.shape, 'value') else str(table.shape) if table.shape else 'square'
-    status_val = table.status.value if hasattr(table.status, 'value') else str(table.status) if table.status else 'available'
+    shape_val = table.shape or 'square'
+    status_val = table.status or 'available'
     
     return TableResponse(
         id=table.id,
@@ -134,7 +132,8 @@ async def get_zones_with_tables(
         try:
             tables = db.query(Table).filter(
                 Table.zone_id == zone.id,
-                Table.is_active == True
+                Table.is_active.isnot(None),
+                Table.is_active != False
             ).all()
         except Exception as e:
             logger.error(f"Error querying tables for zone {zone.id}: {e}")
@@ -168,7 +167,23 @@ async def debug_tables(
 ):
     """Debug endpoint to check raw table data in the database."""
     rows = db.execute(text("SELECT id, name, zone_id, status, shape, is_active FROM tables")).fetchall()
-    return [{"id": r[0], "name": r[1], "zone_id": r[2], "status": r[3], "shape": r[4], "is_active": r[5]} for r in rows]
+    raw_tables = [{"id": r[0], "name": r[1], "zone_id": r[2], "status": r[3], "shape": r[4], "is_active": r[5]} for r in rows]
+    
+    orm_results = []
+    try:
+        all_tables = db.query(Table).all()
+        orm_results = [{"id": t.id, "name": t.name, "zone_id": t.zone_id, "is_active": t.is_active, "status": str(t.status), "shape": str(t.shape)} for t in all_tables]
+    except Exception as e:
+        orm_results = [{"error": str(e)}]
+    
+    zone2_tables = []
+    try:
+        z2 = db.query(Table).filter(Table.zone_id == 2, Table.is_active.isnot(None), Table.is_active != False).all()
+        zone2_tables = [{"id": t.id, "name": t.name, "is_active": t.is_active} for t in z2]
+    except Exception as e:
+        zone2_tables = [{"error": str(e)}]
+    
+    return {"raw": raw_tables, "orm_all": orm_results, "orm_zone2_active": zone2_tables}
 
 
 @router.post("/zones", response_model=ZoneResponse)
@@ -276,10 +291,8 @@ async def create_table(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("superuser"))
 ):
-    try:
-        shape = TableShape(data.shape) if data.shape else TableShape.SQUARE
-    except ValueError:
-        shape = TableShape.SQUARE
+    valid_shapes = ["square", "pair", "round", "rectangle"]
+    shape = data.shape if data.shape and data.shape in valid_shapes else "square"
     
     table = Table(
         name=data.name,
@@ -317,15 +330,9 @@ async def update_table(
     if data.capacity is not None:
         table.capacity = data.capacity
     if data.shape is not None:
-        try:
-            table.shape = TableShape(data.shape)
-        except ValueError:
-            pass
+        table.shape = data.shape
     if data.status is not None:
-        try:
-            table.status = TableStatus(data.status)
-        except ValueError:
-            pass
+        table.status = data.status
     if data.position_x is not None:
         table.position_x = data.position_x
     if data.position_y is not None:
@@ -410,7 +417,7 @@ def get_ticket_response(ticket: Ticket, db: Session) -> TicketResponse:
             discount=item.discount,
             subtotal=item.subtotal,
             notes=item.notes,
-            status=item.status.value,
+            status=item.status or "pending",
             created_at=item.created_at
         ))
     
@@ -419,7 +426,7 @@ def get_ticket_response(ticket: Ticket, db: Session) -> TicketResponse:
     
     pending_comandas = db.query(Comanda).filter(
         Comanda.ticket_id == ticket.id,
-        Comanda.status.in_([ComandaStatus.PENDING, ComandaStatus.IN_PREPARATION])
+        Comanda.status.in_(["pending", "in_preparation"])
     ).count()
     
     return TicketResponse(
@@ -432,7 +439,7 @@ def get_ticket_response(ticket: Ticket, db: Session) -> TicketResponse:
         customer_name=ticket.customer_name,
         num_people=ticket.num_people,
         notes=ticket.notes,
-        status=ticket.status.value,
+        status=ticket.status or "open",
         subtotal=ticket.subtotal,
         tax=ticket.tax,
         tip=ticket.tip,
@@ -449,7 +456,7 @@ def get_ticket_response(ticket: Ticket, db: Session) -> TicketResponse:
 def recalculate_ticket_totals(ticket: Ticket, db: Session):
     items = db.query(TicketItem).filter(
         TicketItem.ticket_id == ticket.id,
-        TicketItem.status != TicketItemStatus.CANCELLED
+        TicketItem.status != "cancelled"
     ).all()
     
     subtotal = sum(item.subtotal for item in items)
@@ -473,7 +480,7 @@ async def create_ticket(
     
     existing_ticket = db.query(Ticket).filter(
         Ticket.table_id == data.table_id,
-        Ticket.status.in_([TicketStatus.OPEN, TicketStatus.TO_PAY])
+        Ticket.status.in_(["open", "to_pay"])
     ).first()
     if existing_ticket:
         raise HTTPException(status_code=400, detail="Table already has an open ticket")
@@ -488,7 +495,7 @@ async def create_ticket(
     )
     db.add(ticket)
     
-    table.status = TableStatus.BILL_OPEN
+    table.status = "bill_open"
     
     db.commit()
     db.refresh(ticket)
@@ -517,7 +524,7 @@ async def get_table_ticket(
 ):
     ticket = db.query(Ticket).filter(
         Ticket.table_id == table_id,
-        Ticket.status.in_([TicketStatus.OPEN, TicketStatus.TO_PAY])
+        Ticket.status.in_(["open", "to_pay"])
     ).first()
     if not ticket:
         raise HTTPException(status_code=404, detail="No open ticket for this table")
@@ -567,7 +574,7 @@ async def add_items_to_ticket(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
     
-    if ticket.status not in [TicketStatus.OPEN, TicketStatus.TO_PAY]:
+    if ticket.status not in ["open", "to_pay"]:
         raise HTTPException(status_code=400, detail="Cannot add items to closed ticket")
     
     for item_data in data.items:
@@ -611,7 +618,7 @@ async def remove_item_from_ticket(
         raise HTTPException(status_code=404, detail="Item not found")
     
     if item.comanda_id:
-        item.status = TicketItemStatus.CANCELLED
+        item.status = "cancelled"
     else:
         db.delete(item)
     
@@ -634,10 +641,8 @@ async def create_comanda(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
     
-    try:
-        area = ComandaArea(data.area)
-    except ValueError:
-        area = ComandaArea.KITCHEN
+    valid_areas = ["kitchen", "bar", "grill", "desserts"]
+    area = data.area if data.area and data.area in valid_areas else "kitchen"
     
     comanda = Comanda(
         ticket_id=ticket_id,
@@ -655,7 +660,7 @@ async def create_comanda(
         ).first()
         if item and not item.comanda_id:
             item.comanda_id = comanda.id
-            item.status = TicketItemStatus.ORDERED
+            item.status = "ordered"
     
     db.commit()
     db.refresh(comanda)
@@ -676,15 +681,15 @@ async def create_comanda(
             discount=item.discount,
             subtotal=item.subtotal,
             notes=item.notes,
-            status=item.status.value,
+            status=item.status or "pending",
             created_at=item.created_at
         ))
     
     return ComandaResponse(
         id=comanda.id,
         ticket_id=comanda.ticket_id,
-        area=comanda.area.value,
-        status=comanda.status.value,
+        area=comanda.area or "kitchen",
+        status=comanda.status or "pending",
         notes=comanda.notes,
         created_by_id=comanda.created_by_id,
         created_by_name=current_user.full_name,
@@ -720,7 +725,7 @@ async def get_ticket_comandas(
                 discount=item.discount,
                 subtotal=item.subtotal,
                 notes=item.notes,
-                status=item.status.value,
+                status=item.status or "pending",
                 created_at=item.created_at
             ))
         
@@ -728,8 +733,8 @@ async def get_ticket_comandas(
         result.append(ComandaResponse(
             id=comanda.id,
             ticket_id=comanda.ticket_id,
-            area=comanda.area.value,
-            status=comanda.status.value,
+            area=comanda.area or "kitchen",
+            status=comanda.status or "pending",
             notes=comanda.notes,
             created_by_id=comanda.created_by_id,
             created_by_name=creator.full_name if creator else None,
@@ -753,12 +758,12 @@ async def update_comanda_status(
         raise HTTPException(status_code=404, detail="Comanda not found")
     
     try:
-        comanda.status = ComandaStatus(status)
+        comanda.status = status
         if status == "delivered":
             comanda.completed_at = datetime.utcnow()
             items = db.query(TicketItem).filter(TicketItem.comanda_id == comanda_id).all()
             for item in items:
-                item.status = TicketItemStatus.SERVED
+                item.status = "served"
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid status")
     
@@ -783,17 +788,17 @@ async def move_ticket(
     
     existing = db.query(Ticket).filter(
         Ticket.table_id == data.new_table_id,
-        Ticket.status.in_([TicketStatus.OPEN, TicketStatus.TO_PAY])
+        Ticket.status.in_(["open", "to_pay"])
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="Target table already has an open ticket")
     
     old_table = db.query(Table).filter(Table.id == ticket.table_id).first()
     if old_table:
-        old_table.status = TableStatus.AVAILABLE
+        old_table.status = "available"
     
     ticket.table_id = data.new_table_id
-    new_table.status = TableStatus.BILL_OPEN
+    new_table.status = "bill_open"
     
     db.commit()
     db.refresh(ticket)
@@ -813,7 +818,7 @@ async def merge_tickets(
     
     target_ticket = db.query(Ticket).filter(
         Ticket.table_id == data.target_table_id,
-        Ticket.status.in_([TicketStatus.OPEN, TicketStatus.TO_PAY])
+        Ticket.status.in_(["open", "to_pay"])
     ).first()
     
     if not target_ticket:
@@ -835,11 +840,11 @@ async def merge_tickets(
             
             source_table = db.query(Table).filter(Table.id == source_ticket.table_id).first()
             if source_table:
-                source_table.status = TableStatus.AVAILABLE
+                source_table.status = "available"
             
-            source_ticket.status = TicketStatus.CANCELLED
+            source_ticket.status = "cancelled"
     
-    target_table.status = TableStatus.BILL_OPEN
+    target_table.status = "bill_open"
     recalculate_ticket_totals(target_ticket, db)
     
     db.commit()
@@ -865,7 +870,7 @@ async def split_ticket(
     
     existing = db.query(Ticket).filter(
         Ticket.table_id == data.new_table_id,
-        Ticket.status.in_([TicketStatus.OPEN, TicketStatus.TO_PAY])
+        Ticket.status.in_(["open", "to_pay"])
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="Target table already has an open ticket")
@@ -886,7 +891,7 @@ async def split_ticket(
         if item:
             item.ticket_id = new_ticket.id
     
-    new_table.status = TableStatus.BILL_OPEN
+    new_table.status = "bill_open"
     
     recalculate_ticket_totals(original_ticket, db)
     recalculate_ticket_totals(new_ticket, db)
@@ -908,7 +913,7 @@ async def pay_ticket(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
     
-    if ticket.status == TicketStatus.PAID:
+    if ticket.status == "paid":
         raise HTTPException(status_code=400, detail="Ticket already paid")
     
     if data.tip:
@@ -928,12 +933,12 @@ async def pay_ticket(
         )
         db.add(payment)
     
-    ticket.status = TicketStatus.PAID
+    ticket.status = "paid"
     ticket.closed_at = datetime.utcnow()
     
     table = db.query(Table).filter(Table.id == ticket.table_id).first()
     if table:
-        table.status = TableStatus.AVAILABLE
+        table.status = "available"
     
     db.commit()
     db.refresh(ticket)
@@ -969,11 +974,11 @@ async def generate_precheck(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
     
-    ticket.status = TicketStatus.TO_PAY
+    ticket.status = "to_pay"
     
     table = db.query(Table).filter(Table.id == ticket.table_id).first()
     if table:
-        table.status = TableStatus.BILL_OPEN
+        table.status = "bill_open"
     
     db.commit()
     
