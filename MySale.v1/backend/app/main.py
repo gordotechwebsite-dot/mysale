@@ -430,12 +430,145 @@ def run_migrations():
         db.close()
 
 
+def init_summer_sed_products():
+    """Seed SUMMER SED product catalog: Bebidas Calientes, Bebidas Frías, Helados, Pastelería, Postres, Raspados."""
+    from app.models.inventory import Group, Family, SubFamily, Product
+
+    db = SessionLocal()
+    try:
+        existing = db.query(Group).filter(Group.name == "Menu Summer Sed").first()
+        if existing:
+            return
+
+        group = Group(name="Menu Summer Sed", description="Catálogo de productos Summer Sed")
+        db.add(group)
+        db.flush()
+
+        products_by_category = {
+            "Bebidas Calientes": {
+                "icon": "Coffee",
+                "items": [
+                    ("Aromática Con Frutas", 3600),
+                    ("Aromática Pequeña", 2300),
+                    ("Avena", 4800),
+                    ("Cigarrillos", 1500),
+                    ("Milo", 4800),
+                    ("Perico", 2100),
+                    ("Tinto Grande", 2100),
+                    ("Tinto Pequeño", 1600),
+                ],
+            },
+            "Bebidas Frías": {
+                "icon": "GlassWater",
+                "items": [
+                    ("Agua En Botella", 1700),
+                    ("Cerveza", 5500),
+                    ("Cremas En Leche", 4800),
+                    ("Gaseosa Pequeña", 2400),
+                    ("Ginger - Bretaña", 4100),
+                    ("Jugos Naturales", 4400),
+                    ("Limonada Clasica", 3900),
+                    ("Limonada Summer-Sed", 4800),
+                    ("Malteadas", 9800),
+                    ("Micheladas", 8400),
+                    ("Naranjada Grande", 4900),
+                    ("Naranjada Pequeña", 3600),
+                    ("Shirley Temple (Coctel sin licor)", 6700),
+                    ("Te Frio Limón - Durazno", 3800),
+                ],
+            },
+            "Helados": {
+                "icon": "IceCream",
+                "items": [
+                    ("Choco-Cono", 3000),
+                    ("Cono Pequeño", 2500),
+                    ("Cookie Shot", 5200),
+                    ("Helado Mascotas", 3500),
+                    ("Vaso Grande", 5200),
+                    ("Vaso Mediano", 3800),
+                ],
+            },
+            "Pastelería": {
+                "icon": "Cake",
+                "items": [
+                    ("Cochinitos", 3300),
+                    ("Empanadas", 3300),
+                ],
+            },
+            "Postres": {
+                "icon": "CakeSlice",
+                "items": [
+                    ("Banana Split", 6900),
+                    ("Brownie Con Helado", 8800),
+                    ("Brownie Frutal", 8800),
+                    ("Fresas Con Crema - Chocolate", 7800),
+                    ("Merengón Summer-Sed", 8900),
+                    ("Oblea", 3400),
+                    ("Wafle Con Helado", 9800),
+                    ("Wafle Frutal", 8900),
+                    ("Wafle Sencillo", 8200),
+                ],
+            },
+            "Raspados": {
+                "icon": "Snowflake",
+                "items": [
+                    ("Raspado Grande", 4800),
+                    ("Raspado Pequeño", 3200),
+                ],
+            },
+        }
+
+        product_counter = 0
+        for cat_name, cat_data in products_by_category.items():
+            family = Family(
+                name=cat_name,
+                group_id=group.id,
+                icon=cat_data["icon"],
+                description=f"Categoría: {cat_name}",
+            )
+            db.add(family)
+            db.flush()
+
+            subfamily = SubFamily(
+                name=cat_name,
+                family_id=family.id,
+                description=f"Sub-categoría: {cat_name}",
+            )
+            db.add(subfamily)
+            db.flush()
+
+            for prod_name, price in cat_data["items"]:
+                product_counter += 1
+                code_prefix = cat_name[:3].upper()
+                code = f"SS-{code_prefix}-{product_counter:04d}"
+                product = Product(
+                    code=code,
+                    name=prod_name,
+                    description="",
+                    subfamily_id=subfamily.id,
+                    sale_price=price,
+                    unit="unidad",
+                    is_active=True,
+                )
+                db.add(product)
+
+        db.commit()
+        print("Productos Summer Sed creados exitosamente (41 productos)")
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error al crear productos Summer Sed: {e}")
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     run_migrations()
     init_default_data()
     init_default_modules()
+    init_summer_sed_products()
     yield
 
 
