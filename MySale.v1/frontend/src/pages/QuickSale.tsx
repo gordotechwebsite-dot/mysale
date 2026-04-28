@@ -327,7 +327,7 @@ const QuickSale: React.FC = () => {
           {/* Category Cards */}
           {families.length > 0 && (
             <div className="mb-3">
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(90px, 1fr))` }}>
                 {families.map((family) => {
                   const count = products.filter(p => {
                     const familySubIds = subfamilies.filter(sf => sf.family_id === family.id).map(sf => sf.id);
@@ -339,7 +339,7 @@ const QuickSale: React.FC = () => {
                     <button
                       key={family.id}
                       onClick={() => { setSelectedFamily(selectedFamily === family.id ? null : family.id); setSearchTerm(''); }}
-                      className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all min-w-[72px] ${
+                      className={`flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-all ${
                         selectedFamily === family.id
                           ? 'bg-orange-100 text-orange-600 border-2 border-orange-400'
                           : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-orange-200 hover:bg-orange-50'

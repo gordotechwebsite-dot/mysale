@@ -901,14 +901,14 @@ export default function TableManagement() {
           <div className="flex-1 flex flex-col gap-2 p-2 overflow-hidden">
             {/* Categories */}
             {families.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(90px, 1fr))` }}>
                 {families.map(family => {
                   const CategoryIcon = getCategoryIcon(family.name);
                   return (
                     <button
                       key={family.id}
                       onClick={() => setSelectedFamily(selectedFamily === family.id ? null : family.id)}
-                      className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all min-w-[72px] ${
+                      className={`flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-all ${
                         selectedFamily === family.id
                           ? 'bg-emerald-100 text-emerald-600 border-2 border-emerald-400'
                           : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-emerald-200 hover:bg-emerald-50'
@@ -1819,14 +1819,14 @@ export default function TableManagement() {
           ) : (
             <div className="flex-1 flex flex-col gap-2 overflow-hidden">
               {families.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(90px, 1fr))` }}>
                   {families.map(family => {
                     const CategoryIcon = getCategoryIcon(family.name);
                     return (
                       <button
                         key={family.id}
                         onClick={() => setSelectedFamily(selectedFamily === family.id ? null : family.id)}
-                        className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all min-w-[72px] ${
+                        className={`flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-all ${
                           selectedFamily === family.id
                             ? 'bg-emerald-100 text-emerald-600 border-2 border-emerald-400'
                             : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-emerald-200 hover:bg-emerald-50'
