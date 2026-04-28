@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
-import { getProducts, getLocations, getDeliveries, createDelivery } from '../api';
-import type { Product, Delivery } from '../types';
+import { getProducts, getLocations, getDeliveries, createDelivery, getFamilies, getSubFamilies } from '../api';
+import type { Product, Delivery, Family, SubFamily } from '../types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,7 +35,46 @@ import {
   Clock,
   ChefHat,
   Truck,
+  Sun,
+  Beef,
+  Drumstick,
+  Bird,
+  UtensilsCrossed,
+  Flame,
+  Salad,
+  Soup,
+  Star,
+  Coffee,
+  Baby,
+  PlusCircle,
+  Pizza,
+  Sandwich,
+  Cookie,
+  IceCream,
+  Wheat,
+  Fish,
+  Egg,
+  Apple,
+  type LucideIcon
 } from 'lucide-react';
+
+const categoryIconMap: Record<string, LucideIcon> = {
+  'Almuerzo': Sun, 'Hamburguesas': Beef, 'Alitas': Drumstick, 'Boneless': Bird,
+  'Picadas': UtensilsCrossed, 'Pollo Broaster': Flame, 'Perros Calientes': Sandwich,
+  'Salchipapas': Cookie, 'Entradas': Soup, 'Platos Especiales': Star, 'Bebidas': Coffee,
+  'Menú Infantil': Baby, 'Menu Infantil': Baby, 'Adicionales': PlusCircle, 'Pizzas': Pizza,
+  'Postres': IceCream, 'Ensaladas': Salad, 'Panadería': Wheat, 'Pescados': Fish,
+  'Desayunos': Egg, 'Frutas': Apple, 'Comidas': UtensilsCrossed,
+};
+
+const getCategoryIcon = (name: string): LucideIcon => {
+  if (categoryIconMap[name]) return categoryIconMap[name];
+  const lowerName = name.toLowerCase();
+  for (const [key, icon] of Object.entries(categoryIconMap)) {
+    if (lowerName.includes(key.toLowerCase()) || key.toLowerCase().includes(lowerName)) return icon;
+  }
+  return Package;
+};
 
 const Deliveries: React.FC = () => {
   const { items, addItem, removeItem, updateQuantity, clearCart, total, subtotal } = useCart();
@@ -47,6 +86,9 @@ const Deliveries: React.FC = () => {
   const sessionLocationId = currentShift?.location_id || user?.location_id || null;
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [families, setFamilies] = useState<Family[]>([]);
+  const [subfamilies, setSubfamilies] = useState<SubFamily[]>([]);
+  const [selectedFamily, setSelectedFamily] = useState<number | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<number | null>(sessionLocationId);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -88,24 +130,34 @@ const Deliveries: React.FC = () => {
   }, [selectedLocation]);
 
   useEffect(() => {
+    let filtered = products;
+    if (selectedFamily) {
+      const familySubIds = subfamilies.filter(sf => sf.family_id === selectedFamily).map(sf => sf.id);
+      filtered = filtered.filter(p => familySubIds.includes(p.subfamily_id));
+    }
     if (searchTerm) {
-      const filtered = products.filter(p =>
+      filtered = filtered.filter(p =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.barcode?.includes(searchTerm)
       );
-      setFilteredProducts(filtered);
-    } else {
-      setFilteredProducts(products);
     }
-  }, [searchTerm, products]);
+    setFilteredProducts(filtered);
+  }, [searchTerm, products, selectedFamily, subfamilies]);
 
   const loadInitialData = async () => {
     try {
-      const [locs, deliveriesData] = await Promise.all([
+      const [locs, deliveriesData, familiesData, subfamiliesData] = await Promise.all([
         getLocations(),
-        getDeliveries()
+        getDeliveries(),
+        getFamilies(),
+        getSubFamilies()
       ]);
+      setFamilies(familiesData);
+      setSubfamilies(subfamiliesData);
+      if (familiesData.length > 0) {
+        setSelectedFamily(familiesData[0].id);
+      }
       const posLocations = locs.filter(l => l.location_type === 'pos');
       setDeliveries(deliveriesData);
       // If no session location, fallback to first POS location
@@ -271,6 +323,36 @@ const Deliveries: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* Category Cards */}
+              {families.length > 0 && (
+                <div className="mb-3">
+                  <div className="grid grid-cols-6 gap-2">
+                    {families.map((family) => {
+                      const count = products.filter(p => {
+                        const familySubIds = subfamilies.filter(sf => sf.family_id === family.id).map(sf => sf.id);
+                        return familySubIds.includes(p.subfamily_id);
+                      }).length;
+                      if (count === 0) return null;
+                      const CategoryIcon = getCategoryIcon(family.name);
+                      return (
+                        <button
+                          key={family.id}
+                          onClick={() => { setSelectedFamily(selectedFamily === family.id ? null : family.id); setSearchTerm(''); }}
+                          className={`flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-all ${
+                            selectedFamily === family.id
+                              ? 'bg-purple-100 text-purple-600 border-2 border-purple-400'
+                              : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-purple-200 hover:bg-purple-50'
+                          }`}
+                        >
+                          <CategoryIcon className="w-5 h-5" />
+                          <span className="text-xs font-medium leading-tight text-center">{family.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="flex-1 overflow-auto">
                 {!selectedLocation ? (
