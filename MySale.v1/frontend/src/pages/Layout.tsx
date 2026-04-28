@@ -29,7 +29,8 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  ChevronDown
+  ChevronDown,
+  ArrowLeftRight
 } from 'lucide-react';
 
 // Branch option type for selection
@@ -572,6 +573,7 @@ const moduleIcons: Record<string, LucideIcon> = {
   super_admin: Shield,
   deliveries: Bike,
   settings: Settings,
+  transfers: ArrowLeftRight,
 };
 
 // Map module codes to routes
@@ -594,6 +596,7 @@ const moduleRoutes: Record<string, string> = {
   locations_admin: '/locations',
   deliveries: '/deliveries',
   settings: '/settings',
+  transfers: '/transfers',
 };
 
 // Sidebar ordering by usage groups: Ventas > Operaciones > Administracion
@@ -603,6 +606,7 @@ const moduleSortOrder: Record<string, number> = {
   pos: 3,
   deliveries: 4,
   tables: 5,
+  transfers: 12,
   inventory: 10,
   expenses: 11,
   cash: 13,
@@ -627,6 +631,7 @@ const moduleGroup: Record<string, string> = {
   tables: 'Ventas',
   inventory: 'Operaciones',
   expenses: 'Operaciones',
+  transfers: 'Otros',
   cash: 'Operaciones',
   cost_control: 'Operaciones',
   shifts: 'Administracion',
