@@ -278,7 +278,8 @@ const Inventory: React.FC = () => {
   const handleDeleteProduct = async (product: Product) => {
     if (!confirm(`¿Eliminar el producto "${product.name}"? Esta acción no se puede deshacer.`)) return;
     try {
-      await deleteProduct(product.id);
+      const result = await deleteProduct(product.id);
+      alert(result.message);
       await loadProducts();
     } catch (error: any) {
       alert(error.response?.data?.detail || 'Error al eliminar producto');
