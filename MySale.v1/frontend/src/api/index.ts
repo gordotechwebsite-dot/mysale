@@ -529,6 +529,45 @@ export const getLocationsDashboard = async (): Promise<LocationDashboard[]> => {
   return response.data;
 };
 
+export interface LocationDetailData {
+  id: number;
+  name: string;
+  code: string;
+  address: string | null;
+  image_url: string | null;
+  is_active: boolean;
+  today_sales: number;
+  today_transactions: number;
+  average_ticket: number;
+  payment_breakdown: { method: string; total: number; count: number }[];
+  hourly_sales: { hour: string; total: number; count: number }[];
+  active_workers: {
+    id: number;
+    name: string;
+    role: string;
+    shift_start: string | null;
+    total_sales: number;
+    transaction_count: number;
+  }[];
+  top_products: { name: string; quantity: number; revenue: number }[];
+  stock_alerts: { product_id: number; product_name: string; current_stock: number; min_stock: number }[];
+  recent_sales: {
+    id: number;
+    folio: string;
+    total: number;
+    payment_method: string | null;
+    sale_type: string | null;
+    cashier_name: string;
+    items_count: number;
+    created_at: string | null;
+  }[];
+}
+
+export const getLocationDetail = async (locationId: number): Promise<LocationDetailData> => {
+  const response = await api.get(`/api/locations/${locationId}/detail`);
+  return response.data;
+};
+
 export const updateLocation = async (id: number, data: {
   name?: string;
   address?: string;
