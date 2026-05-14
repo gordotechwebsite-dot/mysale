@@ -249,7 +249,6 @@ const Deliveries: React.FC = () => {
       });
       clearCart();
       setShowPayment(false);
-      setMobileCartOpen(false);
       setShowSuccess(true);
       setAmountReceived('');
       setCustomerName('');
