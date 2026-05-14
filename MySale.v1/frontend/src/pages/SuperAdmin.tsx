@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { 
   Building2, Package, DollarSign, Plus, Edit, Trash2, 
   CheckCircle, XCircle, AlertTriangle, Clock, CreditCard,
@@ -63,6 +64,8 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
     login_username: '',
     login_password: ''
   });
+
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   const [paymentForm, setPaymentForm] = useState({
     amount: 0,
@@ -141,15 +144,20 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
     }
   };
 
-  const handleDeleteTenant = async (id: number) => {
-    if (!confirm('¿Está seguro de desactivar este tenant?')) return;
+  const handleDeleteTenant = (id: number) => {
+    setDeleteConfirmId(id);
+  };
+
+  const doDeleteTenant = async () => {
+    if (!deleteConfirmId) return;
     try {
-      await deleteTenant(id);
+      await deleteTenant(deleteConfirmId);
       loadData();
     } catch (err) {
       console.error(err);
       alert('Error al desactivar tenant');
     }
+    setDeleteConfirmId(null);
   };
 
   const handleOpenModulesModal = async (tenantId: number) => {
@@ -1001,6 +1009,17 @@ export default function SuperAdmin({ externalTab, hideTabBar }: SuperAdminProps 
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteConfirmId}
+        onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}
+        title="Desactivar tenant"
+        description="¿Estás seguro de desactivar este tenant?"
+        confirmLabel="Sí, desactivar"
+        cancelLabel="No, cancelar"
+        variant="danger"
+        onConfirm={doDeleteTenant}
+      />
     </div>
   );
 }
