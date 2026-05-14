@@ -20,7 +20,9 @@ import {
   Clock,
   RefreshCw,
   Image,
-  Loader2
+  Loader2,
+  BarChart3,
+  ChevronRight
 } from 'lucide-react';
 
 const LocationsDashboard: React.FC = () => {
@@ -235,6 +237,17 @@ const LocationsDashboard: React.FC = () => {
                     </div>
                   </div>
                 )}
+                <Button
+                  className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/location/${location.id}`);
+                  }}
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Ver Detalle y Rendimiento
+                  <ChevronRight className="w-4 h-4 ml-auto" />
+                </Button>
               </CardContent>
             </Card>
           ))}
