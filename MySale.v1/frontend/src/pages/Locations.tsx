@@ -259,16 +259,16 @@ const Locations: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Boton Ver Rendimiento */}
-                <div className="px-4 pb-4">
-                  <Button
-                    className="w-full bg-[#00a86b] hover:bg-[#008f5b] text-white"
+                {/* Enlace Ver Rendimiento */}
+                <div className="px-4 pb-3 pt-1 border-t border-gray-100">
+                  <button
                     onClick={() => navigate(`/location/${location.id}`)}
+                    className="w-full flex items-center justify-center gap-2 text-sm text-[#00a86b] hover:text-[#008f5b] font-medium py-1.5 rounded-lg hover:bg-green-50 transition-colors"
                   >
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Ver Detalle y Rendimiento
-                    <ChevronRight className="w-4 h-4 ml-auto" />
-                  </Button>
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    Ver Rendimiento
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </Card>
             );
