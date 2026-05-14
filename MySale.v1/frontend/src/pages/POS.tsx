@@ -97,7 +97,7 @@ const getCategoryIcon = (name: string): LucideIcon => {
 };
 
 const POS: React.FC = () => {
-  const { currentShift } = useShift();
+  const { currentShift, isLoading: isShiftLoading } = useShift();
   const { items, addItem, removeItem, updateQuantity, clearCart, total, subtotal } = useCart();
   const navigate = useNavigate();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -118,13 +118,14 @@ const POS: React.FC = () => {
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
   useEffect(() => {
+    if (isShiftLoading) return;
     if (!currentShift) {
       navigate('/');
       return;
     }
     loadData();
     searchRef.current?.focus();
-  }, [currentShift]);
+  }, [currentShift, isShiftLoading]);
 
   const filteredProducts = useMemo(() => {
     let filtered = products;
@@ -229,6 +230,14 @@ const POS: React.FC = () => {
   const quickAmounts = [50000, 100000, 200000];
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const showingCategories = !selectedFamily && !searchTerm;
+
+  if (isShiftLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-140px)]">
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#00a86b' }} />
+      </div>
+    );
+  }
 
   if (!currentShift) {
     return null;
