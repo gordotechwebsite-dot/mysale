@@ -34,6 +34,13 @@ async def get_sales(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Sale)
+
+    # Tenant isolation: only show sales from locations belonging to user's tenant
+    if current_user.tenant_id:
+        tenant_location_ids = [
+            loc.id for loc in db.query(Location.id).filter(Location.tenant_id == current_user.tenant_id).all()
+        ]
+        query = query.filter(Sale.location_id.in_(tenant_location_ids))
     
     if location_id:
         query = query.filter(Sale.location_id == location_id)
