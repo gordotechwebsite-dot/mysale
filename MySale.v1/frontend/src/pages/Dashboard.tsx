@@ -60,6 +60,7 @@ const Dashboard: React.FC = () => {
   const [cashCount, setCashCount] = useState<Record<number, number>>({});
 
   const isAdmin = user?.role?.role_type === 'superuser' || user?.role?.role_type === 'admin';
+  const isSuperuser = user?.role?.role_type === 'superuser';
 
   useEffect(() => {
     loadData();
@@ -385,36 +386,62 @@ const Dashboard: React.FC = () => {
       </Dialog>
 
             <Dialog open={showCloseShift} onOpenChange={(open) => { setShowCloseShift(open); if (!open) setCashCount({}); }}>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 lg:p-6">
                 <DialogHeader>
-                  <DialogTitle>Cerrar Caja - Corte por Denominacion</DialogTitle>
+                  <DialogTitle className="text-base lg:text-xl">Cerrar Caja - Corte por Denominacion</DialogTitle>
                 </DialogHeader>
-                <div className="py-4 space-y-4">
-                  <p className="text-gray-600">
+                <div className="py-2 lg:py-4 space-y-3 lg:space-y-4">
+                  <p className="text-sm lg:text-base text-gray-600">
                     Turno en <strong>{currentShift?.location_name}</strong>
                   </p>
             
-                  {currentShift && (
-                    <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                  {currentShift && isSuperuser && (
+                    <div className="p-3 lg:p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                      <div className="grid grid-cols-2 gap-3 lg:gap-4">
                         <div>
-                          <p className="text-gray-500">Ventas Totales</p>
-                          <p className="font-bold text-lg">{formatCurrency(currentShift.total_sales)}</p>
+                          <p className="text-xs lg:text-sm text-gray-500">Ventas Totales</p>
+                          <p className="font-bold text-base lg:text-lg">{formatCurrency(currentShift.total_sales)}</p>
                         </div>
                         <div>
-                          <p className="text-gray-500">Efectivo en Ventas</p>
-                          <p className="font-bold text-lg text-emerald-600">{formatCurrency(currentShift.total_cash_sales)}</p>
+                          <p className="text-xs lg:text-sm text-gray-500">Efectivo en Ventas</p>
+                          <p className="font-bold text-base lg:text-lg text-emerald-600">{formatCurrency(currentShift.total_cash_sales)}</p>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  <div className="border rounded-lg p-4">
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <DollarSign className="w-5 h-5 text-emerald-600" />
+                  <div className="border rounded-lg p-3 lg:p-4">
+                    <h4 className="font-semibold text-sm lg:text-base mb-3 flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 lg:w-5 lg:h-5 text-emerald-600" />
                       Declare el efectivo por denominacion
                     </h4>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2 lg:hidden">
+                      {denominations.map((denom) => (
+                        <div key={denom.value} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-gray-50">
+                          <span className="text-sm font-semibold min-w-[72px]">{denom.label}</span>
+                          <div className="flex items-center gap-2 flex-1 justify-end">
+                            <span className="text-gray-400 text-sm">x</span>
+                            <input
+                              type="number"
+                              min="0"
+                              inputMode="numeric"
+                              className="w-14 px-2 py-1.5 border rounded-lg text-center text-sm font-medium bg-white"
+                              style={{ fontSize: '16px' }}
+                              value={cashCount[denom.value] || ''}
+                              onChange={(e) => setCashCount({
+                                ...cashCount,
+                                [denom.value]: parseInt(e.target.value) || 0
+                              })}
+                              placeholder="0"
+                            />
+                            <span className="text-xs font-medium text-gray-500 min-w-[64px] text-right">
+                              {formatCurrency((cashCount[denom.value] || 0) * denom.value)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="hidden lg:grid grid-cols-2 gap-3">
                       {denominations.map((denom) => (
                         <div key={denom.value} className="flex items-center gap-2">
                           <span className="w-24 text-sm font-medium">{denom.label}</span>
@@ -438,13 +465,13 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-slate-900 text-white rounded-lg">
+                  <div className="p-3 lg:p-4 bg-slate-900 text-white rounded-lg">
                     <div className="flex justify-between items-center">
-                      <span className="text-lg">Total Declarado:</span>
-                      <span className="text-2xl font-bold">{formatCurrency(calculateTotalCash())}</span>
+                      <span className="text-sm lg:text-lg">Total Declarado:</span>
+                      <span className="text-xl lg:text-2xl font-bold">{formatCurrency(calculateTotalCash())}</span>
                     </div>
-                    {currentShift && (
-                      <div className="mt-2 pt-2 border-t border-slate-700 flex justify-between text-sm">
+                    {currentShift && isSuperuser && (
+                      <div className="mt-2 pt-2 border-t border-slate-700 flex justify-between text-xs lg:text-sm">
                         <span className="text-slate-400">Diferencia con efectivo esperado:</span>
                         <span className={`font-semibold ${calculateTotalCash() - (currentShift.initial_cash + currentShift.total_cash_sales) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                           {formatCurrency(calculateTotalCash() - (currentShift.initial_cash + currentShift.total_cash_sales))}
@@ -453,14 +480,14 @@ const Dashboard: React.FC = () => {
                     )}
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => { setShowCloseShift(false); setCashCount({}); }}>
+                <DialogFooter className="gap-2">
+                  <Button variant="outline" onClick={() => { setShowCloseShift(false); setCashCount({}); }} className="text-sm">
                     Cancelar
                   </Button>
                   <Button
                     onClick={handleCloseShift}
                     disabled={isProcessing || calculateTotalCash() === 0}
-                    className="bg-red-600 hover:bg-red-700"
+                    className="bg-red-600 hover:bg-red-700 text-sm"
                   >
                     {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Cerrar Caja'}
                   </Button>
