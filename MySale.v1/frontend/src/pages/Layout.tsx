@@ -857,14 +857,14 @@ const Layout: React.FC = () => {
       <main className="flex-1 overflow-auto">
         {/* Header */}
         <header 
-          className="bg-white px-6 py-4 flex items-center justify-between"
+          className="bg-white px-3 py-3 lg:px-6 lg:py-4 flex items-center justify-between"
           style={{ 
             boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
             borderBottom: '1px solid #e5e7eb'
           }}
         >
           <div className="lg:hidden w-10" />
-          <h2 className="text-lg font-semibold" style={{ color: '#111827' }}>
+          <h2 className="text-sm lg:text-lg font-semibold truncate" style={{ color: '#111827' }}>
             {menuItems.find(item => item.path === location.pathname)?.label || 'MySale'}
           </h2>
           <div className="flex items-center gap-3">
@@ -891,7 +891,7 @@ const Layout: React.FC = () => {
         </header>
         
         {/* Page content */}
-        <div className="p-6">
+        <div className="p-3 lg:p-6">
           <Outlet />
         </div>
       </main>
@@ -899,7 +899,7 @@ const Layout: React.FC = () => {
       {/* Fixed Logout Button - Bottom Right */}
       <button
         onClick={handleLogout}
-        className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-3 bg-white shadow-lg transition-all duration-200 hover:shadow-xl z-50"
+        className="fixed bottom-6 left-4 lg:bottom-6 lg:right-6 lg:left-auto flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-3 bg-white shadow-lg transition-all duration-200 hover:shadow-xl z-30"
         style={{ 
           borderRadius: '12px',
           color: '#ef4444',
@@ -912,8 +912,8 @@ const Layout: React.FC = () => {
           (e.currentTarget as HTMLElement).style.backgroundColor = 'white';
         }}
       >
-        <LogOut size={18} />
-        <span className="font-medium text-sm">Cerrar Sesion</span>
+        <LogOut size={16} />
+        <span className="font-medium text-xs lg:text-sm">Cerrar Sesion</span>
       </button>
     </div>
   );
