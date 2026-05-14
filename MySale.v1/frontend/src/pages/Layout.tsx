@@ -545,7 +545,6 @@ const ColombiaClockDisplay: React.FC<ColombiaClockDisplayProps> = ({ onClick }) 
         (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
       }}
     >
-      <Clock size={22} style={{ color: '#00a86b' }} />
       <div className="text-left">
         <div className="font-semibold" style={{ color: '#111827', fontSize: '16px' }}>{timeStr}</div>
         <div className="capitalize" style={{ color: '#6b7280', fontSize: '13px' }}>{dateStr}</div>
