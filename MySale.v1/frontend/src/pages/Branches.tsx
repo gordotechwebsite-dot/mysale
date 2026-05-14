@@ -1,11 +1,14 @@
 import { toast } from 'react-hot-toast';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { Building2, Plus, Edit, Trash2, MapPin, Phone, Search } from 'lucide-react';
-import { getBranches, createBranch, updateBranch, deleteBranch, Branch } from '../api';
+import { Building2, Plus, Edit, Trash2, MapPin, Phone, Search, BarChart3 } from 'lucide-react';
+import { getBranches, createBranch, updateBranch, deleteBranch, Branch, getLocations } from '../api';
 
 export default function Branches() {
+  const navigate = useNavigate();
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [locationMap, setLocationMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
@@ -25,13 +28,25 @@ export default function Branches() {
   const loadBranches = async () => {
     try {
       setLoading(true);
-      const data = await getBranches();
-      setBranches(data);
+      const [branchData, locData] = await Promise.all([getBranches(), getLocations()]);
+      setBranches(branchData);
+      const map: Record<string, number> = {};
+      locData.forEach((loc: any) => {
+        map[loc.code] = loc.id;
+        map[loc.name.toLowerCase()] = loc.id;
+      });
+      setLocationMap(map);
     } catch (error) {
       console.error('Error loading branches:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const getLocationId = (branch: Branch): number | null => {
+    if (locationMap[branch.code]) return locationMap[branch.code];
+    if (locationMap[branch.name.toLowerCase()]) return locationMap[branch.name.toLowerCase()];
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -179,7 +194,7 @@ export default function Branches() {
               )}
             </div>
 
-            <div className="mt-4 pt-4 border-t">
+            <div className="mt-4 pt-4 border-t flex items-center justify-between">
               <span
                 className={`px-2 py-1 rounded-full text-xs font-medium ${
                   branch.is_active
@@ -189,6 +204,15 @@ export default function Branches() {
               >
                 {branch.is_active ? 'Activa' : 'Inactiva'}
               </span>
+              {getLocationId(branch) && (
+                <button
+                  onClick={() => navigate(`/location/${getLocationId(branch)}`)}
+                  className="flex items-center gap-1 text-sm text-orange-600 hover:text-orange-700 font-medium"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  Ver Rendimiento
+                </button>
+              )}
             </div>
           </div>
         ))}
