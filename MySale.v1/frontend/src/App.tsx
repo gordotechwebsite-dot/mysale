@@ -26,6 +26,7 @@ import WorkReport from './pages/WorkReport';
 import Deliveries from './pages/Deliveries';
 import Settings from './pages/Settings';
 import Transfers from './pages/Transfers';
+import LocationDetail from './pages/LocationDetail';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -83,6 +84,7 @@ function AppRoutes() {
         <Route path="locations" element={<Locations />} />
         <Route path="expenses" element={<Expenses />} />
         <Route path="locations-dashboard" element={<LocationsDashboard />} />
+        <Route path="location/:id" element={<LocationDetail />} />
         <Route path="cost-control" element={<CostControl />} />
         <Route path="tables" element={<TableManagement />} />
         <Route path="cash" element={<Cash />} />

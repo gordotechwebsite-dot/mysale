@@ -1,5 +1,6 @@
 import { toast } from 'react-hot-toast';
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getLocationsDashboard, updateLocation, type LocationDashboard } from '../api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react';
 
 const LocationsDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [locations, setLocations] = useState<LocationDashboard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<LocationDashboard | null>(null);
@@ -110,7 +112,7 @@ const LocationsDashboard: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {locations.map((location) => (
-            <Card key={location.id} className="overflow-hidden">
+            <Card key={location.id} className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate(`/location/${location.id}`)}>
               <div className="relative h-40 bg-gradient-to-br from-emerald-500 to-teal-600">
                 {location.image_url ? (
                   <img
@@ -132,7 +134,8 @@ const LocationsDashboard: React.FC = () => {
                   size="sm"
                   variant="ghost"
                   className="absolute top-2 right-2 text-white hover:bg-white/20"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setSelectedLocation(location);
                     setImageUrl(location.image_url || '');
                     setShowImageDialog(true);
