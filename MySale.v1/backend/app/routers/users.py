@@ -2,16 +2,54 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
-from app.models.user import User, Role, RoleType
+from app.models.user import User, Role, RoleType, UserModule
 from app.models.tenant import Module, TenantModule
 from app.models.branch import WorkSession
 from app.schemas.user import (
     UserCreate, UserUpdate, UserResponse,
-    RoleCreate, RoleResponse
+    RoleCreate, RoleResponse, UserModuleResponse
 )
 from app.utils.auth import get_password_hash, get_current_user, require_role, get_pin_hash
 
 router = APIRouter(prefix="/api/users", tags=["Usuarios"])
+
+
+def _build_user_response(user: User, db: Session) -> UserResponse:
+    modules = None
+    if user.user_modules:
+        modules = [
+            UserModuleResponse(
+                module_id=um.module_id,
+                code=um.module.code,
+                name=um.module.name,
+                is_enabled=um.is_enabled
+            )
+            for um in user.user_modules if um.module
+        ]
+    return UserResponse(
+        id=user.id,
+        username=user.username,
+        full_name=user.full_name,
+        phone=user.phone,
+        cedula=user.cedula,
+        photo_url=user.photo_url,
+        pin=user.pin,
+        role_id=user.role_id,
+        role=user.role,
+        location_id=user.location_id,
+        tenant_id=user.tenant_id,
+        is_active=user.is_active,
+        points=user.points,
+        created_at=user.created_at,
+        modules=modules
+    )
+
+
+def _sync_user_modules(db: Session, user_id: int, module_ids: List[int]):
+    db.query(UserModule).filter(UserModule.user_id == user_id).delete()
+    for mid in module_ids:
+        db.add(UserModule(user_id=user_id, module_id=mid, is_enabled=True))
+    db.flush()
 
 
 @router.get("/roles", response_model=List[RoleResponse])
@@ -51,6 +89,76 @@ async def create_role(
     return db_role
 
 
+# IMPORTANT: /me/modules MUST be defined BEFORE /{user_id} routes
+@router.get("/me/modules")
+async def get_my_modules(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get enabled modules for the current user.
+    If the user has UserModule records, return only those (intersected with tenant modules).
+    If not, return all tenant modules (backward compatible).
+    """
+    # Superuser without tenant sees all modules
+    if current_user.role and current_user.role.role_type == RoleType.SUPERUSER and not current_user.tenant_id:
+        modules = db.query(Module).filter(Module.is_active == True).order_by(Module.display_order).all()
+        return [
+            {
+                "id": m.id,
+                "code": m.code,
+                "name": m.name,
+                "icon": m.icon,
+                "route": m.route,
+                "display_order": m.display_order
+            }
+            for m in modules
+        ]
+    
+    # Tenant users
+    if not current_user.tenant_id:
+        return []
+    
+    # Check if user has specific module assignments
+    user_module_records = db.query(UserModule).filter(
+        UserModule.user_id == current_user.id,
+        UserModule.is_enabled == True
+    ).all()
+    
+    if user_module_records:
+        # User has specific modules assigned — intersect with tenant modules
+        user_module_ids = {um.module_id for um in user_module_records}
+        enabled_modules = db.query(Module).join(
+            TenantModule, TenantModule.module_id == Module.id
+        ).filter(
+            TenantModule.tenant_id == current_user.tenant_id,
+            TenantModule.is_enabled == True,
+            Module.is_active == True,
+            Module.id.in_(user_module_ids)
+        ).order_by(Module.display_order).all()
+    else:
+        # No specific modules — return all tenant modules (backward compatible)
+        enabled_modules = db.query(Module).join(
+            TenantModule, TenantModule.module_id == Module.id
+        ).filter(
+            TenantModule.tenant_id == current_user.tenant_id,
+            TenantModule.is_enabled == True,
+            Module.is_active == True
+        ).order_by(Module.display_order).all()
+    
+    return [
+        {
+            "id": m.id,
+            "code": m.code,
+            "name": m.name,
+            "icon": m.icon,
+            "route": m.route,
+            "display_order": m.display_order
+        }
+        for m in enabled_modules
+    ]
+
+
 @router.get("/", response_model=List[UserResponse])
 async def get_users(
     skip: int = 0,
@@ -64,23 +172,7 @@ async def get_users(
         query = query.filter(User.tenant_id == current_user.tenant_id)
     
     users = query.offset(skip).limit(limit).all()
-    return [
-        UserResponse(
-            id=u.id,
-            username=u.username,
-            full_name=u.full_name,
-            phone=u.phone,
-            cedula=u.cedula,
-            photo_url=u.photo_url,
-            pin=u.pin,
-            role_id=u.role_id,
-            role=u.role,
-            location_id=u.location_id,
-            is_active=u.is_active,
-            points=u.points,
-            created_at=u.created_at
-        ) for u in users
-    ]
+    return [_build_user_response(u, db) for u in users]
 
 
 @router.post("/", response_model=UserResponse)
@@ -125,23 +217,16 @@ async def create_user(
         tenant_id=current_user.tenant_id  # Assign same tenant as creator
     )
     db.add(db_user)
+    db.flush()
+    
+    # Assign modules if specified; if not, leave empty (user sees all tenant modules)
+    if user.module_ids:
+        _sync_user_modules(db, db_user.id, user.module_ids)
+    
     db.commit()
     db.refresh(db_user)
     
-    return UserResponse(
-        id=db_user.id,
-        username=db_user.username,
-        full_name=db_user.full_name,
-        phone=db_user.phone,
-        cedula=db_user.cedula,
-        photo_url=db_user.photo_url,
-        pin=db_user.pin,
-        role_id=db_user.role_id,
-        location_id=db_user.location_id,
-        is_active=db_user.is_active,
-        points=db_user.points,
-        created_at=db_user.created_at
-    )
+    return _build_user_response(db_user, db)
 
 
 @router.get("/{user_id}", response_model=UserResponse)
@@ -159,21 +244,7 @@ async def get_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuario no encontrado"
         )
-    return UserResponse(
-        id=user.id,
-        username=user.username,
-        full_name=user.full_name,
-        phone=user.phone,
-        cedula=user.cedula,
-        photo_url=user.photo_url,
-        pin=user.pin,
-        role_id=user.role_id,
-        role=user.role,
-        location_id=user.location_id,
-        is_active=user.is_active,
-        points=user.points,
-        created_at=user.created_at
-    )
+    return _build_user_response(user, db)
 
 
 @router.put("/{user_id}", response_model=UserResponse)
@@ -195,6 +266,9 @@ async def update_user(
     
     update_data = user_update.model_dump(exclude_unset=True)
     
+    # Handle module_ids separately
+    module_ids = update_data.pop("module_ids", None)
+    
     # Hash password if provided
     if "password" in update_data:
         user.hashed_password = get_password_hash(update_data.pop("password"))
@@ -208,23 +282,14 @@ async def update_user(
     for field, value in update_data.items():
         setattr(user, field, value)
     
+    # Sync modules if provided
+    if module_ids is not None:
+        _sync_user_modules(db, user.id, module_ids)
+    
     db.commit()
     db.refresh(user)
     
-    return UserResponse(
-        id=user.id,
-        username=user.username,
-        full_name=user.full_name,
-        phone=user.phone,
-        cedula=user.cedula,
-        photo_url=user.photo_url,
-        pin=user.pin,
-        role_id=user.role_id,
-        location_id=user.location_id,
-        is_active=user.is_active,
-        points=user.points,
-        created_at=user.created_at
-    )
+    return _build_user_response(user, db)
 
 
 @router.delete("/{user_id}")
@@ -284,48 +349,59 @@ async def reset_user_pin(
     return {"pin": new_pin, "message": "PIN actualizado exitosamente"}
 
 
-@router.get("/me/modules")
-async def get_my_modules(
+@router.put("/{user_id}/modules", response_model=UserResponse)
+async def update_user_modules(
+    user_id: int,
+    module_ids: List[int],
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
-    """
-    Get enabled modules for the current user's tenant.
-    Returns all active modules if user is a superuser without tenant_id.
-    """
-    # Superuser without tenant sees all modules
-    if current_user.role and current_user.role.role_type == RoleType.SUPERUSER and not current_user.tenant_id:
-        modules = db.query(Module).filter(Module.is_active == True).order_by(Module.display_order).all()
-        return [
-            {
-                "code": m.code,
-                "name": m.name,
-                "icon": m.icon,
-                "route": m.route,
-                "display_order": m.display_order
-            }
-            for m in modules
-        ]
+    """Update the modules assigned to a specific user."""
+    query = db.query(User).filter(User.id == user_id)
+    if current_user.tenant_id:
+        query = query.filter(User.tenant_id == current_user.tenant_id)
+    user = query.first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
     
-    # Tenant users only see their enabled modules
-    if not current_user.tenant_id:
-        return []
+    _sync_user_modules(db, user.id, module_ids)
+    db.commit()
+    db.refresh(user)
     
-    enabled_modules = db.query(Module).join(
-        TenantModule, TenantModule.module_id == Module.id
-    ).filter(
-        TenantModule.tenant_id == current_user.tenant_id,
-        TenantModule.is_enabled == True,
-        Module.is_active == True
-    ).order_by(Module.display_order).all()
+    return _build_user_response(user, db)
+
+
+@router.get("/{user_id}/modules")
+async def get_user_modules(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Get the modules assigned to a specific user."""
+    query = db.query(User).filter(User.id == user_id)
+    if current_user.tenant_id:
+        query = query.filter(User.tenant_id == current_user.tenant_id)
+    user = query.first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    
+    user_mods = db.query(UserModule).filter(
+        UserModule.user_id == user_id,
+        UserModule.is_enabled == True
+    ).all()
     
     return [
         {
-            "code": m.code,
-            "name": m.name,
-            "icon": m.icon,
-            "route": m.route,
-            "display_order": m.display_order
+            "module_id": um.module_id,
+            "code": um.module.code if um.module else "",
+            "name": um.module.name if um.module else "",
+            "is_enabled": um.is_enabled
         }
-        for m in enabled_modules
+        for um in user_mods
     ]

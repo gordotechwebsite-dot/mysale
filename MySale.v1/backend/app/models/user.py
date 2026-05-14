@@ -63,3 +63,17 @@ class User(Base):
     sales = relationship("Sale", back_populates="cashier")
     losses_reported = relationship("Loss", back_populates="reported_by_user")
     alerts = relationship("ShiftAlert", back_populates="user")
+    user_modules = relationship("UserModule", back_populates="user", cascade="all, delete-orphan")
+
+
+class UserModule(Base):
+    __tablename__ = "user_modules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    module_id = Column(Integer, ForeignKey("modules.id"), nullable=False)
+    is_enabled = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="user_modules")
+    module = relationship("Module")

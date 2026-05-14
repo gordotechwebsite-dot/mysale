@@ -28,6 +28,7 @@ export const createUser = async (data: {
   location_id?: number;
   employee_code?: string;
   default_branch_id?: number;
+  module_ids?: number[];
 }): Promise<User> => {
   const response = await api.post('/api/users/', data);
   return response.data;
@@ -1223,6 +1224,7 @@ export const getWorkReport = async (params?: {
 // ==================== TENANT MODULES ====================
 
 export interface EnabledModule {
+  id: number;
   code: string;
   name: string;
   icon: string | null;
@@ -1232,6 +1234,16 @@ export interface EnabledModule {
 
 export const getMyModules = async (): Promise<EnabledModule[]> => {
   const response = await api.get('/api/users/me/modules');
+  return response.data;
+};
+
+export const updateUserModules = async (userId: number, moduleIds: number[]): Promise<User> => {
+  const response = await api.put(`/api/users/${userId}/modules`, moduleIds);
+  return response.data;
+};
+
+export const getUserModules = async (userId: number): Promise<EnabledModule[]> => {
+  const response = await api.get(`/api/users/${userId}/modules`);
   return response.data;
 };
 

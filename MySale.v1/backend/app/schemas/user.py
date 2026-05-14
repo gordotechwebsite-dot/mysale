@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from app.models.user import RoleType
 
@@ -33,6 +33,16 @@ class RoleResponse(BaseModel):
         from_attributes = True
 
 
+class UserModuleResponse(BaseModel):
+    module_id: int
+    code: str
+    name: str
+    is_enabled: bool
+
+    class Config:
+        from_attributes = True
+
+
 class UserCreate(BaseModel):
     username: str
     full_name: str
@@ -43,6 +53,7 @@ class UserCreate(BaseModel):
     pin: Optional[str] = None
     role_id: int
     location_id: Optional[int] = None
+    module_ids: Optional[List[int]] = None
 
 
 class UserUpdate(BaseModel):
@@ -57,6 +68,7 @@ class UserUpdate(BaseModel):
     tenant_id: Optional[int] = None
     is_active: Optional[bool] = None
     fingerprint_hash: Optional[str] = None
+    module_ids: Optional[List[int]] = None
 
 
 class UserResponse(BaseModel):
@@ -74,6 +86,7 @@ class UserResponse(BaseModel):
     is_active: bool
     points: int
     created_at: datetime
+    modules: Optional[List[UserModuleResponse]] = None
 
     class Config:
         from_attributes = True
