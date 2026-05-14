@@ -24,7 +24,8 @@ import {
   ShoppingCart,
   Loader2,
   Check,
-  X
+  X,
+  ChevronDown
 } from 'lucide-react';
 import ReceiptTicket from '../components/ReceiptTicket';
 
@@ -45,6 +46,7 @@ const POS: React.FC = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
+  const [mobileCartOpen, setMobileCartOpen] = useState(false);
 
   useEffect(() => {
     if (!currentShift) {
@@ -115,6 +117,7 @@ const POS: React.FC = () => {
       setLastSale(sale);
       clearCart();
       setShowPayment(false);
+      setMobileCartOpen(false);
       setShowReceipt(true);
       setAmountReceived('');
     } catch (error: any) {
@@ -138,30 +141,161 @@ const POS: React.FC = () => {
 
   const quickAmounts = [50000, 100000, 200000];
 
+  const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
+
   if (!currentShift) {
     return null;
   }
 
+  const CartContent = () => (
+    <>
+      {/* Cart Header */}
+      <div className="p-3 lg:p-4" style={{ borderBottom: '1px solid #e5e7eb' }}>
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-base flex items-center gap-2" style={{ color: '#111827' }}>
+            <ShoppingCart size={20} />
+            Carrito {itemCount > 0 && <span className="text-xs font-normal px-2 py-0.5 rounded-full" style={{ backgroundColor: '#00a86b', color: 'white' }}>{itemCount}</span>}
+          </h3>
+          <div className="flex items-center gap-2">
+            {items.length > 0 && (
+              <button
+                onClick={clearCart}
+                className="flex items-center gap-1 text-sm font-medium transition-colors"
+                style={{ color: '#ef4444' }}
+              >
+                <Trash2 size={16} />
+                Limpiar
+              </button>
+            )}
+            <button
+              onClick={() => setMobileCartOpen(false)}
+              className="lg:hidden p-1"
+              style={{ color: '#6b7280' }}
+            >
+              <ChevronDown size={20} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Cart Items */}
+      <div className="flex-1 overflow-auto p-3 lg:p-4">
+        {items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-32 lg:h-full" style={{ color: '#9ca3af' }}>
+            <ShoppingCart size={40} className="mb-3" />
+            <p className="font-medium text-sm">Carrito vacio</p>
+            <p className="text-xs">Agregue productos para comenzar</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {items.map((item) => (
+              <div 
+                key={item.product.id} 
+                className="p-2.5 lg:p-3"
+                style={{ 
+                  backgroundColor: '#f6f7f9',
+                  borderRadius: '10px'
+                }}
+              >
+                <div className="flex justify-between items-start mb-1.5">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate" style={{ color: '#111827' }}>{item.product.name}</p>
+                    <p className="text-xs" style={{ color: '#6b7280' }}>{formatCurrency(item.product.sale_price)} c/u</p>
+                  </div>
+                  <button
+                    onClick={() => removeItem(item.product.id)}
+                    className="p-1 ml-1 flex-shrink-0"
+                    style={{ color: '#ef4444' }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                      className="w-7 h-7 flex items-center justify-center transition-colors"
+                      style={{ 
+                        borderRadius: '50%',
+                        backgroundColor: '#e5e7eb',
+                        color: '#111827'
+                      }}
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <span className="w-8 text-center font-bold text-sm" style={{ color: '#111827' }}>{item.quantity}</span>
+                    <button
+                      onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                      className="w-7 h-7 flex items-center justify-center text-white transition-colors"
+                      style={{ 
+                        borderRadius: '50%',
+                        backgroundColor: '#00a86b'
+                      }}
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                  <p className="font-bold text-sm" style={{ color: '#111827' }}>
+                    {formatCurrency(item.product.sale_price * item.quantity)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Cart Footer */}
+      <div className="p-3 lg:p-4" style={{ borderTop: '1px solid #e5e7eb' }}>
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm" style={{ color: '#6b7280' }}>Subtotal:</span>
+          <span className="font-semibold text-sm" style={{ color: '#111827' }}>{formatCurrency(subtotal)}</span>
+        </div>
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-base lg:text-lg font-bold" style={{ color: '#111827' }}>TOTAL:</span>
+          <span className="text-xl lg:text-2xl font-bold" style={{ color: '#00a86b' }}>{formatCurrency(total)}</span>
+        </div>
+        <button
+          disabled={items.length === 0}
+          onClick={() => setShowPayment(true)}
+          className="w-full h-11 lg:h-12 text-sm lg:text-base font-semibold text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ 
+            backgroundColor: '#00a86b',
+            borderRadius: '12px'
+          }}
+          onMouseEnter={(e) => { 
+            if (items.length > 0) (e.currentTarget as HTMLElement).style.backgroundColor = '#00965f'; 
+          }}
+          onMouseLeave={(e) => { 
+            (e.currentTarget as HTMLElement).style.backgroundColor = '#00a86b'; 
+          }}
+        >
+          Cobrar (F2)
+        </button>
+      </div>
+    </>
+  );
+
   return (
-    <div className="h-[calc(100vh-140px)] flex gap-4">
+    <div className="h-[calc(100vh-140px)] lg:flex lg:gap-4">
       {/* Products Section */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col h-full">
         {/* Search Bar */}
-        <div className="mb-4">
+        <div className="mb-3 lg:mb-4">
           <div className="relative">
             <Search 
-              className="absolute left-4 top-1/2 -translate-y-1/2" 
-              size={20}
+              className="absolute left-3 lg:left-4 top-1/2 -translate-y-1/2" 
+              size={18}
               style={{ color: '#6b7280' }} 
             />
             <input
               ref={searchRef}
               type="text"
-              placeholder="Buscar producto por nombre, codigo o escanear codigo de barras..."
+              placeholder="Buscar producto o escanear codigo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="w-full h-12 pl-12 pr-4 text-base outline-none transition-all duration-200"
+              className="w-full h-10 lg:h-12 pl-10 lg:pl-12 pr-4 text-sm lg:text-base outline-none transition-all duration-200"
               style={{ 
                 borderRadius: '12px',
                 border: '1px solid #e5e7eb',
@@ -182,20 +316,20 @@ const POS: React.FC = () => {
         </div>
 
         {/* Products Grid */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto pb-20 lg:pb-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#00a86b' }} />
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-2 lg:gap-3">
               {filteredProducts.map((product) => (
                 <button
                   key={product.id}
                   onClick={() => handleProductClick(product)}
-                  className="bg-white p-4 text-left transition-all duration-200 active:scale-95"
+                  className="bg-white p-2.5 lg:p-4 text-left transition-all duration-200 active:scale-95"
                   style={{ 
-                    borderRadius: '12px',
+                    borderRadius: '10px',
                     border: '1px solid #e5e7eb',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
                   }}
@@ -208,9 +342,9 @@ const POS: React.FC = () => {
                     (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
                   }}
                 >
-                  <p className="font-semibold truncate" style={{ color: '#111827' }}>{product.name}</p>
-                  <p className="text-xs" style={{ color: '#6b7280' }}>{product.code}</p>
-                  <p className="text-lg font-bold mt-2" style={{ color: '#00a86b' }}>
+                  <p className="font-semibold text-xs lg:text-sm truncate" style={{ color: '#111827' }}>{product.name}</p>
+                  <p className="text-[10px] lg:text-xs" style={{ color: '#6b7280' }}>{product.code}</p>
+                  <p className="text-sm lg:text-lg font-bold mt-1 lg:mt-2" style={{ color: '#00a86b' }}>
                     {formatCurrency(product.sale_price)}
                   </p>
                 </button>
@@ -220,188 +354,118 @@ const POS: React.FC = () => {
         </div>
       </div>
 
-      {/* Cart Section */}
+      {/* Desktop Cart - Fixed sidebar */}
       <div 
-        className="w-96 flex flex-col bg-white"
+        className="hidden lg:flex w-96 flex-col bg-white"
         style={{ 
           borderRadius: '18px',
           boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
         }}
       >
-        {/* Cart Header */}
-        <div className="p-4" style={{ borderBottom: '1px solid #e5e7eb' }}>
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-base flex items-center gap-2" style={{ color: '#111827' }}>
-              <ShoppingCart size={20} />
-              Carrito
-            </h3>
-            {items.length > 0 && (
-              <button
-                onClick={clearCart}
-                className="flex items-center gap-1 text-sm font-medium transition-colors"
-                style={{ color: '#ef4444' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.7'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
-              >
-                <Trash2 size={16} />
-                Limpiar
-              </button>
-            )}
-          </div>
-        </div>
+        <CartContent />
+      </div>
 
-        {/* Cart Items */}
-        <div className="flex-1 overflow-auto p-4">
-          {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full" style={{ color: '#9ca3af' }}>
-              <ShoppingCart size={48} className="mb-4" />
-              <p className="font-medium">Carrito vacio</p>
-              <p className="text-sm">Agregue productos para comenzar</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {items.map((item) => (
-                <div 
-                  key={item.product.id} 
-                  className="p-3"
-                  style={{ 
-                    backgroundColor: '#f6f7f9',
-                    borderRadius: '12px'
-                  }}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm" style={{ color: '#111827' }}>{item.product.name}</p>
-                      <p className="text-xs" style={{ color: '#6b7280' }}>{formatCurrency(item.product.sale_price)} c/u</p>
-                    </div>
-                    <button
-                      onClick={() => removeItem(item.product.id)}
-                      className="p-1 transition-opacity"
-                      style={{ color: '#ef4444' }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.7'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                        className="w-8 h-8 flex items-center justify-center transition-colors"
-                        style={{ 
-                          borderRadius: '50%',
-                          backgroundColor: '#e5e7eb',
-                          color: '#111827'
-                        }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#d1d5db'; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#e5e7eb'; }}
-                      >
-                        <Minus size={16} />
-                      </button>
-                      <span className="w-10 text-center font-bold" style={{ color: '#111827' }}>{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                        className="w-8 h-8 flex items-center justify-center text-white transition-colors"
-                        style={{ 
-                          borderRadius: '50%',
-                          backgroundColor: '#00a86b'
-                        }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00965f'; }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#00a86b'; }}
-                      >
-                        <Plus size={16} />
-                      </button>
-                    </div>
-                    <p className="font-bold" style={{ color: '#111827' }}>
-                      {formatCurrency(item.product.sale_price * item.quantity)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Mobile: Floating Cart Button */}
+      <button
+        className="lg:hidden fixed bottom-4 right-4 z-40 flex items-center gap-2 px-4 py-3 text-white font-semibold shadow-xl transition-all active:scale-95"
+        style={{ 
+          backgroundColor: '#00a86b',
+          borderRadius: '16px',
+          boxShadow: '0 8px 24px rgba(0, 168, 107, 0.4)'
+        }}
+        onClick={() => setMobileCartOpen(true)}
+      >
+        <ShoppingCart size={20} />
+        {itemCount > 0 && (
+          <>
+            <span className="text-sm">{formatCurrency(total)}</span>
+            <span 
+              className="w-6 h-6 flex items-center justify-center text-xs font-bold rounded-full"
+              style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}
+            >
+              {itemCount}
+            </span>
+          </>
+        )}
+        {itemCount === 0 && <span className="text-sm">Carrito</span>}
+      </button>
 
-        {/* Cart Footer */}
-        <div className="p-4" style={{ borderTop: '1px solid #e5e7eb' }}>
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-sm" style={{ color: '#6b7280' }}>Subtotal:</span>
-            <span className="font-semibold" style={{ color: '#111827' }}>{formatCurrency(subtotal)}</span>
-          </div>
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-lg font-bold" style={{ color: '#111827' }}>TOTAL:</span>
-            <span className="text-2xl font-bold" style={{ color: '#00a86b' }}>{formatCurrency(total)}</span>
-          </div>
-          <button
-            disabled={items.length === 0}
-            onClick={() => setShowPayment(true)}
-            className="w-full h-12 text-base font-semibold text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      {/* Mobile: Cart Slide-up Panel */}
+      {mobileCartOpen && (
+        <div className="lg:hidden fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setMobileCartOpen(false)}
+          />
+          {/* Panel */}
+          <div 
+            className="absolute bottom-0 left-0 right-0 bg-white flex flex-col animate-slide-up"
             style={{ 
-              backgroundColor: '#00a86b',
-              borderRadius: '12px'
-            }}
-            onMouseEnter={(e) => { 
-              if (items.length > 0) (e.currentTarget as HTMLElement).style.backgroundColor = '#00965f'; 
-            }}
-            onMouseLeave={(e) => { 
-              (e.currentTarget as HTMLElement).style.backgroundColor = '#00a86b'; 
+              borderTopLeftRadius: '20px',
+              borderTopRightRadius: '20px',
+              maxHeight: '85vh',
+              boxShadow: '0 -8px 30px rgba(0,0,0,0.15)'
             }}
           >
-            Cobrar (F2)
-          </button>
+            {/* Drag handle */}
+            <div className="flex justify-center py-2">
+              <div className="w-10 h-1 rounded-full" style={{ backgroundColor: '#d1d5db' }} />
+            </div>
+            <CartContent />
+          </div>
         </div>
-      </div>
+      )}
 
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Metodo de Pago</DialogTitle>
+            <DialogTitle className="text-xl lg:text-2xl">Metodo de Pago</DialogTitle>
           </DialogHeader>
           
           <div className="py-4">
             <div className="text-center mb-6">
               <p className="text-gray-500">Total a cobrar</p>
-              <p className="text-4xl font-bold text-blue-600">{formatCurrency(total)}</p>
+              <p className="text-3xl lg:text-4xl font-bold text-blue-600">{formatCurrency(total)}</p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-3 gap-2 lg:gap-3 mb-6">
               <button
                 onClick={() => setPaymentMethod('cash')}
-                className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
+                className={`p-3 lg:p-4 rounded-xl border-2 flex flex-col items-center gap-1.5 lg:gap-2 transition-all ${
                   paymentMethod === 'cash'
                     ? 'border-green-500 bg-green-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <Banknote className={`w-8 h-8 ${paymentMethod === 'cash' ? 'text-green-600' : 'text-gray-400'}`} />
-                <span className={`font-medium ${paymentMethod === 'cash' ? 'text-green-600' : 'text-gray-600'}`}>
+                <Banknote className={`w-6 h-6 lg:w-8 lg:h-8 ${paymentMethod === 'cash' ? 'text-green-600' : 'text-gray-400'}`} />
+                <span className={`text-xs lg:text-sm font-medium ${paymentMethod === 'cash' ? 'text-green-600' : 'text-gray-600'}`}>
                   Efectivo
                 </span>
               </button>
               <button
                 onClick={() => setPaymentMethod('card')}
-                className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
+                className={`p-3 lg:p-4 rounded-xl border-2 flex flex-col items-center gap-1.5 lg:gap-2 transition-all ${
                   paymentMethod === 'card'
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <CreditCard className={`w-8 h-8 ${paymentMethod === 'card' ? 'text-blue-600' : 'text-gray-400'}`} />
-                <span className={`font-medium ${paymentMethod === 'card' ? 'text-blue-600' : 'text-gray-600'}`}>
+                <CreditCard className={`w-6 h-6 lg:w-8 lg:h-8 ${paymentMethod === 'card' ? 'text-blue-600' : 'text-gray-400'}`} />
+                <span className={`text-xs lg:text-sm font-medium ${paymentMethod === 'card' ? 'text-blue-600' : 'text-gray-600'}`}>
                   Tarjeta
                 </span>
               </button>
               <button
                 onClick={() => setPaymentMethod('transfer')}
-                className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
+                className={`p-3 lg:p-4 rounded-xl border-2 flex flex-col items-center gap-1.5 lg:gap-2 transition-all ${
                   paymentMethod === 'transfer'
                     ? 'border-purple-500 bg-purple-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <Smartphone className={`w-8 h-8 ${paymentMethod === 'transfer' ? 'text-purple-600' : 'text-gray-400'}`} />
-                <span className={`font-medium ${paymentMethod === 'transfer' ? 'text-purple-600' : 'text-gray-600'}`}>
+                <Smartphone className={`w-6 h-6 lg:w-8 lg:h-8 ${paymentMethod === 'transfer' ? 'text-purple-600' : 'text-gray-400'}`} />
+                <span className={`text-xs lg:text-sm font-medium ${paymentMethod === 'transfer' ? 'text-purple-600' : 'text-gray-600'}`}>
                   Transfer
                 </span>
               </button>
@@ -416,7 +480,7 @@ const POS: React.FC = () => {
                     value={amountReceived}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmountReceived(e.target.value)}
                     placeholder="0"
-                    className="w-full h-14 text-2xl text-center font-bold mt-2 outline-none transition-all duration-200"
+                    className="w-full h-12 lg:h-14 text-xl lg:text-2xl text-center font-bold mt-2 outline-none transition-all duration-200"
                     style={{ 
                       borderRadius: '12px',
                       border: '1px solid #e5e7eb',
@@ -437,7 +501,7 @@ const POS: React.FC = () => {
                   {quickAmounts.map((amount) => (
                     <button
                       key={amount}
-                      className="flex-1 h-10 font-medium transition-all duration-200"
+                      className="flex-1 h-9 lg:h-10 text-xs lg:text-sm font-medium transition-all duration-200"
                       style={{ 
                         borderRadius: '10px',
                         border: '1px solid #e5e7eb',
@@ -459,7 +523,7 @@ const POS: React.FC = () => {
                   ))}
                 </div>
                 <button
-                  className="w-full h-10 font-medium transition-all duration-200"
+                  className="w-full h-9 lg:h-10 text-xs lg:text-sm font-medium transition-all duration-200"
                   style={{ 
                     borderRadius: '10px',
                     border: '1px solid #e5e7eb',
@@ -480,14 +544,14 @@ const POS: React.FC = () => {
                 </button>
                 {change > 0 && (
                   <div 
-                    className="p-4 text-center"
+                    className="p-3 lg:p-4 text-center"
                     style={{ 
                       backgroundColor: 'rgba(0, 168, 107, 0.1)',
                       borderRadius: '12px'
                     }}
                   >
                     <p className="text-sm" style={{ color: '#6b7280' }}>Cambio a devolver</p>
-                    <p className="text-3xl font-bold" style={{ color: '#00a86b' }}>{formatCurrency(change)}</p>
+                    <p className="text-2xl lg:text-3xl font-bold" style={{ color: '#00a86b' }}>{formatCurrency(change)}</p>
                   </div>
                 )}
               </div>
