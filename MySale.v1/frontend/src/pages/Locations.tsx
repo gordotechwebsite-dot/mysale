@@ -1,5 +1,6 @@
 import { toast } from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getLocationsDashboard, createLocation, updateLocation } from '../api';
 import type { LocationDashboard } from '../api';
 import { Card } from '@/components/ui/card';
@@ -20,10 +21,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Loader2, Store, Warehouse, Users, DollarSign, ShoppingCart, Camera, Building2 } from 'lucide-react';
+import { Plus, Loader2, Store, Warehouse, Users, DollarSign, ShoppingCart, Camera, Building2, BarChart3, ChevronRight } from 'lucide-react';
 import api from '../api/client';
 
 const Locations: React.FC = () => {
+  const navigate = useNavigate();
   const [locations, setLocations] = useState<LocationDashboard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddLocation, setShowAddLocation] = useState(false);
@@ -255,6 +257,18 @@ const Locations: React.FC = () => {
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* Boton Ver Rendimiento */}
+                <div className="px-4 pb-4">
+                  <Button
+                    className="w-full bg-[#00a86b] hover:bg-[#008f5b] text-white"
+                    onClick={() => navigate(`/location/${location.id}`)}
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Ver Detalle y Rendimiento
+                    <ChevronRight className="w-4 h-4 ml-auto" />
+                  </Button>
                 </div>
               </Card>
             );
