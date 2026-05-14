@@ -361,7 +361,7 @@ const POS: React.FC = () => {
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); if (e.target.value) setSelectedFamily(null); }}
               onKeyDown={handleKeyDown}
-              className="w-full h-10 lg:h-12 pl-10 lg:pl-12 pr-10 text-sm lg:text-base outline-none transition-all duration-200"
+              className="w-full h-10 lg:h-12 pl-10 lg:pl-12 pr-10 text-base outline-none transition-all duration-200"
               style={{ 
                 borderRadius: '12px',
                 border: '1px solid #e5e7eb',
