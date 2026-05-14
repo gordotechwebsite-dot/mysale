@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.timezone import now_colombia
 import enum
 from app.database import Base
 
@@ -63,7 +64,7 @@ class Zone(Base):
     color = Column(String(20), default="#4ade80")
     display_order = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
     
     tables = relationship("Table", back_populates="zone")
 
@@ -87,8 +88,8 @@ class Table(Base):
     reserved_time = Column(String(10), nullable=True)
     reserved_phone = Column(String(20), nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
+    updated_at = Column(DateTime, default=now_colombia, onupdate=now_colombia)
     
     zone = relationship("Zone", back_populates="tables")
     tickets = relationship("Ticket", back_populates="table")
@@ -112,10 +113,10 @@ class Ticket(Base):
     discount = Column(Float, default=0)
     total = Column(Float, default=0)
     notes = Column(Text)
-    opened_at = Column(DateTime, default=datetime.utcnow)
+    opened_at = Column(DateTime, default=now_colombia)
     closed_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
+    updated_at = Column(DateTime, default=now_colombia, onupdate=now_colombia)
     
     table = relationship("Table", back_populates="tickets")
     items = relationship("TicketItem", back_populates="ticket")
@@ -136,7 +137,7 @@ class TicketItem(Base):
     subtotal = Column(Float, nullable=False)
     notes = Column(Text)
     status = Column(String(20), default="pending")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
     
     ticket = relationship("Ticket", back_populates="items")
     product = relationship("Product")
@@ -151,8 +152,8 @@ class Comanda(Base):
     status = Column(String(20), default="pending")
     notes = Column(Text)
     is_printed = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
+    updated_at = Column(DateTime, default=now_colombia, onupdate=now_colombia)
     
     ticket = relationship("Ticket", back_populates="comandas")
 
@@ -165,6 +166,6 @@ class TicketPayment(Base):
     payment_method = Column(String(50), nullable=False)
     amount = Column(Float, nullable=False)
     reference = Column(String(100))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
     
     ticket = relationship("Ticket", back_populates="payments")

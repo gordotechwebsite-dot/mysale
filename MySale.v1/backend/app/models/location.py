@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum as SQLEnum, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.timezone import now_colombia
 import enum
 from app.database import Base
 
@@ -24,7 +25,7 @@ class Location(Base):
     daily_base_cash = Column(Integer, default=100000)
     folio_prefix = Column(String(10), nullable=True)
     folio_counter = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
 
     users = relationship("User", back_populates="location")
     product_stocks = relationship("ProductStock", back_populates="location")

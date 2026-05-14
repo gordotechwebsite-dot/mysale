@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.timezone import now_colombia
 from app.database import Base
 
 
@@ -11,7 +12,7 @@ class CashRegister(Base):
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
     name = Column(String(50), nullable=False)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
 
     location = relationship("Location", back_populates="cash_registers")
 
@@ -27,7 +28,7 @@ class CashCut(Base):
     difference = Column(Float, nullable=False)
     is_blind = Column(Boolean, default=True)
     notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
 
     shift = relationship("Shift", back_populates="cash_cuts")
     denominations = relationship("CashDenomination", back_populates="cash_cut")
@@ -50,7 +51,7 @@ class CashClose(Base):
     declared_cash = Column(Float, default=0.0)
     difference = Column(Float, default=0.0)
     notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
 
     location = relationship("Location")
     user = relationship("User")

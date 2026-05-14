@@ -108,6 +108,7 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
+      timeZone: 'America/Bogota',
     });
   };
 
@@ -118,6 +119,7 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
       minute: '2-digit',
       second: '2-digit',
       hour12: true,
+      timeZone: 'America/Bogota',
     });
   };
 

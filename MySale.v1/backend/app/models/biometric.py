@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean, Enum, LargeBinary
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.timezone import now_colombia
 import enum
 from app.database import Base
 
@@ -21,8 +22,8 @@ class Fingerprint(Base):
     template_data = Column(LargeBinary, nullable=False)
     quality_score = Column(Integer)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
+    updated_at = Column(DateTime, default=now_colombia, onupdate=now_colombia)
     
     user = relationship("User")
 
@@ -37,7 +38,7 @@ class BiometricLog(Base):
     device_id = Column(String(100))
     ip_address = Column(String(50))
     notes = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
 
 
 class AttendanceRecord(Base):
@@ -51,7 +52,7 @@ class AttendanceRecord(Base):
     clock_out = Column(DateTime, nullable=True)
     total_hours = Column(Integer)
     notes = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
+    updated_at = Column(DateTime, default=now_colombia, onupdate=now_colombia)
     
     user = relationship("User")

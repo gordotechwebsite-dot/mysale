@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.timezone import now_colombia
 import enum
 from app.database import Base
 
@@ -26,7 +27,7 @@ class Role(Base):
     can_manage_locations = Column(Boolean, default=False)
     can_set_stock_thresholds = Column(Boolean, default=False)
     can_close_shifts = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
 
     users = relationship("User", back_populates="role")
 
@@ -52,8 +53,8 @@ class User(Base):
     default_branch_id = Column(Integer, ForeignKey("branches.id"), nullable=True)
     is_active = Column(Boolean, default=True)
     points = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
+    updated_at = Column(DateTime, default=now_colombia, onupdate=now_colombia)
 
     role = relationship("Role", back_populates="users")
     location = relationship("Location", back_populates="users")
@@ -73,7 +74,7 @@ class UserModule(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     module_id = Column(Integer, ForeignKey("modules.id"), nullable=False)
     is_enabled = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
 
     user = relationship("User", back_populates="user_modules")
     module = relationship("Module")

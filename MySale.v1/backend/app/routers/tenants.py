@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
+from app.timezone import now_colombia
 import secrets
 import string
 import unicodedata
@@ -423,10 +424,10 @@ async def update_tenant_modules(
                 changes.append(f"{module.code}={'enabled' if module_update.is_enabled else 'disabled'}")
             tenant_module.is_enabled = module_update.is_enabled
             if module_update.is_enabled:
-                tenant_module.enabled_at = datetime.utcnow()
+                tenant_module.enabled_at = now_colombia()
                 tenant_module.disabled_at = None
             else:
-                tenant_module.disabled_at = datetime.utcnow()
+                tenant_module.disabled_at = now_colombia()
         else:
             tenant_module = TenantModule(
                 tenant_id=tenant_id,

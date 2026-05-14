@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
+from app.timezone import now_colombia
 
 from app.database import get_db
 from app.models.cost_control import CostEntry, CostConfig, CostApplication, CostDistributionMethod, CostEntryCategory
@@ -68,7 +69,7 @@ async def create_cost_entry(
         description=data.description,
         is_recurring=data.is_recurring,
         recurrence_period=data.recurrence_period,
-        start_date=data.start_date or datetime.utcnow(),
+        start_date=data.start_date or now_colombia(),
         end_date=data.end_date,
         created_by_id=current_user.id
     )
@@ -287,7 +288,7 @@ async def apply_costs_to_products(
         product.weighted_cost = product.weighted_cost + cost_per_product
     
     if config:
-        config.last_applied_at = datetime.utcnow()
+        config.last_applied_at = now_colombia()
     
     application = CostApplication(
         total_cost=total_cost,

@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, Enum, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.timezone import now_colombia
 import enum
 
 from app.database import Base
@@ -25,7 +26,7 @@ class Module(Base):
     display_order = Column(Integer, default=0)
     is_core = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
 
 
 class Tenant(Base):
@@ -52,8 +53,8 @@ class Tenant(Base):
     nit = Column(String(50), nullable=True)
     slogan = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
+    updated_at = Column(DateTime, default=now_colombia, onupdate=now_colombia)
     
     modules = relationship("TenantModule", back_populates="tenant")
     payments = relationship("TenantPayment", back_populates="tenant")
@@ -66,7 +67,7 @@ class TenantModule(Base):
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False)
     module_id = Column(Integer, ForeignKey("modules.id"), nullable=False)
     is_enabled = Column(Boolean, default=True)
-    enabled_at = Column(DateTime, default=datetime.utcnow)
+    enabled_at = Column(DateTime, default=now_colombia)
     disabled_at = Column(DateTime, nullable=True)
     
     tenant = relationship("Tenant", back_populates="modules")
@@ -79,13 +80,13 @@ class TenantPayment(Base):
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False)
     amount = Column(Float, nullable=False)
-    payment_date = Column(DateTime, default=datetime.utcnow)
+    payment_date = Column(DateTime, default=now_colombia)
     period_start = Column(DateTime, nullable=False)
     period_end = Column(DateTime, nullable=False)
     payment_method = Column(String(50), nullable=True)
     reference = Column(String(200), nullable=True)
     notes = Column(Text, nullable=True)
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
     
     tenant = relationship("Tenant", back_populates="payments")

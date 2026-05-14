@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, date
+from app.timezone import now_colombia
 from app.database import get_db
 from app.models.user import User
 from app.models.shift import Shift, ShiftStatus
@@ -242,7 +243,7 @@ async def update_delivery_status(
         sale.delivery_person = data.delivery_person
     
     if data.delivery_status == DeliveryStatus.DELIVERED:
-        sale.delivered_at = datetime.utcnow()
+        sale.delivered_at = now_colombia()
     
     db.commit()
     db.refresh(sale)

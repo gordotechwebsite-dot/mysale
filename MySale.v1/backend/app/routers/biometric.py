@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from typing import List, Optional
 from datetime import datetime, timedelta
+from app.timezone import now_colombia
 from pydantic import BaseModel
 import hashlib
 import base64
@@ -106,7 +107,7 @@ async def enroll_fingerprint(
         existing.template = request.template
         existing.quality_score = request.quality_score
         existing.is_primary = request.is_primary
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = now_colombia()
         db.commit()
         db.refresh(existing)
         return existing
@@ -163,7 +164,7 @@ async def enroll_user_fingerprint(
         existing.template = request.template
         existing.quality_score = request.quality_score
         existing.is_primary = request.is_primary
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = now_colombia()
         db.commit()
         db.refresh(existing)
         return existing
@@ -352,7 +353,7 @@ async def clock_in_out(
             detail="Fingerprint not recognized"
         )
     
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = now_colombia().replace(hour=0, minute=0, second=0, microsecond=0)
     today_end = today_start + timedelta(days=1)
     
     open_attendance = db.query(AttendanceRecord).filter(
@@ -365,7 +366,7 @@ async def clock_in_out(
     ).first()
     
     if open_attendance:
-        now = datetime.utcnow()
+        now = now_colombia()
         open_attendance.clock_out = now
         total_minutes = int((now - open_attendance.clock_in).total_seconds() / 60)
         open_attendance.total_hours = total_minutes
@@ -398,7 +399,7 @@ async def clock_in_out(
             "total_time": f"{hours}h {minutes}m"
         }
     else:
-        now = datetime.utcnow()
+        now = now_colombia()
         
         log = BiometricLog(
             user_id=matched_user.id,

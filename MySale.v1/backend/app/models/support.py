@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean, Enum
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.timezone import now_colombia
 import enum
 from app.database import Base
 
@@ -19,8 +20,8 @@ class SupportConversation(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     subject = Column(String(200))
     status = Column(Enum(ConversationStatus), default=ConversationStatus.OPEN)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
+    updated_at = Column(DateTime, default=now_colombia, onupdate=now_colombia)
     
     messages = relationship("SupportMessage", back_populates="conversation")
 
@@ -34,6 +35,6 @@ class SupportMessage(Base):
     content = Column(Text, nullable=False)
     is_from_support = Column(Boolean, default=False)
     is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
     
     conversation = relationship("SupportConversation", back_populates="messages")

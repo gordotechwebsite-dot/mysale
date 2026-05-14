@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.timezone import now_colombia
 import enum
 from app.database import Base
 
@@ -23,7 +24,7 @@ class Transfer(Base):
     status = Column(SQLEnum(TransferStatus), default=TransferStatus.PENDING)
     total_value_at_sale_price = Column(Float, nullable=False)
     notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
     completed_at = Column(DateTime, nullable=True)
 
     from_location = relationship("Location", foreign_keys=[from_location_id], back_populates="transfers_out")

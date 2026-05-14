@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Enum as SQLEnum, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.timezone import now_colombia
 import enum
 from app.database import Base
 
@@ -13,7 +14,7 @@ class Group(Base):
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
 
     families = relationship("Family", back_populates="group")
 
@@ -28,7 +29,7 @@ class Family(Base):
     icon = Column(String(100), nullable=True)
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
 
     group = relationship("Group", back_populates="families")
     subfamilies = relationship("SubFamily", back_populates="family")
@@ -43,7 +44,7 @@ class SubFamily(Base):
     family_id = Column(Integer, ForeignKey("families.id"), nullable=False)
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
 
     family = relationship("Family", back_populates="subfamilies")
     products = relationship("Product", back_populates="subfamily")
@@ -65,8 +66,8 @@ class Product(Base):
     min_stock = Column(Integer, default=0)
     max_stock = Column(Integer, default=1000)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
+    updated_at = Column(DateTime, default=now_colombia, onupdate=now_colombia)
 
     subfamily = relationship("SubFamily", back_populates="products")
     stocks = relationship("ProductStock", back_populates="product")
@@ -84,7 +85,7 @@ class ProductStock(Base):
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
     quantity = Column(Float, default=0.0)
     last_inventory_date = Column(DateTime, nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=now_colombia, onupdate=now_colombia)
 
     product = relationship("Product", back_populates="stocks")
     location = relationship("Location", back_populates="product_stocks")
@@ -113,6 +114,6 @@ class StockMovement(Base):
     reference_type = Column(String(50), nullable=True)
     notes = Column(Text, nullable=True)
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
 
     product = relationship("Product", back_populates="stock_movements")

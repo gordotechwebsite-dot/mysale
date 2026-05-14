@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
 from datetime import datetime, timedelta
+from app.timezone import now_colombia
 from app.database import get_db
 from app.models.user import User, RoleType
 from app.models.location import Location, LocationType
@@ -50,7 +51,7 @@ async def get_locations_dashboard(
     query = filter_by_tenant(query, Location, current_user.tenant_id, user_role=role_type)
     locations = query.all()
     
-    today = datetime.utcnow().date()
+    today = now_colombia().date()
     today_start = datetime.combine(today, datetime.min.time())
     
     result = []

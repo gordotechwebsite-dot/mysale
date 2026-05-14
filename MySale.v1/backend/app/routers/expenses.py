@@ -79,7 +79,7 @@ async def create_expense(
         invoice_number=expense_data.invoice_number,
         supplier=expense_data.supplier,
         created_by_id=current_user.id,
-        expense_date=expense_data.expense_date or datetime.utcnow()
+        expense_date=expense_data.expense_date or now_colombia()
     )
     db.add(expense)
     db.commit()
