@@ -737,7 +737,7 @@ const Layout: React.FC = () => {
         }}
       >
         {/* Logo + close button */}
-        <div className="p-5" style={{ borderBottom: '1px solid #e5e7eb' }}>
+        <div className="flex-shrink-0 p-5" style={{ borderBottom: '1px solid #e5e7eb' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img 
@@ -763,7 +763,7 @@ const Layout: React.FC = () => {
         </div>
 
         {/* User info */}
-        <div className="p-5" style={{ borderBottom: '1px solid #e5e7eb' }}>
+        <div className="flex-shrink-0 p-5" style={{ borderBottom: '1px solid #e5e7eb' }}>
           <p className="text-xs" style={{ color: '#6b7280' }}>Bienvenido,</p>
           <p className="font-semibold text-sm truncate" style={{ color: '#111827' }}>{user?.full_name}</p>
           <p className="text-xs" style={{ color: '#00a86b' }}>{user?.role?.name}</p>
@@ -856,7 +856,7 @@ const Layout: React.FC = () => {
         </nav>
 
         {/* Logout button inside sidebar */}
-        <div className="p-4" style={{ borderTop: '1px solid #e5e7eb' }}>
+        <div className="flex-shrink-0 p-4" style={{ borderTop: '1px solid #e5e7eb' }}>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-2.5 transition-all duration-200"

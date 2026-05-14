@@ -142,6 +142,10 @@ async def get_location_detail(
     if not location:
         raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
 
+    # Tenant isolation: verify location belongs to user's tenant
+    if current_user.tenant_id and location.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="No tienes acceso a esta ubicacion")
+
     today = now_colombia().date()
     today_start = datetime.combine(today, datetime.min.time())
 

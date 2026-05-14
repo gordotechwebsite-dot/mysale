@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
+import ConfirmDialog from '../components/ConfirmDialog';
 import {
   getZonesWithTables,
   createZone,
@@ -181,6 +182,8 @@ export default function TableManagement() {
     const s = diff % 60;
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
+
+  const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; onConfirm: () => void } | null>(null);
 
   // Store ticket ID for move operation (ref survives re-renders)
   const moveTicketIdRef = useRef<number | null>(null);
@@ -385,16 +388,22 @@ export default function TableManagement() {
     }
   };
 
-  const handleDeleteZone = async (zoneId: number) => {
-    if (!confirm('¿Eliminar esta zona?')) return;
-    try {
-      await deleteZone(zoneId);
-      toast.success('Zona eliminada');
-      loadZones();
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      toast.error(err.response?.data?.detail || 'Error al eliminar zona');
-    }
+  const handleDeleteZone = (zoneId: number) => {
+    setConfirmAction({
+      title: 'Eliminar zona',
+      description: '¿Estás seguro de eliminar esta zona?',
+      onConfirm: async () => {
+        try {
+          await deleteZone(zoneId);
+          toast.success('Zona eliminada');
+          loadZones();
+        } catch (error: unknown) {
+          const err = error as { response?: { data?: { detail?: string } } };
+          toast.error(err.response?.data?.detail || 'Error al eliminar zona');
+        }
+        setConfirmAction(null);
+      }
+    });
   };
 
   const handleCreateTable = async () => {
@@ -445,16 +454,22 @@ export default function TableManagement() {
     }
   };
 
-  const handleDeleteTable = async (tableId: number) => {
-    if (!confirm('¿Eliminar esta mesa?')) return;
-    try {
-      await deleteTable(tableId);
-      toast.success('Mesa eliminada');
-      loadZones();
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      toast.error(err.response?.data?.detail || 'Error al eliminar mesa');
-    }
+  const handleDeleteTable = (tableId: number) => {
+    setConfirmAction({
+      title: 'Eliminar mesa',
+      description: '¿Estás seguro de eliminar esta mesa?',
+      onConfirm: async () => {
+        try {
+          await deleteTable(tableId);
+          toast.success('Mesa eliminada');
+          loadZones();
+        } catch (error: unknown) {
+          const err = error as { response?: { data?: { detail?: string } } };
+          toast.error(err.response?.data?.detail || 'Error al eliminar mesa');
+        }
+        setConfirmAction(null);
+      }
+    });
   };
 
   const handleTableClick = async (table: Table) => {
@@ -538,11 +553,16 @@ export default function TableManagement() {
         break;
       case 'delete_order':
         if (currentTicket) {
-          if (confirm('¿Está seguro de eliminar este pedido?')) {
-            toast.success('Pedido eliminado');
-            setCurrentTicket(null);
-            loadZones();
-          }
+          setConfirmAction({
+            title: 'Eliminar pedido',
+            description: '¿Estás seguro de eliminar este pedido?',
+            onConfirm: () => {
+              toast.success('Pedido eliminado');
+              setCurrentTicket(null);
+              loadZones();
+              setConfirmAction(null);
+            }
+          });
         } else {
           toast.error('No hay pedido activo');
         }
@@ -2304,6 +2324,17 @@ export default function TableManagement() {
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
+        title={confirmAction?.title || ''}
+        description={confirmAction?.description || ''}
+        confirmLabel="Sí, confirmar"
+        cancelLabel="No, cancelar"
+        variant="danger"
+        onConfirm={() => confirmAction?.onConfirm()}
+      />
     </div>
   );
 }

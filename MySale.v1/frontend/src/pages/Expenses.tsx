@@ -72,6 +72,7 @@ const Expenses: React.FC = () => {
       setLocations(locationsData);
     } catch (error) {
       console.error('Error loading data:', error);
+      toast.error('Error al cargar gastos');
     } finally {
       setIsLoading(false);
     }

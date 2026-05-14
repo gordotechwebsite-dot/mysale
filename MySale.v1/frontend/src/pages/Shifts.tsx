@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { getWorkSessions, getLocations, getUsers, type WorkSession } from '../api';
 import type { Location, User } from '../types';
@@ -55,6 +56,7 @@ const Shifts: React.FC = () => {
       await loadShifts();
     } catch (error) {
       console.error('Error loading data:', error);
+      toast.error('Error al cargar turnos');
     } finally {
       setIsLoading(false);
     }
@@ -72,6 +74,7 @@ const Shifts: React.FC = () => {
       setCurrentPage(1);
     } catch (error) {
       console.error('Error loading sessions:', error);
+      toast.error('Error al cargar sesiones');
     }
   };
 

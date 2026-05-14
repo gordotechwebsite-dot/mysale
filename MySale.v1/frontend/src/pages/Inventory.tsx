@@ -44,6 +44,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Plus, Package, Search, Loader2, ShoppingBag, Truck, Trash2, Check, AlertTriangle, Pencil, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const Inventory: React.FC = () => {
   const { user } = useAuth();
@@ -110,6 +111,7 @@ const Inventory: React.FC = () => {
   const [lossProduct, setLossProduct] = useState('');
   const [lossQuantity, setLossQuantity] = useState('');
   const [lossReason, setLossReason] = useState('');
+  const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; onConfirm: () => void } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -138,6 +140,7 @@ const Inventory: React.FC = () => {
       await loadProducts();
     } catch (error) {
       console.error('Error loading data:', error);
+      toast.error('Error al cargar inventario');
     } finally {
       setIsLoading(false);
     }
@@ -153,6 +156,7 @@ const Inventory: React.FC = () => {
       setProductPage(1);
     } catch (error) {
       console.error('Error loading products:', error);
+      toast.error('Error al cargar productos');
     }
   };
 
@@ -282,45 +286,69 @@ const Inventory: React.FC = () => {
     }
   };
 
-  const handleDeleteProduct = async (product: Product) => {
-    if (!confirm(`¿Eliminar el producto "${product.name}"? Esta acción no se puede deshacer.`)) return;
-    try {
-      const result = await deleteProduct(product.id);
-      toast.success(result.message);
-      await loadProducts();
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Error al eliminar producto');
-    }
+  const handleDeleteProduct = (product: Product) => {
+    setConfirmAction({
+      title: 'Eliminar producto',
+      description: `¿Eliminar el producto "${product.name}"? Esta acción no se puede deshacer.`,
+      onConfirm: async () => {
+        try {
+          const result = await deleteProduct(product.id);
+          toast.success(result.message);
+          await loadProducts();
+        } catch (error: any) {
+          toast.error(error.response?.data?.detail || 'Error al eliminar producto');
+        }
+        setConfirmAction(null);
+      }
+    });
   };
 
-  const handleDeleteFamily = async (family: Family) => {
-    if (!confirm(`¿Eliminar la familia "${family.name}"? Se eliminarán también sus subfamilias sin productos.`)) return;
-    try {
-      await deleteFamily(family.id);
-      await loadData();
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Error al eliminar familia');
-    }
+  const handleDeleteFamily = (family: Family) => {
+    setConfirmAction({
+      title: 'Eliminar familia',
+      description: `¿Eliminar la familia "${family.name}"? Se eliminarán también sus subfamilias sin productos.`,
+      onConfirm: async () => {
+        try {
+          await deleteFamily(family.id);
+          await loadData();
+        } catch (error: any) {
+          toast.error(error.response?.data?.detail || 'Error al eliminar familia');
+        }
+        setConfirmAction(null);
+      }
+    });
   };
 
-  const handleDeleteSubFamily = async (sf: SubFamily) => {
-    if (!confirm(`¿Eliminar la subfamilia "${sf.name}"?`)) return;
-    try {
-      await deleteSubFamily(sf.id);
-      await loadData();
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Error al eliminar subfamilia');
-    }
+  const handleDeleteSubFamily = (sf: SubFamily) => {
+    setConfirmAction({
+      title: 'Eliminar subfamilia',
+      description: `¿Eliminar la subfamilia "${sf.name}"?`,
+      onConfirm: async () => {
+        try {
+          await deleteSubFamily(sf.id);
+          await loadData();
+        } catch (error: any) {
+          toast.error(error.response?.data?.detail || 'Error al eliminar subfamilia');
+        }
+        setConfirmAction(null);
+      }
+    });
   };
 
-  const handleDeleteGroup = async (group: Group) => {
-    if (!confirm(`¿Eliminar el grupo "${group.name}"?`)) return;
-    try {
-      await deleteGroup(group.id);
-      await loadData();
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Error al eliminar grupo');
-    }
+  const handleDeleteGroup = (group: Group) => {
+    setConfirmAction({
+      title: 'Eliminar grupo',
+      description: `¿Eliminar el grupo "${group.name}"?`,
+      onConfirm: async () => {
+        try {
+          await deleteGroup(group.id);
+          await loadData();
+        } catch (error: any) {
+          toast.error(error.response?.data?.detail || 'Error al eliminar grupo');
+        }
+        setConfirmAction(null);
+      }
+    });
   };
 
   const handleSaveCategoryName = async (type: 'group' | 'family' | 'subfamily', id: number) => {
@@ -383,14 +411,20 @@ const Inventory: React.FC = () => {
     }
   };
 
-  const handleReceiveTransfer = async (id: number) => {
-    if (!confirm('Confirmar recepcion de transferencia?')) return;
-    try {
-      await receiveTransfer(id);
-      await loadData();
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Error al recibir transferencia');
-    }
+  const handleReceiveTransfer = (id: number) => {
+    setConfirmAction({
+      title: 'Recibir transferencia',
+      description: '¿Confirmar recepción de transferencia?',
+      onConfirm: async () => {
+        try {
+          await receiveTransfer(id);
+          await loadData();
+        } catch (error: any) {
+          toast.error(error.response?.data?.detail || 'Error al recibir transferencia');
+        }
+        setConfirmAction(null);
+      }
+    });
   };
 
   // Losses handlers
@@ -518,11 +552,11 @@ const Inventory: React.FC = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="products">
-        <TabsList className="mb-4">
-          <TabsTrigger value="products">Productos</TabsTrigger>
-          <TabsTrigger value="categories">Categorias</TabsTrigger>
-          <TabsTrigger value="transfers">Traspasos</TabsTrigger>
-          <TabsTrigger value="losses">Mermas</TabsTrigger>
+        <TabsList className="mb-4 flex flex-wrap gap-1">
+          <TabsTrigger value="products" className="text-xs sm:text-sm">Productos</TabsTrigger>
+          <TabsTrigger value="categories" className="text-xs sm:text-sm">Categorias</TabsTrigger>
+          <TabsTrigger value="transfers" className="text-xs sm:text-sm">Traspasos</TabsTrigger>
+          <TabsTrigger value="losses" className="text-xs sm:text-sm">Mermas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="products">
@@ -551,7 +585,7 @@ const Inventory: React.FC = () => {
                   />
                 </div>
                                 <Select value={selectedGroup || "all"} onValueChange={(v) => { setSelectedGroup(v === "all" ? "" : v); setSelectedFamily(''); setSelectedSubFamily(''); }}>
-                                  <SelectTrigger className="w-40">
+                                  <SelectTrigger className="w-full sm:w-40">
                                     <SelectValue placeholder="Grupo" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -562,7 +596,7 @@ const Inventory: React.FC = () => {
                                   </SelectContent>
                                 </Select>
                                 <Select value={selectedFamily || "all"} onValueChange={(v) => { setSelectedFamily(v === "all" ? "" : v); setSelectedSubFamily(''); }}>
-                                  <SelectTrigger className="w-40">
+                                  <SelectTrigger className="w-full sm:w-40">
                                     <SelectValue placeholder="Familia" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -573,7 +607,7 @@ const Inventory: React.FC = () => {
                                   </SelectContent>
                                 </Select>
                                 <Select value={selectedSubFamily || "all"} onValueChange={(v) => setSelectedSubFamily(v === "all" ? "" : v)}>
-                                  <SelectTrigger className="w-40">
+                                  <SelectTrigger className="w-full sm:w-40">
                                     <SelectValue placeholder="SubFamilia" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -585,7 +619,42 @@ const Inventory: React.FC = () => {
                                 </Select>
               </div>
 
-              <div className="overflow-x-auto">
+              {/* Mobile card layout */}
+              <div className="sm:hidden space-y-3">
+                {products.slice((productPage - 1) * productsPerPage, productPage * productsPerPage).map((product) => (
+                  <div key={product.id} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-sm">{product.name}</p>
+                        <p className="text-xs text-gray-500 font-mono">{product.code}</p>
+                      </div>
+                      <p className="text-sm font-bold text-emerald-600">{formatCurrency(product.sale_price)}</p>
+                    </div>
+                    <div className="flex justify-between items-center text-xs text-gray-500">
+                      <span>Costo: {formatCurrency(product.weighted_cost)}</span>
+                      <span>Stock: {product.min_stock}/{product.max_stock}</span>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => openPurchaseDialog(product)}>
+                        <ShoppingBag className="w-3 h-3 mr-1" /> Compra
+                      </Button>
+                      {isSuperuser && (
+                        <>
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => openEditProduct(product)}>
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteProduct(product)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table layout */}
+              <div className="hidden sm:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -1367,6 +1436,17 @@ const Inventory: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
+        title={confirmAction?.title || ''}
+        description={confirmAction?.description || ''}
+        confirmLabel="Sí, confirmar"
+        cancelLabel="No, cancelar"
+        variant="danger"
+        onConfirm={() => confirmAction?.onConfirm()}
+      />
     </div>
   );
 };

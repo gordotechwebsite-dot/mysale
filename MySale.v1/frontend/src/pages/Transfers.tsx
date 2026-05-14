@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Truck, Plus, Loader2, Trash2, Check } from 'lucide-react';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const Transfers: React.FC = () => {
   useAuth();
@@ -49,6 +50,7 @@ const Transfers: React.FC = () => {
   });
   const [selectedProduct, setSelectedProduct] = useState('');
   const [itemQuantity, setItemQuantity] = useState('');
+  const [showReceiveConfirm, setShowReceiveConfirm] = useState<number | null>(null);
 
   useEffect(() => {
     loadData();
@@ -66,6 +68,7 @@ const Transfers: React.FC = () => {
       setProducts(productsData);
     } catch (error) {
       console.error('Error loading data:', error);
+      toast.error('Error al cargar traspasos');
     } finally {
       setIsLoading(false);
     }
@@ -117,14 +120,19 @@ const Transfers: React.FC = () => {
     }
   };
 
-  const handleReceiveTransfer = async (id: number) => {
-    if (!confirm('Confirmar recepcion de transferencia?')) return;
+  const handleReceiveTransfer = (id: number) => {
+    setShowReceiveConfirm(id);
+  };
+
+  const doReceiveTransfer = async () => {
+    if (!showReceiveConfirm) return;
     try {
-      await receiveTransfer(id);
+      await receiveTransfer(showReceiveConfirm);
       await loadData();
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Error al recibir transferencia');
     }
+    setShowReceiveConfirm(null);
   };
 
   const formatCurrency = (value: number) => {
@@ -318,6 +326,17 @@ const Transfers: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!showReceiveConfirm}
+        onOpenChange={(open) => { if (!open) setShowReceiveConfirm(null); }}
+        title="Recibir transferencia"
+        description="¿Confirmar recepción de transferencia?"
+        confirmLabel="Sí, recibir"
+        cancelLabel="No, cancelar"
+        variant="default"
+        onConfirm={doReceiveTransfer}
+      />
     </div>
   );
 };

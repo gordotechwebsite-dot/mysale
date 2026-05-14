@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
 import { getProducts, getLocations, getDeliveries, createDelivery, getFamilies, getSubFamilies } from '../api';
 import type { Product, Delivery, Family, SubFamily } from '../types';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -112,6 +113,7 @@ const Deliveries: React.FC = () => {
   const [deliveryPerson, setDeliveryPerson] = useState('');
   const [deliveryFee, setDeliveryFee] = useState('');
   const [notes, setNotes] = useState('');
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Delivery list
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -178,6 +180,7 @@ const Deliveries: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading data:', error);
+      toast.error('Error al cargar datos');
     }
   };
 
@@ -189,6 +192,7 @@ const Deliveries: React.FC = () => {
       setProducts(data);
     } catch (error) {
       console.error('Error loading products:', error);
+      toast.error('Error al cargar productos');
     } finally {
       setIsLoading(false);
     }
@@ -200,6 +204,7 @@ const Deliveries: React.FC = () => {
       setDeliveries(data);
     } catch (error) {
       console.error('Error loading deliveries:', error);
+      toast.error('Error al cargar domicilios');
     }
   };
 
@@ -326,7 +331,7 @@ const Deliveries: React.FC = () => {
               variant="ghost"
               size="sm"
               className="text-red-500 hover:text-red-700"
-              onClick={clearCart}
+              onClick={() => setShowClearConfirm(true)}
             >
               <Trash2 className="w-4 h-4 mr-1" />
               Limpiar
@@ -965,6 +970,17 @@ const Deliveries: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={showClearConfirm}
+        onOpenChange={setShowClearConfirm}
+        title="Limpiar carrito"
+        description="¿Estás seguro de que quieres eliminar todos los productos del carrito?"
+        confirmLabel="Sí, limpiar"
+        cancelLabel="No, cancelar"
+        variant="danger"
+        onConfirm={() => { clearCart(); setShowClearConfirm(false); }}
+      />
     </div>
   );
 };

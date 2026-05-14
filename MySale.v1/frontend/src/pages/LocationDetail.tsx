@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import { getLocationDetail, type LocationDetailData } from '../api';
 import {
   ChevronLeft,
@@ -50,6 +51,7 @@ const LocationDetail: React.FC = () => {
       setData(detail);
     } catch (error) {
       console.error('Error loading location detail:', error);
+      toast.error('Error al cargar detalle de la sucursal');
     } finally {
       setLoading(false);
     }

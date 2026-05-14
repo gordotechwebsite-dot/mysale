@@ -57,6 +57,7 @@ import {
   type LucideIcon
 } from 'lucide-react';
 import ReceiptTicket from '../components/ReceiptTicket';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const categoryIconMap: Record<string, LucideIcon> = {
   'Almuerzo': Sun, 'Hamburguesas': Beef, 'Alitas': Drumstick, 'Boneless': Bird,
@@ -97,6 +98,7 @@ const QuickSale: React.FC = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [weightedProductInfo, setWeightedProductInfo] = useState<{
     product_name: string;
     weight_kg: number;
@@ -152,6 +154,7 @@ const QuickSale: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading locations:', error);
+      toast.error('Error al cargar ubicaciones');
     }
   };
 
@@ -163,6 +166,7 @@ const QuickSale: React.FC = () => {
       setProducts(data);
     } catch (error) {
       console.error('Error loading products:', error);
+      toast.error('Error al cargar productos');
     } finally {
       setIsLoading(false);
     }
@@ -260,7 +264,7 @@ const QuickSale: React.FC = () => {
             Talon de Venta
           </h3>
           {items.length > 0 && (
-            <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 h-7 text-xs" onClick={clearCart}>
+            <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 h-7 text-xs" onClick={() => setShowClearConfirm(true)}>
               <Trash2 className="w-3.5 h-3.5 mr-1" /> Limpiar
             </Button>
           )}
@@ -679,6 +683,17 @@ const QuickSale: React.FC = () => {
           onClose={() => { setShowReceipt(false); searchRef.current?.focus(); }}
         />
       )}
+
+      <ConfirmDialog
+        open={showClearConfirm}
+        onOpenChange={setShowClearConfirm}
+        title="Limpiar carrito"
+        description="¿Estás seguro de que quieres eliminar todos los productos del carrito?"
+        confirmLabel="Sí, limpiar"
+        cancelLabel="No, cancelar"
+        variant="danger"
+        onConfirm={() => { clearCart(); setShowClearConfirm(false); }}
+      />
     </>
   );
 };

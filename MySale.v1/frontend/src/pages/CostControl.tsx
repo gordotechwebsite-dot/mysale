@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ConfirmDialog from '../components/ConfirmDialog';
 import {
   getCostEntries,
   createCostEntry,
@@ -77,6 +78,7 @@ const CostControl: React.FC = () => {
   const [showConfig, setShowConfig] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; onConfirm: () => void } | null>(null);
 
   const [newEntry, setNewEntry] = useState({
     name: '',
@@ -150,16 +152,22 @@ const CostControl: React.FC = () => {
     }
   };
 
-  const handleDeleteEntry = async (id: number) => {
-    if (!confirm('Esta seguro de eliminar este costo?')) return;
-    try {
-      await deleteCostEntry(id);
-      await loadData();
-      toast.success('Costo eliminado');
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      toast.error(err.response?.data?.detail || 'Error al eliminar');
-    }
+  const handleDeleteEntry = (id: number) => {
+    setConfirmAction({
+      title: 'Eliminar costo',
+      description: '¿Estás seguro de eliminar este costo?',
+      onConfirm: async () => {
+        try {
+          await deleteCostEntry(id);
+          await loadData();
+          toast.success('Costo eliminado');
+        } catch (error: unknown) {
+          const err = error as { response?: { data?: { detail?: string } } };
+          toast.error(err.response?.data?.detail || 'Error al eliminar');
+        }
+        setConfirmAction(null);
+      }
+    });
   };
 
   const handleUpdateConfig = async () => {
@@ -180,19 +188,25 @@ const CostControl: React.FC = () => {
     }
   };
 
-  const handleApplyCosts = async () => {
-    if (!confirm('Esta seguro de aplicar los costos a todos los productos? Esto aumentara el costo ponderado de cada producto.')) return;
-    setIsProcessing(true);
-    try {
-      const result = await applyCostsToProducts();
-      await loadData();
-      toast.success(`Costos aplicados: $${formatNumber(result.cost_per_product)} por producto`);
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      toast.error(err.response?.data?.detail || 'Error al aplicar costos');
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleApplyCosts = () => {
+    setConfirmAction({
+      title: 'Aplicar costos',
+      description: '¿Estás seguro de aplicar los costos a todos los productos? Esto aumentará el costo ponderado de cada producto.',
+      onConfirm: async () => {
+        setIsProcessing(true);
+        try {
+          const result = await applyCostsToProducts();
+          await loadData();
+          toast.success(`Costos aplicados: $${formatNumber(result.cost_per_product)} por producto`);
+        } catch (error: unknown) {
+          const err = error as { response?: { data?: { detail?: string } } };
+          toast.error(err.response?.data?.detail || 'Error al aplicar costos');
+        } finally {
+          setIsProcessing(false);
+        }
+        setConfirmAction(null);
+      }
+    });
   };
 
   const formatCurrency = (value: number) => {
@@ -570,6 +584,17 @@ const CostControl: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmAction}
+        onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
+        title={confirmAction?.title || ''}
+        description={confirmAction?.description || ''}
+        confirmLabel="Sí, confirmar"
+        cancelLabel="No, cancelar"
+        variant="danger"
+        onConfirm={() => confirmAction?.onConfirm()}
+      />
     </div>
   );
 };

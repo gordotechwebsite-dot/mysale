@@ -1,5 +1,6 @@
 import { toast } from 'react-hot-toast';
 import { useState, useEffect } from 'react';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { Building2, Plus, Edit, Trash2, MapPin, Phone, Search } from 'lucide-react';
 import { getBranches, createBranch, updateBranch, deleteBranch, Branch } from '../api';
 
@@ -62,14 +63,21 @@ export default function Branches() {
     setShowModal(true);
   };
 
-  const handleDelete = async (branch: Branch) => {
-    if (!confirm(`¿Desactivar la sede "${branch.name}"?`)) return;
+  const [deleteConfirm, setDeleteConfirm] = useState<Branch | null>(null);
+
+  const handleDelete = (branch: Branch) => {
+    setDeleteConfirm(branch);
+  };
+
+  const doDelete = async () => {
+    if (!deleteConfirm) return;
     try {
-      await deleteBranch(branch.id);
+      await deleteBranch(deleteConfirm.id);
       loadBranches();
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Error al desactivar la sede');
     }
+    setDeleteConfirm(null);
   };
 
   const openNewModal = () => {
@@ -283,6 +291,17 @@ export default function Branches() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteConfirm}
+        onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}
+        title="Desactivar sede"
+        description={`¿Desactivar la sede "${deleteConfirm?.name}"?`}
+        confirmLabel="Sí, desactivar"
+        cancelLabel="No, cancelar"
+        variant="danger"
+        onConfirm={doDelete}
+      />
     </div>
   );
 }

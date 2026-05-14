@@ -1,8 +1,10 @@
 import { toast } from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { getSalesReport, getInventoryReport, exportSalesExcel, exportInventoryExcel, getLocations, getEmployeesSummaryReport, getProfitabilityReport, exportEmployeesExcel, exportProfitabilityExcel, getUsers, getPurchasesReport, exportPurchasesExcel, getDeliveries, getCashCloses, createCashClose, deleteCashClose } from '../api';
 import type { Delivery, CashClose } from '../types';
 import type { Location } from '../types';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -121,6 +123,7 @@ const Reports: React.FC = () => {
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   useEffect(() => {
     loadLocations();
@@ -133,6 +136,7 @@ const Reports: React.FC = () => {
       setLocations(data);
     } catch (error) {
       console.error('Error loading locations:', error);
+      toast.error('Error al cargar ubicaciones');
     }
   };
 
@@ -142,6 +146,7 @@ const Reports: React.FC = () => {
       setUsers(data);
     } catch (error) {
       console.error('Error loading users:', error);
+      toast.error('Error al cargar usuarios');
     }
   };
 
@@ -156,6 +161,7 @@ const Reports: React.FC = () => {
       setSalesReport(data);
     } catch (error) {
       console.error('Error loading sales report:', error);
+      toast.error('Error al cargar reporte de ventas');
     } finally {
       setIsLoading(false);
     }
@@ -168,6 +174,7 @@ const Reports: React.FC = () => {
       setInventoryReport(data);
     } catch (error) {
       console.error('Error loading inventory report:', error);
+      toast.error('Error al cargar reporte de inventario');
     } finally {
       setIsLoading(false);
     }
@@ -184,6 +191,7 @@ const Reports: React.FC = () => {
       setEmployeesReport(data);
     } catch (error) {
       console.error('Error loading employees report:', error);
+      toast.error('Error al cargar reporte de empleados');
     } finally {
       setIsLoading(false);
     }
@@ -200,6 +208,7 @@ const Reports: React.FC = () => {
       setProfitabilityReport(data);
     } catch (error) {
       console.error('Error loading profitability report:', error);
+      toast.error('Error al cargar reporte de rentabilidad');
     } finally {
       setIsLoading(false);
     }
@@ -269,6 +278,7 @@ const Reports: React.FC = () => {
       setPurchasesReport(data);
     } catch (error) {
       console.error('Error loading purchases report:', error);
+      toast.error('Error al cargar reporte de compras');
     } finally {
       setIsLoading(false);
     }
@@ -305,6 +315,7 @@ const Reports: React.FC = () => {
       setDeliveriesData(data);
     } catch (error) {
       console.error('Error loading deliveries report:', error);
+      toast.error('Error al cargar reporte de domicilios');
     } finally {
       setIsLoading(false);
     }
@@ -542,6 +553,7 @@ const Reports: React.FC = () => {
       setCashCloses(data);
     } catch (error) {
       console.error('Error loading cash closes:', error);
+      toast.error('Error al cargar cierres de caja');
     } finally {
       setIsLoading(false);
     }
@@ -577,17 +589,24 @@ const Reports: React.FC = () => {
       loadCashCloses();
     } catch (error) {
       console.error('Error creating cash close:', error);
+      toast.error('Error al crear cierre de caja');
     }
   };
 
-  const handleDeleteCashClose = async (id: number) => {
-    if (!confirm('¿Eliminar este cierre de caja?')) return;
+  const handleDeleteCashClose = (id: number) => {
+    setDeleteConfirmId(id);
+  };
+
+  const doDeleteCashClose = async () => {
+    if (!deleteConfirmId) return;
     try {
-      await deleteCashClose(id);
+      await deleteCashClose(deleteConfirmId);
       loadCashCloses();
     } catch (error) {
       console.error('Error deleting cash close:', error);
+      toast.error('Error al eliminar cierre de caja');
     }
+    setDeleteConfirmId(null);
   };
 
   const handleExportCashClosesExcel = () => {
@@ -813,6 +832,43 @@ const Reports: React.FC = () => {
                       </CardContent>
                     </Card>
                   </div>
+
+                  {/* Payment methods chart */}
+                  {(() => {
+                    const paymentData = [
+                      { name: 'Efectivo', value: salesReport.total_cash || salesReport.summary?.cash_sales || 0 },
+                      { name: 'Tarjeta', value: salesReport.total_card || salesReport.summary?.card_sales || 0 },
+                      { name: 'Nequi', value: salesReport.total_nequi || 0 },
+                      { name: 'Bre-B', value: salesReport.total_breb || 0 },
+                    ].filter(d => d.value > 0);
+                    const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
+                    return paymentData.length > 0 ? (
+                      <div className="mb-6">
+                        <h4 className="font-semibold mb-3">Ventas por Método de Pago</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <ResponsiveContainer width="100%" height={250}>
+                            <PieChart>
+                              <Pie data={paymentData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                                {paymentData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                              </Pie>
+                              <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="flex flex-col justify-center space-y-2">
+                            {paymentData.map((d, i) => (
+                              <div key={d.name} className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                                  <span className="text-sm">{d.name}</span>
+                                </div>
+                                <span className="font-bold text-sm">{formatCurrency(d.value)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
 
                   {((salesReport.details && salesReport.details.length > 0) || (salesReport.top_products && salesReport.top_products.length > 0)) && (
                     <div className="mb-6">
@@ -1081,6 +1137,22 @@ const Reports: React.FC = () => {
                       </CardContent>
                     </Card>
                   </div>
+
+                  {/* Employee sales chart */}
+                  {employeesReport.employees.length > 1 && (
+                    <div className="mb-6">
+                      <h4 className="font-semibold mb-3">Ventas por Empleado</h4>
+                      <ResponsiveContainer width="100%" height={Math.max(200, employeesReport.employees.length * 40)}>
+                        <BarChart data={employeesReport.employees.slice().sort((a, b) => b.total_sales - a.total_sales)} layout="vertical" margin={{ left: 80 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+                          <YAxis type="category" dataKey="full_name" tick={{ fontSize: 11 }} width={75} />
+                          <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                          <Bar dataKey="total_sales" name="Ventas" fill="#10b981" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
 
                   {employeesReport.employees.length > 0 ? (
                     <div className="overflow-x-auto">
@@ -1400,6 +1472,28 @@ const Reports: React.FC = () => {
                       </Table>
                     </div>
                   </div>
+
+                  {/* Profitability chart */}
+                  {profitabilityReport.by_day.length > 1 && (
+                    <div className="mb-6">
+                      <h4 className="font-semibold mb-3">Tendencia de Rentabilidad</h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={profitabilityReport.by_day.map(d => ({
+                          ...d,
+                          date: new Date(d.date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
+                        }))}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                          <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
+                          <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                          <Legend />
+                          <Line type="monotone" dataKey="sales" name="Ventas" stroke="#10b981" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="net_profit" name="Utilidad Neta" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                          <Line type="monotone" dataKey="gross_profit" name="Utilidad Bruta" stroke="#f59e0b" strokeWidth={1} strokeDasharray="5 5" dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
 
                   {/* Daily breakdown table */}
                   {profitabilityReport.by_day.length > 0 && (
@@ -1812,6 +1906,17 @@ const Reports: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ConfirmDialog
+        open={!!deleteConfirmId}
+        onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}
+        title="Eliminar cierre de caja"
+        description="¿Estás seguro de eliminar este cierre de caja?"
+        confirmLabel="Sí, eliminar"
+        cancelLabel="No, cancelar"
+        variant="danger"
+        onConfirm={doDeleteCashClose}
+      />
     </div>
   );
 };

@@ -21,6 +21,16 @@ async def get_cash_cuts(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(CashCut)
+
+    # Tenant isolation: only show cuts from shifts in user's tenant locations
+    if current_user.tenant_id:
+        tenant_location_ids = [
+            loc.id for loc in db.query(Location.id).filter(Location.tenant_id == current_user.tenant_id).all()
+        ]
+        tenant_shift_ids = [
+            s.id for s in db.query(Shift.id).filter(Shift.location_id.in_(tenant_location_ids)).all()
+        ]
+        query = query.filter(CashCut.shift_id.in_(tenant_shift_ids))
     
     if shift_id:
         query = query.filter(CashCut.shift_id == shift_id)
@@ -139,6 +149,13 @@ async def get_cash_closes(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(CashClose)
+
+    # Tenant isolation: only show closes from user's tenant locations
+    if current_user.tenant_id:
+        tenant_location_ids = [
+            loc.id for loc in db.query(Location.id).filter(Location.tenant_id == current_user.tenant_id).all()
+        ]
+        query = query.filter(CashClose.location_id.in_(tenant_location_ids))
 
     if not start_date or not end_date:
         one_year_ago = now_colombia() - timedelta(days=365)

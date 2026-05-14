@@ -55,6 +55,7 @@ import {
   type LucideIcon
 } from 'lucide-react';
 import ReceiptTicket from '../components/ReceiptTicket';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const categoryIconMap: Record<string, LucideIcon> = {
   'Almuerzo': Sun,
@@ -116,6 +117,7 @@ const POS: React.FC = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastSale, setLastSale] = useState<any>(null);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   useEffect(() => {
     if (isShiftLoading) return;
@@ -166,6 +168,7 @@ const POS: React.FC = () => {
       setSubfamilies(subfamiliesData);
     } catch (error) {
       console.error('Error loading data:', error);
+      toast.error('Error al cargar productos');
     } finally {
       setIsLoading(false);
     }
@@ -255,7 +258,7 @@ const POS: React.FC = () => {
           <div className="flex items-center gap-2">
             {items.length > 0 && (
               <button
-                onClick={clearCart}
+                onClick={() => setShowClearConfirm(true)}
                 className="flex items-center gap-1 text-sm font-medium transition-colors"
                 style={{ color: '#ef4444' }}
               >
@@ -677,6 +680,17 @@ const POS: React.FC = () => {
           onClose={() => { setShowReceipt(false); searchRef.current?.focus(); }}
         />
       )}
+
+      <ConfirmDialog
+        open={showClearConfirm}
+        onOpenChange={setShowClearConfirm}
+        title="Limpiar carrito"
+        description="¿Estás seguro de que quieres eliminar todos los productos del carrito?"
+        confirmLabel="Sí, limpiar"
+        cancelLabel="No, cancelar"
+        variant="danger"
+        onConfirm={() => { clearCart(); setShowClearConfirm(false); }}
+      />
     </div>
   );
 };
