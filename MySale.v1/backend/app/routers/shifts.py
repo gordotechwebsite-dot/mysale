@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
+from app.timezone import now_colombia
 from app.database import get_db
 from app.models.user import User, RoleType
 from app.models.shift import Shift, ShiftStatus, ShiftAlert, AlertType
@@ -161,7 +162,7 @@ async def close_shift(
             detail="No tiene un turno abierto"
         )
     
-    shift.end_time = datetime.utcnow()
+    shift.end_time = now_colombia()
     shift.status = ShiftStatus.CLOSED
     shift.final_cash = shift_close.final_cash
     shift.notes = shift_close.notes
@@ -210,7 +211,7 @@ async def close_shift_by_admin(
             detail="El turno ya esta cerrado"
         )
     
-    shift.end_time = datetime.utcnow()
+    shift.end_time = now_colombia()
     shift.status = ShiftStatus.CLOSED_BY_ADMIN
     shift.final_cash = shift_close.final_cash
     shift.notes = shift_close.notes

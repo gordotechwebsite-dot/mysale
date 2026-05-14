@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.timezone import now_colombia
 import enum
 from app.database import Base
 
@@ -51,7 +52,7 @@ class Sale(Base):
     delivery_fee = Column(Float, default=0.0)
     delivery_status = Column(SQLEnum(DeliveryStatus), nullable=True)
     delivered_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
 
     location = relationship("Location", back_populates="sales")
     shift = relationship("Shift", back_populates="sales")

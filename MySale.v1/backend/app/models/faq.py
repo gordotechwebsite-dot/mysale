@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean
 from datetime import datetime
+from app.timezone import now_colombia
 from app.database import Base
 
 
@@ -14,5 +15,5 @@ class FAQ(Base):
     keywords = Column(Text)
     is_active = Column(Boolean, default=True)
     order = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
+    updated_at = Column(DateTime, default=now_colombia, onupdate=now_colombia)

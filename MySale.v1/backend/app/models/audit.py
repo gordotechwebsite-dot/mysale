@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum
 from datetime import datetime
+from app.timezone import now_colombia
 import enum
 from app.database import Base
 
@@ -26,4 +27,4 @@ class AuditLog(Base):
     new_values = Column(Text)
     ip_address = Column(String(50))
     user_agent = Column(String(500))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)

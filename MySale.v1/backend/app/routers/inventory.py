@@ -573,6 +573,7 @@ async def blind_inventory(
     current_user: User = Depends(require_module("inventory"))
 ):
     from datetime import datetime
+    from app.timezone import now_colombia
     
     location = db.query(Location).filter(Location.id == location_id).first()
     if not location:
@@ -599,7 +600,7 @@ async def blind_inventory(
         
         old_quantity = stock.quantity
         stock.quantity = item.quantity
-        stock.last_inventory_date = datetime.utcnow()
+        stock.last_inventory_date = now_colombia()
         
         movement = StockMovement(
             product_id=item.product_id,

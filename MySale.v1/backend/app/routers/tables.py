@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List, Optional
 from datetime import datetime
+from app.timezone import now_colombia
 import logging
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,7 @@ def get_table_response(table: Table, db: Session) -> TableResponse:
         ).count()
         ticket_total = current_ticket.total if current_ticket.total > 0 else None
         if current_ticket.opened_at:
-            delta = datetime.utcnow() - current_ticket.opened_at
+            delta = now_colombia() - current_ticket.opened_at
             hours, remainder = divmod(int(delta.total_seconds()), 3600)
             minutes, seconds = divmod(remainder, 60)
             ticket_time = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
@@ -760,7 +761,7 @@ async def update_comanda_status(
     try:
         comanda.status = status
         if status == "delivered":
-            comanda.completed_at = datetime.utcnow()
+            comanda.completed_at = now_colombia()
             items = db.query(TicketItem).filter(TicketItem.comanda_id == comanda_id).all()
             for item in items:
                 item.status = "served"
@@ -934,7 +935,7 @@ async def pay_ticket(
         db.add(payment)
     
     ticket.status = "paid"
-    ticket.closed_at = datetime.utcnow()
+    ticket.closed_at = now_colombia()
     
     table = db.query(Table).filter(Table.id == ticket.table_id).first()
     if table:

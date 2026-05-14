@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.timezone import now_colombia
 import enum
 from app.database import Base
 
@@ -17,7 +18,7 @@ class Shift(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
-    start_time = Column(DateTime, default=datetime.utcnow)
+    start_time = Column(DateTime, default=now_colombia)
     end_time = Column(DateTime, nullable=True)
     status = Column(SQLEnum(ShiftStatus), default=ShiftStatus.OPEN)
     initial_cash = Column(Float, default=0.0)
@@ -52,6 +53,6 @@ class ShiftAlert(Base):
     message = Column(Text, nullable=False)
     points_affected = Column(Integer, default=0)
     is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_colombia)
 
     user = relationship("User", back_populates="alerts")

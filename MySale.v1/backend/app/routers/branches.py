@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
 from datetime import datetime, timedelta
+from app.timezone import now_colombia
 from pydantic import BaseModel
 from app.database import get_db
 from app.models.user import User, RoleType
@@ -67,7 +68,7 @@ async def clock_in(
         tenant_id=current_user.tenant_id,
         user_id=current_user.id,
         branch_id=session_data.branch_id,
-        clock_in=datetime.utcnow(),
+        clock_in=now_colombia(),
         notes=session_data.notes
     )
     db.add(work_session)
@@ -110,7 +111,7 @@ async def clock_out(
         )
     
     # Calculate total minutes worked
-    clock_out_time = datetime.utcnow()
+    clock_out_time = now_colombia()
     total_minutes = int((clock_out_time - work_session.clock_in).total_seconds() / 60)
     
     work_session.clock_out = clock_out_time
@@ -190,7 +191,7 @@ async def auto_clock_in(
         tenant_id=current_user.tenant_id,
         user_id=current_user.id,
         branch_id=branch.id,
-        clock_in=datetime.utcnow(),
+        clock_in=now_colombia(),
         notes="Auto registro al iniciar sesion"
     )
     db.add(work_session)
@@ -227,7 +228,7 @@ async def auto_clock_out(
     if not work_session:
         return {"message": "No hay sesion abierta"}
     
-    clock_out_time = datetime.utcnow()
+    clock_out_time = now_colombia()
     total_minutes = int((clock_out_time - work_session.clock_in).total_seconds() / 60)
     
     work_session.clock_out = clock_out_time
@@ -584,7 +585,7 @@ async def clock_with_pin(
     
     if open_session:
         # Clock out
-        clock_out_time = datetime.utcnow()
+        clock_out_time = now_colombia()
         total_minutes = int((clock_out_time - open_session.clock_in).total_seconds() / 60)
         
         open_session.clock_out = clock_out_time
@@ -680,7 +681,7 @@ async def clock_with_pin(
             tenant_id=authenticated_user.tenant_id,
             user_id=authenticated_user.id,
             branch_id=branch_id,
-            clock_in=datetime.utcnow()
+            clock_in=now_colombia()
         )
         db.add(work_session)
         db.commit()

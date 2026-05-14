@@ -9,6 +9,7 @@ from app.models.location import Location
 from app.schemas.cash import CashCutCreate, CashCutResponse, CashDenominationResponse, CashCloseCreate, CashCloseResponse
 from app.utils.auth import get_current_user
 from datetime import datetime, timedelta
+from app.timezone import now_colombia
 
 router = APIRouter(prefix="/api/cash", tags=["Caja"])
 
@@ -140,7 +141,7 @@ async def get_cash_closes(
     query = db.query(CashClose)
 
     if not start_date or not end_date:
-        one_year_ago = datetime.utcnow() - timedelta(days=365)
+        one_year_ago = now_colombia() - timedelta(days=365)
         query = query.filter(CashClose.close_date >= one_year_ago)
     else:
         try:
@@ -191,7 +192,7 @@ async def create_cash_close(
     try:
         close_date = datetime.strptime(data.close_date, "%Y-%m-%d")
     except ValueError:
-        close_date = datetime.utcnow()
+        close_date = now_colombia()
 
     cash_close = CashClose(
         location_id=data.location_id,

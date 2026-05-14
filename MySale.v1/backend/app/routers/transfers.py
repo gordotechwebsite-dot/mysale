@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
+from app.timezone import now_colombia
 from app.database import get_db
 from app.models.user import User, RoleType
 from app.models.transfer import Transfer, TransferItem, TransferStatus
@@ -235,7 +236,7 @@ async def receive_transfer(
     
     transfer.status = TransferStatus.COMPLETED
     transfer.received_by_id = current_user.id
-    transfer.completed_at = datetime.utcnow()
+    transfer.completed_at = now_colombia()
     if receive_data.notes:
         transfer.notes = (transfer.notes or "") + f"\nRecibido: {receive_data.notes}"
     
