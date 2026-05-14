@@ -715,14 +715,16 @@ const Layout: React.FC = () => {
       {/* PIN Modal */}
       <PinModal isOpen={pinModalOpen} onClose={() => setPinModalOpen(false)} />
 
-      {/* Mobile menu button */}
-      <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 text-white transition-colors"
-        style={{ backgroundColor: '#00a86b', borderRadius: '10px' }}
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-      >
-        {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
+      {/* Mobile menu button (only hamburger — X is inside sidebar) */}
+      {!sidebarOpen && (
+        <button
+          className="lg:hidden fixed top-4 left-4 z-50 p-2 text-white transition-colors"
+          style={{ backgroundColor: '#00a86b', borderRadius: '10px' }}
+          onClick={() => setSidebarOpen(true)}
+        >
+          <Menu size={24} />
+        </button>
+      )}
 
       {/* Sidebar */}
       <aside
@@ -734,18 +736,29 @@ const Layout: React.FC = () => {
           borderRight: '1px solid #e5e7eb'
         }}
       >
-        {/* Logo */}
+        {/* Logo + close button */}
         <div className="p-5" style={{ borderBottom: '1px solid #e5e7eb' }}>
-          <div className="flex items-center gap-3">
-            <img 
-              src="/logo.png" 
-              alt="MySale Logo" 
-              style={{ width: '40px', height: '40px', objectFit: 'contain' }}
-            />
-            <div>
-              <h1 className="font-semibold text-base" style={{ color: '#111827' }}>MySale</h1>
-              <p className="text-xs" style={{ color: '#6b7280' }}>Sistema POS</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img 
+                src="/logo.png" 
+                alt="MySale Logo" 
+                style={{ width: '40px', height: '40px', objectFit: 'contain' }}
+              />
+              <div>
+                <h1 className="font-semibold text-base" style={{ color: '#111827' }}>MySale</h1>
+                <p className="text-xs" style={{ color: '#6b7280' }}>Sistema POS</p>
+              </div>
             </div>
+            <button
+              className="lg:hidden p-1.5 transition-colors"
+              style={{ borderRadius: '8px', color: '#9ca3af' }}
+              onClick={() => setSidebarOpen(false)}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = '#f3f4f6'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
+            >
+              <X size={18} />
+            </button>
           </div>
         </div>
 
@@ -842,6 +855,19 @@ const Layout: React.FC = () => {
           })()}
         </nav>
 
+        {/* Logout button inside sidebar */}
+        <div className="p-4" style={{ borderTop: '1px solid #e5e7eb' }}>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-2.5 transition-all duration-200"
+            style={{ borderRadius: '10px', color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.06)' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(239, 68, 68, 0.12)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(239, 68, 68, 0.06)'; }}
+          >
+            <LogOut size={18} strokeWidth={1.5} />
+            <span className="text-sm font-medium">Cerrar Sesion</span>
+          </button>
+        </div>
       </aside>
 
       {/* Mobile overlay */}
@@ -895,25 +921,7 @@ const Layout: React.FC = () => {
         </div>
       </main>
 
-      {/* Fixed Logout Button - Bottom Right */}
-      <button
-        onClick={handleLogout}
-        className="fixed bottom-6 left-4 lg:bottom-6 lg:right-6 lg:left-auto flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-3 bg-white shadow-lg transition-all duration-200 hover:shadow-xl z-30"
-        style={{ 
-          borderRadius: '12px',
-          color: '#ef4444',
-          border: '1px solid #fee2e2'
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.backgroundColor = '#fef2f2';
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.backgroundColor = 'white';
-        }}
-      >
-        <LogOut size={16} />
-        <span className="font-medium text-xs lg:text-sm">Cerrar Sesion</span>
-      </button>
+
     </div>
   );
 };
