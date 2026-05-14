@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -36,6 +36,7 @@ import {
   Clock,
   ChefHat,
   Truck,
+  ChevronLeft,
   Sun,
   Beef,
   Drumstick,
@@ -56,6 +57,10 @@ import {
   Fish,
   Egg,
   Apple,
+  GlassWater,
+  Cake,
+  CakeSlice,
+  Snowflake,
   type LucideIcon
 } from 'lucide-react';
 
@@ -63,8 +68,10 @@ const categoryIconMap: Record<string, LucideIcon> = {
   'Almuerzo': Sun, 'Hamburguesas': Beef, 'Alitas': Drumstick, 'Boneless': Bird,
   'Picadas': UtensilsCrossed, 'Pollo Broaster': Flame, 'Perros Calientes': Sandwich,
   'Salchipapas': Cookie, 'Entradas': Soup, 'Platos Especiales': Star, 'Bebidas': Coffee,
+  'Bebidas Calientes': Coffee, 'Bebidas Frías': GlassWater,
   'Menú Infantil': Baby, 'Menu Infantil': Baby, 'Adicionales': PlusCircle, 'Pizzas': Pizza,
-  'Postres': IceCream, 'Ensaladas': Salad, 'Panadería': Wheat, 'Pescados': Fish,
+  'Postres': CakeSlice, 'Pastelería': Cake, 'Helados': IceCream, 'Raspados': Snowflake,
+  'Ensaladas': Salad, 'Panadería': Wheat, 'Pescados': Fish,
   'Desayunos': Egg, 'Frutas': Apple, 'Comidas': UtensilsCrossed,
 };
 
@@ -83,7 +90,6 @@ const Deliveries: React.FC = () => {
   const { currentShift } = useShift();
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // Use shift location, then user location, then first POS location as fallback
   const sessionLocationId = currentShift?.location_id || user?.location_id || null;
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -91,7 +97,6 @@ const Deliveries: React.FC = () => {
   const [subfamilies, setSubfamilies] = useState<SubFamily[]>([]);
   const [selectedFamily, setSelectedFamily] = useState<number | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<number | null>(sessionLocationId);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showPayment, setShowPayment] = useState(false);
@@ -113,11 +118,13 @@ const Deliveries: React.FC = () => {
   const [_deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
 
+  // Mobile step: 'categories' | 'products' | 'checkout'
+  const [mobileStep, setMobileStep] = useState<'categories' | 'products' | 'checkout'>('categories');
+
   useEffect(() => {
     loadInitialData();
   }, []);
 
-  // Update selectedLocation when session location changes
   useEffect(() => {
     if (sessionLocationId && !selectedLocation) {
       setSelectedLocation(sessionLocationId);
@@ -130,7 +137,7 @@ const Deliveries: React.FC = () => {
     }
   }, [selectedLocation]);
 
-  useEffect(() => {
+  const filteredProducts = useMemo(() => {
     let filtered = products;
     if (selectedFamily) {
       const familySubIds = subfamilies.filter(sf => sf.family_id === selectedFamily).map(sf => sf.id);
@@ -143,8 +150,16 @@ const Deliveries: React.FC = () => {
         p.barcode?.includes(searchTerm)
       );
     }
-    setFilteredProducts(filtered);
+    return filtered;
   }, [searchTerm, products, selectedFamily, subfamilies]);
+
+  const categoriesWithCount = useMemo(() => {
+    return families.map(family => {
+      const familySubIds = subfamilies.filter(sf => sf.family_id === family.id).map(sf => sf.id);
+      const count = products.filter(p => familySubIds.includes(p.subfamily_id)).length;
+      return { ...family, count };
+    }).filter(f => f.count > 0);
+  }, [families, subfamilies, products]);
 
   const loadInitialData = async () => {
     try {
@@ -156,12 +171,8 @@ const Deliveries: React.FC = () => {
       ]);
       setFamilies(familiesData);
       setSubfamilies(subfamiliesData);
-      if (familiesData.length > 0) {
-        setSelectedFamily(familiesData[0].id);
-      }
       const posLocations = locs.filter(l => l.location_type === 'pos');
       setDeliveries(deliveriesData);
-      // If no session location, fallback to first POS location
       if (!selectedLocation && posLocations.length > 0) {
         setSelectedLocation(posLocations[0].id);
       }
@@ -176,12 +187,10 @@ const Deliveries: React.FC = () => {
     try {
       const data = await getProducts({ location_id: selectedLocation });
       setProducts(data);
-      setFilteredProducts(data);
     } catch (error) {
       console.error('Error loading products:', error);
     } finally {
       setIsLoading(false);
-      searchRef.current?.focus();
     }
   };
 
@@ -196,8 +205,6 @@ const Deliveries: React.FC = () => {
 
   const handleProductClick = (product: Product) => {
     addItem(product);
-    setSearchTerm('');
-    searchRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -223,8 +230,8 @@ const Deliveries: React.FC = () => {
 
     setIsProcessing(true);
     try {
-      const fee = parseFloat(deliveryFee) || 0;
-      const grandTotal = total + fee;
+      const feeVal = parseFloat(deliveryFee) || 0;
+      const grandTotalVal = total + feeVal;
       await createDelivery({
         payment_method: paymentMethod,
         items: items.map(item => ({
@@ -236,8 +243,8 @@ const Deliveries: React.FC = () => {
         customer_phone: customerPhone,
         customer_address: customerAddress,
         delivery_person: deliveryPerson || undefined,
-        delivery_fee: fee,
-        amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) || grandTotal : undefined,
+        delivery_fee: feeVal,
+        amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) || grandTotalVal : undefined,
         notes: notes || undefined,
       });
       clearCart();
@@ -250,11 +257,12 @@ const Deliveries: React.FC = () => {
       setDeliveryPerson('');
       setDeliveryFee('');
       setNotes('');
+      setMobileStep('categories');
+      setSelectedFamily(null);
       await loadDeliveries();
 
       setTimeout(() => {
         setShowSuccess(false);
-        searchRef.current?.focus();
       }, 2000);
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Error al registrar domicilio');
@@ -262,7 +270,6 @@ const Deliveries: React.FC = () => {
       setIsProcessing(false);
     }
   };
-
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -286,6 +293,8 @@ const Deliveries: React.FC = () => {
     : 0;
 
   const quickAmounts = [50000, 100000, 200000];
+  const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
+  const showingCategories = !selectedFamily && !searchTerm;
 
   const getStatusBadge = (status?: string) => {
     const config: Record<string, { color: string; label: string; icon: React.ReactNode }> = {
@@ -303,304 +312,511 @@ const Deliveries: React.FC = () => {
     );
   };
 
+  // Desktop order panel content
+  const OrderPanel = () => (
+    <>
+      <div className="p-2 px-3 border-b bg-purple-50">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-base flex items-center gap-2">
+            <Bike className="w-4 h-4 text-purple-600" />
+            Pedido a Domicilio
+          </h3>
+          {items.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-red-500 hover:text-red-700"
+              onClick={clearCart}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Limpiar
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Customer info */}
+      <div className="p-2 px-3 border-b space-y-1">
+        <h4 className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+          <User className="w-3 h-3" /> Datos del Cliente
+        </h4>
+        <Input placeholder="Nombre del cliente *" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="h-8 text-sm" />
+        <Input placeholder="Telefono *" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} className="h-8 text-sm" />
+        <div className="relative">
+          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3" />
+          <Input placeholder="Direccion de entrega *" value={customerAddress} onChange={(e) => setCustomerAddress(e.target.value)} className="h-8 text-sm pl-8" />
+        </div>
+        <div className="flex gap-2">
+          <Input placeholder="Domiciliario (opcional)" value={deliveryPerson} onChange={(e) => setDeliveryPerson(e.target.value)} className="h-8 text-sm flex-1" />
+          <Input type="number" placeholder="$ Domicilio" value={deliveryFee} onChange={(e) => setDeliveryFee(e.target.value)} className="h-8 text-sm w-28" />
+        </div>
+      </div>
+
+      {/* Payment method */}
+      <div className="p-2 px-3 border-b space-y-1">
+        <h4 className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+          <CreditCard className="w-3 h-3" /> Método de Pago
+        </h4>
+        <div className="grid grid-cols-3 gap-1">
+          {[
+            { method: 'cash' as const, icon: Banknote, label: 'Efectivo' },
+            { method: 'transfer' as const, icon: Smartphone, label: 'Nequi' },
+            { method: 'card' as const, icon: CreditCard, label: 'Bre-B' },
+          ].map(({ method, icon: Icon, label }) => (
+            <button
+              key={method}
+              onClick={() => setPaymentMethod(method)}
+              className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg border-2 transition-all text-xs ${
+                paymentMethod === method
+                  ? 'border-purple-600 bg-purple-50 text-purple-700'
+                  : 'border-gray-200 hover:border-gray-300 text-gray-600'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span className="font-medium">{label}</span>
+            </button>
+          ))}
+        </div>
+        {paymentMethod === 'cash' && (
+          <Input type="number" placeholder="Monto recibido (opcional)" value={amountReceived} onChange={(e) => setAmountReceived(e.target.value)} className="h-8 text-sm" />
+        )}
+      </div>
+
+      {/* Cart items */}
+      <div className="flex-1 overflow-auto p-3">
+        {items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-400">
+            <ShoppingCart className="w-12 h-12 mb-3" />
+            <p className="text-sm">Agregue productos al pedido</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {items.map((item) => (
+              <div key={item.product.id} className="bg-gray-50 rounded-lg p-2">
+                <div className="flex justify-between items-start mb-1">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{item.product.name}</p>
+                    <p className="text-xs text-gray-500">{formatCurrency(item.product.sale_price)} c/u</p>
+                  </div>
+                  <button onClick={() => removeItem(item.product.id)} className="text-red-500 hover:text-red-700 p-1">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)} className="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center">
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="w-8 text-center font-bold text-sm">{item.quantity}</span>
+                    <button onClick={() => updateQuantity(item.product.id, item.quantity + 1)} className="w-7 h-7 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center">
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <p className="font-bold text-sm">{formatCurrency(item.product.sale_price * item.quantity)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Totals */}
+      <div className="p-2 px-3 pb-4 border-t bg-purple-50">
+        <div className="flex justify-between items-center mb-0.5 text-sm">
+          <span className="text-gray-600">Subtotal:</span>
+          <span className="font-semibold">{formatCurrency(subtotal)}</span>
+        </div>
+        {fee > 0 && (
+          <div className="flex justify-between items-center mb-1 text-sm">
+            <span className="text-gray-600">Domicilio:</span>
+            <span className="font-semibold">{formatCurrency(fee)}</span>
+          </div>
+        )}
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-base font-bold">TOTAL:</span>
+          <span className="text-lg font-bold text-purple-600">{formatCurrency(grandTotal)}</span>
+        </div>
+        <Button
+          className="w-full h-10 text-sm font-bold bg-purple-600 hover:bg-purple-700"
+          disabled={items.length === 0 || !customerName || !customerPhone || !customerAddress}
+          onClick={() => setShowPayment(true)}
+        >
+          <Bike className="w-5 h-5 mr-2" />
+          Registrar Domicilio (F2)
+        </Button>
+      </div>
+    </>
+  );
 
   return (
-    <div className="h-[calc(100vh-180px)] flex flex-col overflow-hidden">
-      <div className="flex-1 flex gap-3 min-h-0">
-            {/* Product selection - left */}
-            <div className="flex-1 min-w-0 flex flex-col">
-              <div className="mb-4">
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <Input
-                    ref={searchRef}
-                    type="text"
-                    placeholder="Buscar producto por nombre, codigo o escanear..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    className="pl-12 h-12 text-lg"
-                    autoFocus
-                  />
-                </div>
-              </div>
+    <div className="h-[calc(100vh-140px)] lg:flex lg:gap-3">
+      {/* ===== MOBILE VIEW ===== */}
+      <div className="lg:hidden flex flex-col h-full">
+        {/* Mobile Search */}
+        <div className="mb-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: '#6b7280' }} />
+            <input
+              ref={searchRef}
+              type="text"
+              placeholder="Buscar producto..."
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); if (e.target.value) { setSelectedFamily(null); setMobileStep('products'); } }}
+              onKeyDown={handleKeyDown}
+              className="w-full h-10 pl-10 pr-10 text-base outline-none transition-all duration-200"
+              style={{ borderRadius: '12px', border: '1px solid #e5e7eb', backgroundColor: 'white', color: '#111827' }}
+              onFocus={(e) => { e.target.style.borderColor = '#9333ea'; e.target.style.boxShadow = '0 0 0 3px rgba(147, 51, 234, 0.1)'; }}
+              onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
+            />
+            {searchTerm && (
+              <button onClick={() => { setSearchTerm(''); setMobileStep('categories'); }} className="absolute right-3 top-1/2 -translate-y-1/2 p-1" style={{ color: '#9ca3af' }}>
+                <X size={16} />
+              </button>
+            )}
+          </div>
+        </div>
 
-              {/* Category Cards */}
-              {families.length > 0 && (
-                <div className="mb-3">
-                  <div className="grid grid-cols-6 gap-2">
-                    {families.map((family) => {
-                      const count = products.filter(p => {
-                        const familySubIds = subfamilies.filter(sf => sf.family_id === family.id).map(sf => sf.id);
-                        return familySubIds.includes(p.subfamily_id);
-                      }).length;
-                      if (count === 0) return null;
-                      const CategoryIcon = getCategoryIcon(family.name);
-                      return (
-                        <button
-                          key={family.id}
-                          onClick={() => { setSelectedFamily(selectedFamily === family.id ? null : family.id); setSearchTerm(''); }}
-                          className={`flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-all ${
-                            selectedFamily === family.id
-                              ? 'bg-purple-100 text-purple-600 border-2 border-purple-400'
-                              : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-purple-200 hover:bg-purple-50'
-                          }`}
-                        >
-                          <CategoryIcon className="w-5 h-5" />
-                          <span className="text-xs font-medium leading-tight text-center">{family.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+        {/* Mobile back button */}
+        {mobileStep !== 'categories' && !searchTerm && (
+          <button
+            onClick={() => {
+              if (mobileStep === 'checkout') { setMobileStep(selectedFamily ? 'products' : 'categories'); }
+              else { setSelectedFamily(null); setMobileStep('categories'); }
+            }}
+            className="flex items-center gap-1.5 mb-3 text-sm font-medium"
+            style={{ color: '#9333ea' }}
+          >
+            <ChevronLeft size={18} />
+            <span>
+              {mobileStep === 'checkout' ? 'Productos' : categoriesWithCount.find(c => c.id === selectedFamily)?.name || 'Categorias'}
+            </span>
+          </button>
+        )}
 
-              <div className="flex-1 overflow-auto">
-                {!selectedLocation ? (
-                  <div className="flex items-center justify-center h-full text-gray-400">
-                    <p>Selecciona un punto de venta para comenzar</p>
-                  </div>
-                ) : isLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {filteredProducts.map((product) => (
-                      <button
-                        key={product.id}
-                        onClick={() => handleProductClick(product)}
-                        className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-purple-50 transition-all text-left border-2 border-transparent hover:border-purple-500 active:scale-95 flex items-center justify-between gap-3"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-800 truncate">{product.name}</p>
-
-                          <p className="text-lg font-bold text-purple-600 mt-1">
-                            {formatCurrency(product.sale_price)}
-                          </p>
-                        </div>
-                        {(product as any).image_url ? (
-                          <img
-                            src={`${import.meta.env.VITE_API_URL}${(product as any).image_url}`}
-                            alt={product.name}
-                            className="w-14 h-14 object-contain rounded-lg flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Package className="w-7 h-7 text-gray-300" />
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+        {/* Mobile content */}
+        <div className="flex-1 overflow-auto pb-20">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#9333ea' }} />
             </div>
-
-            {/* Order ticket - right */}
-            <Card className="w-[420px] flex-shrink-0 flex flex-col">
-              <div className="p-2 px-3 border-b bg-purple-50">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-base flex items-center gap-2">
-                    <Bike className="w-4 h-4 text-purple-600" />
-                    Pedido a Domicilio
-                  </h3>
-                  {items.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500 hover:text-red-700"
-                      onClick={clearCart}
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      Limpiar
-                    </Button>
-                  )}
+          ) : mobileStep === 'categories' && showingCategories ? (
+            /* Categories Grid */
+            <div className="grid grid-cols-3 gap-2.5">
+              {categoriesWithCount.map((family) => {
+                const CategoryIcon = getCategoryIcon(family.name);
+                return (
+                  <button
+                    key={family.id}
+                    onClick={() => { setSelectedFamily(family.id); setMobileStep('products'); }}
+                    className="bg-white flex flex-col items-center justify-center gap-2 p-4 transition-all duration-200 active:scale-95"
+                    style={{ borderRadius: '14px', border: '2px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+                  >
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(147, 51, 234, 0.1)' }}>
+                      <CategoryIcon size={20} style={{ color: '#9333ea' }} />
+                    </div>
+                    <span className="text-xs font-semibold text-center leading-tight" style={{ color: '#111827' }}>{family.name}</span>
+                    <span className="text-[10px]" style={{ color: '#9ca3af' }}>{family.count} productos</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : mobileStep === 'checkout' ? (
+            /* Checkout: cart + form */
+            <div className="space-y-3">
+              {/* Cart items */}
+              <div className="bg-white rounded-xl p-3" style={{ border: '1px solid #e5e7eb' }}>
+                <h4 className="font-semibold text-sm mb-2 flex items-center gap-2" style={{ color: '#111827' }}>
+                  <ShoppingCart size={16} style={{ color: '#9333ea' }} />
+                  Productos ({itemCount})
+                </h4>
+                <div className="space-y-2">
+                  {items.map((item) => (
+                    <div key={item.product.id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: '#f9fafb' }}>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate" style={{ color: '#111827' }}>{item.product.name}</p>
+                        <p className="text-xs" style={{ color: '#6b7280' }}>{formatCurrency(item.product.sale_price)} c/u</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 ml-2">
+                        <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)} className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#e5e7eb' }}>
+                          <Minus size={12} />
+                        </button>
+                        <span className="w-6 text-center font-bold text-xs">{item.quantity}</span>
+                        <button onClick={() => updateQuantity(item.product.id, item.quantity + 1)} className="w-6 h-6 rounded-full text-white flex items-center justify-center" style={{ backgroundColor: '#9333ea' }}>
+                          <Plus size={12} />
+                        </button>
+                        <button onClick={() => removeItem(item.product.id)} className="ml-1 p-1" style={{ color: '#ef4444' }}>
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Customer info */}
-              <div className="p-2 px-3 border-b space-y-1">
-                <h4 className="text-xs font-semibold text-gray-600 flex items-center gap-1">
-                  <User className="w-3 h-3" /> Datos del Cliente
+              {/* Customer form */}
+              <div className="bg-white rounded-xl p-3 space-y-2" style={{ border: '1px solid #e5e7eb' }}>
+                <h4 className="font-semibold text-sm flex items-center gap-2" style={{ color: '#111827' }}>
+                  <User size={16} style={{ color: '#9333ea' }} />
+                  Datos del Cliente
                 </h4>
-                <Input
+                <input
                   placeholder="Nombre del cliente *"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="h-8 text-sm"
+                  className="w-full h-10 px-3 text-base outline-none"
+                  style={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '16px' }}
                 />
-                <Input
+                <input
                   placeholder="Telefono *"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="h-8 text-sm"
+                  type="tel"
+                  inputMode="numeric"
+                  className="w-full h-10 px-3 text-base outline-none"
+                  style={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '16px' }}
                 />
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-3 h-3" />
-                  <Input
-                    placeholder="Direccion de entrega *"
-                    value={customerAddress}
-                    onChange={(e) => setCustomerAddress(e.target.value)}
-                    className="h-8 text-sm pl-8"
-                  />
-                </div>
+                <input
+                  placeholder="Direccion de entrega *"
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                  className="w-full h-10 px-3 text-base outline-none"
+                  style={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '16px' }}
+                />
                 <div className="flex gap-2">
-                  <Input
-                    placeholder="Domiciliario (opcional)"
+                  <input
+                    placeholder="Domiciliario"
                     value={deliveryPerson}
                     onChange={(e) => setDeliveryPerson(e.target.value)}
-                    className="h-8 text-sm flex-1"
+                    className="flex-1 h-10 px-3 text-base outline-none"
+                    style={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '16px' }}
                   />
-                  <Input
+                  <input
                     type="number"
                     placeholder="$ Domicilio"
                     value={deliveryFee}
                     onChange={(e) => setDeliveryFee(e.target.value)}
-                    className="h-8 text-sm w-28"
+                    inputMode="numeric"
+                    className="w-28 h-10 px-3 text-base outline-none"
+                    style={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '16px' }}
                   />
                 </div>
               </div>
 
               {/* Payment method */}
-              <div className="p-2 px-3 border-b space-y-1">
-                <h4 className="text-xs font-semibold text-gray-600 flex items-center gap-1">
-                  <CreditCard className="w-3 h-3" /> Método de Pago
+              <div className="bg-white rounded-xl p-3 space-y-2" style={{ border: '1px solid #e5e7eb' }}>
+                <h4 className="font-semibold text-sm flex items-center gap-2" style={{ color: '#111827' }}>
+                  <CreditCard size={16} style={{ color: '#9333ea' }} />
+                  Método de Pago
                 </h4>
-                <div className="grid grid-cols-3 gap-1">
-                  <button
-                    onClick={() => setPaymentMethod('cash')}
-                    className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg border-2 transition-all text-xs ${
-                      paymentMethod === 'cash'
-                        ? 'border-purple-600 bg-purple-50 text-purple-700'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                    }`}
-                  >
-                    <Banknote className="w-4 h-4" />
-                    <span className="font-medium">Efectivo</span>
-                  </button>
-                  <button
-                    onClick={() => setPaymentMethod('transfer')}
-                    className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg border-2 transition-all text-xs ${
-                      paymentMethod === 'transfer'
-                        ? 'border-purple-600 bg-purple-50 text-purple-700'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                    }`}
-                  >
-                    <Smartphone className="w-4 h-4" />
-                    <span className="font-medium">Nequi</span>
-                  </button>
-                  <button
-                    onClick={() => setPaymentMethod('card')}
-                    className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg border-2 transition-all text-xs ${
-                      paymentMethod === 'card'
-                        ? 'border-purple-600 bg-purple-50 text-purple-700'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                    }`}
-                  >
-                    <CreditCard className="w-4 h-4" />
-                    <span className="font-medium">Bre-B</span>
-                  </button>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { method: 'cash' as const, icon: Banknote, label: 'Efectivo' },
+                    { method: 'transfer' as const, icon: Smartphone, label: 'Nequi' },
+                    { method: 'card' as const, icon: CreditCard, label: 'Bre-B' },
+                  ].map(({ method, icon: Icon, label }) => (
+                    <button
+                      key={method}
+                      onClick={() => setPaymentMethod(method)}
+                      className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all ${
+                        paymentMethod === method
+                          ? 'border-purple-600 bg-purple-50 text-purple-700'
+                          : 'border-gray-200 text-gray-600'
+                      }`}
+                    >
+                      <Icon size={20} />
+                      <span className="text-xs font-medium">{label}</span>
+                    </button>
+                  ))}
                 </div>
                 {paymentMethod === 'cash' && (
-                  <Input
+                  <input
                     type="number"
                     placeholder="Monto recibido (opcional)"
                     value={amountReceived}
                     onChange={(e) => setAmountReceived(e.target.value)}
-                    className="h-8 text-sm"
+                    inputMode="numeric"
+                    className="w-full h-10 px-3 text-base outline-none"
+                    style={{ borderRadius: '10px', border: '1px solid #e5e7eb', fontSize: '16px' }}
                   />
                 )}
               </div>
 
-              {/* Cart items */}
-              <div className="flex-1 overflow-auto p-3">
-                {items.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                    <ShoppingCart className="w-12 h-12 mb-3" />
-                    <p className="text-sm">Agregue productos al pedido</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {items.map((item) => (
-                      <div key={item.product.id} className="bg-gray-50 rounded-lg p-2">
-                        <div className="flex justify-between items-start mb-1">
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">{item.product.name}</p>
-                            <p className="text-xs text-gray-500">{formatCurrency(item.product.sale_price)} c/u</p>
-                          </div>
-                          <button
-                            onClick={() => removeItem(item.product.id)}
-                            className="text-red-500 hover:text-red-700 p-1"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                              className="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="w-8 text-center font-bold text-sm">{item.quantity}</span>
-                            <button
-                              onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                              className="w-7 h-7 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                          <p className="font-bold text-sm">
-                            {formatCurrency(item.product.sale_price * item.quantity)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Totals */}
-              <div className="p-2 px-3 pb-4 border-t bg-purple-50">
-                <div className="flex justify-between items-center mb-0.5 text-sm">
-                  <span className="text-gray-600">Subtotal:</span>
-                  <span className="font-semibold">{formatCurrency(subtotal)}</span>
+              {/* Totals + submit */}
+              <div className="rounded-xl p-3" style={{ backgroundColor: '#1e1b4b' }}>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm text-white/70">Subtotal:</span>
+                  <span className="font-semibold text-sm text-white">{formatCurrency(subtotal)}</span>
                 </div>
                 {fee > 0 && (
-                  <div className="flex justify-between items-center mb-1 text-sm">
-                    <span className="text-gray-600">Domicilio:</span>
-                    <span className="font-semibold">{formatCurrency(fee)}</span>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm text-white/70">Domicilio:</span>
+                    <span className="font-semibold text-sm text-white">{formatCurrency(fee)}</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-base font-bold">TOTAL:</span>
-                  <span className="text-lg font-bold text-purple-600">{formatCurrency(grandTotal)}</span>
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-base font-bold text-white">TOTAL:</span>
+                  <span className="text-xl font-bold" style={{ color: '#a78bfa' }}>{formatCurrency(grandTotal)}</span>
                 </div>
-                <Button
-                  className="w-full h-10 text-sm font-bold bg-purple-600 hover:bg-purple-700"
-                  disabled={items.length === 0 || !customerName || !customerPhone || !customerAddress}
-                  onClick={() => setShowPayment(true)}
+                <button
+                  disabled={items.length === 0 || !customerName || !customerPhone || !customerAddress || isProcessing}
+                  onClick={handlePayment}
+                  className="w-full h-11 text-sm font-semibold text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#9333ea', borderRadius: '12px' }}
                 >
-                  <Bike className="w-5 h-5 mr-2" />
-                  Registrar Domicilio (F2)
-                </Button>
+                  {isProcessing ? <Loader2 size={18} className="animate-spin" /> : <><Bike size={18} /> Registrar Domicilio</>}
+                </button>
               </div>
-            </Card>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-40" style={{ color: '#9ca3af' }}>
+              <Package size={40} className="mb-2" />
+              <p className="text-sm font-medium">No hay productos</p>
+            </div>
+          ) : (
+            /* Products Grid */
+            <div className="grid grid-cols-3 gap-2">
+              {filteredProducts.map((product) => (
+                <button
+                  key={product.id}
+                  onClick={() => handleProductClick(product)}
+                  className="bg-white p-2.5 text-left transition-all duration-200 active:scale-95"
+                  style={{ borderRadius: '10px', border: '1px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
+                >
+                  <p className="font-semibold text-xs truncate" style={{ color: '#111827' }}>{product.name}</p>
+                  <p className="text-sm font-bold mt-1" style={{ color: '#9333ea' }}>{formatCurrency(product.sale_price)}</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Mobile floating cart button */}
+        {mobileStep !== 'checkout' && (
+          <button
+            className="fixed bottom-4 right-4 z-40 flex items-center gap-2 px-4 py-3 text-white font-semibold shadow-xl transition-all active:scale-95"
+            style={{ backgroundColor: '#9333ea', borderRadius: '16px', boxShadow: '0 8px 24px rgba(147, 51, 234, 0.4)' }}
+            onClick={() => {
+              if (items.length > 0) {
+                setMobileStep('checkout');
+              } else {
+                toast.error('Agrega productos primero');
+              }
+            }}
+          >
+            <ShoppingCart size={20} />
+            {itemCount > 0 ? (
+              <>
+                <span className="text-sm">{formatCurrency(total)}</span>
+                <span className="w-6 h-6 flex items-center justify-center text-xs font-bold rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}>{itemCount}</span>
+              </>
+            ) : (
+              <span className="text-sm">Pedido</span>
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* ===== DESKTOP VIEW ===== */}
+      <div className="hidden lg:flex flex-1 gap-3 min-h-0 h-full">
+        {/* Product selection - left */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Input
+                type="text"
+                placeholder="Buscar producto por nombre, codigo o escanear..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="pl-12 h-12 text-lg"
+                autoFocus
+              />
+            </div>
+          </div>
+
+          {/* Category Cards */}
+          {families.length > 0 && (
+            <div className="mb-3">
+              <div className="grid grid-cols-6 gap-2">
+                {families.map((family) => {
+                  const count = products.filter(p => {
+                    const familySubIds = subfamilies.filter(sf => sf.family_id === family.id).map(sf => sf.id);
+                    return familySubIds.includes(p.subfamily_id);
+                  }).length;
+                  if (count === 0) return null;
+                  const CategoryIcon = getCategoryIcon(family.name);
+                  return (
+                    <button
+                      key={family.id}
+                      onClick={() => { setSelectedFamily(selectedFamily === family.id ? null : family.id); setSearchTerm(''); }}
+                      className={`flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-all ${
+                        selectedFamily === family.id
+                          ? 'bg-purple-100 text-purple-600 border-2 border-purple-400'
+                          : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-purple-200 hover:bg-purple-50'
+                      }`}
+                    >
+                      <CategoryIcon className="w-5 h-5" />
+                      <span className="text-xs font-medium leading-tight text-center">{family.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-auto">
+            {!selectedLocation ? (
+              <div className="flex items-center justify-center h-full text-gray-400">
+                <p>Selecciona un punto de venta para comenzar</p>
+              </div>
+            ) : isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {filteredProducts.map((product) => (
+                  <button
+                    key={product.id}
+                    onClick={() => handleProductClick(product)}
+                    className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md hover:bg-purple-50 transition-all text-left border-2 border-transparent hover:border-purple-500 active:scale-95 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-800 truncate">{product.name}</p>
+                      <p className="text-lg font-bold text-purple-600 mt-1">{formatCurrency(product.sale_price)}</p>
+                    </div>
+                    {(product as any).image_url ? (
+                      <img src={`${import.meta.env.VITE_API_URL}${(product as any).image_url}`} alt={product.name} className="w-14 h-14 object-contain rounded-lg flex-shrink-0" />
+                    ) : (
+                      <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Package className="w-7 h-7 text-gray-300" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Order ticket - right */}
+        <Card className="w-[420px] flex-shrink-0 flex flex-col">
+          <OrderPanel />
+        </Card>
       </div>
 
       {/* Payment Dialog */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Pago del Domicilio</DialogTitle>
+            <DialogTitle className="text-xl lg:text-2xl">Pago del Domicilio</DialogTitle>
           </DialogHeader>
 
           <div className="py-4">
             <div className="text-center mb-4">
               <p className="text-gray-500">Total a cobrar</p>
-              <p className="text-4xl font-bold text-purple-600">{formatCurrency(grandTotal)}</p>
+              <p className="text-3xl lg:text-4xl font-bold text-purple-600">{formatCurrency(grandTotal)}</p>
               {fee > 0 && (
                 <p className="text-sm text-gray-400">
                   (Productos: {formatCurrency(total)} + Domicilio: {formatCurrency(fee)})
@@ -616,68 +832,43 @@ const Deliveries: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-3 gap-3 mb-4">
-              <button
-                onClick={() => setPaymentMethod('cash')}
-                className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition-all ${
-                  paymentMethod === 'cash'
-                    ? 'border-green-500 bg-green-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <Banknote className={`w-7 h-7 ${paymentMethod === 'cash' ? 'text-green-600' : 'text-gray-400'}`} />
-                <span className={`text-sm font-medium ${paymentMethod === 'cash' ? 'text-green-600' : 'text-gray-600'}`}>
-                  Efectivo
-                </span>
-              </button>
-              <button
-                onClick={() => setPaymentMethod('card')}
-                className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition-all ${
-                  paymentMethod === 'card'
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <CreditCard className={`w-7 h-7 ${paymentMethod === 'card' ? 'text-blue-600' : 'text-gray-400'}`} />
-                <span className={`text-sm font-medium ${paymentMethod === 'card' ? 'text-blue-600' : 'text-gray-600'}`}>
-                  Tarjeta
-                </span>
-              </button>
-              <button
-                onClick={() => setPaymentMethod('transfer')}
-                className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition-all ${
-                  paymentMethod === 'transfer'
-                    ? 'border-purple-500 bg-purple-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <Smartphone className={`w-7 h-7 ${paymentMethod === 'transfer' ? 'text-purple-600' : 'text-gray-400'}`} />
-                <span className={`text-sm font-medium ${paymentMethod === 'transfer' ? 'text-purple-600' : 'text-gray-600'}`}>
-                  Transfer
-                </span>
-              </button>
+              {[
+                { method: 'cash' as const, icon: Banknote, label: 'Efectivo', color: 'green' },
+                { method: 'card' as const, icon: CreditCard, label: 'Tarjeta', color: 'blue' },
+                { method: 'transfer' as const, icon: Smartphone, label: 'Transfer', color: 'purple' },
+              ].map(({ method, icon: Icon, label, color }) => (
+                <button
+                  key={method}
+                  onClick={() => setPaymentMethod(method)}
+                  className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition-all ${
+                    paymentMethod === method
+                      ? `border-${color}-500 bg-${color}-50`
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon className={`w-7 h-7 ${paymentMethod === method ? `text-${color}-600` : 'text-gray-400'}`} />
+                  <span className={`text-sm font-medium ${paymentMethod === method ? `text-${color}-600` : 'text-gray-600'}`}>{label}</span>
+                </button>
+              ))}
             </div>
 
             {paymentMethod === 'cash' && (
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700">Monto Recibido</label>
-                  <Input
+                  <input
                     type="number"
                     value={amountReceived}
-                    onChange={(e) => setAmountReceived(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmountReceived(e.target.value)}
                     placeholder="0"
-                    className="text-2xl h-14 text-center font-bold"
+                    className="w-full h-12 lg:h-14 text-xl lg:text-2xl text-center font-bold mt-2 outline-none"
+                    style={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '16px' }}
                     autoFocus
                   />
                 </div>
                 <div className="flex gap-2">
                   {quickAmounts.map((amt) => (
-                    <Button
-                      key={amt}
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => setAmountReceived(amt.toString())}
-                    >
+                    <Button key={amt} variant="outline" className="flex-1" onClick={() => setAmountReceived(amt.toString())}>
                       {formatCurrency(amt)}
                     </Button>
                   ))}
@@ -718,7 +909,6 @@ const Deliveries: React.FC = () => {
                 {getStatusBadge(selectedDelivery.delivery_status)}
                 <span className="text-sm text-gray-500">{formatDateTime(selectedDelivery.created_at)}</span>
               </div>
-
               <div className="bg-gray-50 rounded-lg p-3 space-y-1">
                 <p className="font-semibold">{selectedDelivery.customer_name}</p>
                 <p className="text-sm text-gray-600 flex items-center gap-1"><Phone className="w-3 h-3" /> {selectedDelivery.customer_phone}</p>
@@ -727,7 +917,6 @@ const Deliveries: React.FC = () => {
                   <p className="text-sm text-gray-600 flex items-center gap-1"><Bike className="w-3 h-3" /> {selectedDelivery.delivery_person}</p>
                 )}
               </div>
-
               <div>
                 <h4 className="font-semibold mb-2">Productos</h4>
                 <div className="space-y-1">
@@ -739,7 +928,6 @@ const Deliveries: React.FC = () => {
                   ))}
                 </div>
               </div>
-
               <div className="border-t pt-3 space-y-1">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal</span>
@@ -756,7 +944,6 @@ const Deliveries: React.FC = () => {
                   <span className="text-purple-600">{formatCurrency(selectedDelivery.grand_total)}</span>
                 </div>
               </div>
-
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Metodo: {selectedDelivery.payment_method === 'cash' ? 'Efectivo' : selectedDelivery.payment_method === 'card' ? 'Tarjeta' : 'Transferencia'}</span>
                 <span>Cajero: {selectedDelivery.cashier_name}</span>
