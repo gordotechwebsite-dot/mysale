@@ -57,6 +57,7 @@ export default function Settings() {
       setLogoUrl(data.logo_url);
     } catch (error) {
       console.error('Error loading business profile:', error);
+      toast.error('Error al cargar perfil del negocio');
     } finally {
       setLoading(false);
     }

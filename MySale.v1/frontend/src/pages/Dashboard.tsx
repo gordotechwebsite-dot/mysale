@@ -78,6 +78,7 @@ const Dashboard: React.FC = () => {
       setStockAlerts(alerts);
     } catch (error) {
       console.error('Error loading dashboard:', error);
+      toast.error('Error al cargar el dashboard');
     } finally {
       setIsLoading(false);
     }

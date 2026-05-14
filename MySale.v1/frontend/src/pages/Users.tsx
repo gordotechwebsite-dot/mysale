@@ -66,7 +66,7 @@ const Users: React.FC = () => {
     try {
       const [usersData, rolesData, locationsData, modulesData] = await Promise.all([getUsers(), getRoles(), getLocations(), getMyModules()]);
       setUsers(usersData); setRoles(rolesData); setLocations(locationsData); setAvailableModules(modulesData);
-    } catch (error) { console.error('Error loading data:', error); }
+    } catch (error) { console.error('Error loading data:', error); toast.error('Error al cargar usuarios'); }
     finally { setIsLoading(false); }
   };
 

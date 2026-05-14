@@ -44,6 +44,7 @@ const LocationsDashboard: React.FC = () => {
       setLocations(data);
     } catch (error) {
       console.error('Error loading locations dashboard:', error);
+      toast.error('Error al cargar el panel de sucursales');
     } finally {
       setIsLoading(false);
     }
