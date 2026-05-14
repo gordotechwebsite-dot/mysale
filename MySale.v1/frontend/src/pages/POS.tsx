@@ -172,13 +172,12 @@ const POS: React.FC = () => {
 
   const handleProductClick = (product: Product) => {
     addItem(product);
-    setSearchTerm('');
-    searchRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && filteredProducts.length === 1) {
       handleProductClick(filteredProducts[0]);
+      setSearchTerm('');
     }
     if (e.key === 'F2') {
       e.preventDefault();
