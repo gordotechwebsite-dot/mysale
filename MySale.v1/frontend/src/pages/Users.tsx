@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
-import { getUsers, createUser, deleteUser, getRoles, getLocations, resetUserPin, toggleUserActive } from '../api';
+import { getUsers, createUser, deleteUser, getRoles, getLocations, resetUserPin, toggleUserActive, getMyModules, updateUserModules } from '../api';
+import type { EnabledModule } from '../api';
 import type { User, Role, Location } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users as UsersIcon, Plus, Loader2, Trash2, User as UserIcon, Copy, Check, Camera, Eye, KeyRound, RefreshCw, X, Ban, UserCheck } from 'lucide-react';
+import { Users as UsersIcon, Plus, Loader2, Trash2, User as UserIcon, Copy, Check, Camera, Eye, KeyRound, RefreshCw, X, Ban, UserCheck, Shield, Save } from 'lucide-react';
 
 const generateUsername = (fullName: string): string => {
   if (!fullName.trim()) return '';
@@ -46,6 +47,11 @@ const Users: React.FC = () => {
   const [showPin, setShowPin] = useState(false);
   const [newUser, setNewUser] = useState({ full_name: '', phone: '', cedula: '', username: '', password: '', pin: '', role_id: '', location_id: '', photo_url: '' });
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [availableModules, setAvailableModules] = useState<EnabledModule[]>([]);
+  const [selectedModuleIds, setSelectedModuleIds] = useState<number[]>([]);
+  const [editingModules, setEditingModules] = useState(false);
+  const [detailModuleIds, setDetailModuleIds] = useState<number[]>([]);
+  const [savingModules, setSavingModules] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => { loadData(); }, []);
@@ -58,8 +64,8 @@ const Users: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [usersData, rolesData, locationsData] = await Promise.all([getUsers(), getRoles(), getLocations()]);
-      setUsers(usersData); setRoles(rolesData); setLocations(locationsData);
+      const [usersData, rolesData, locationsData, modulesData] = await Promise.all([getUsers(), getRoles(), getLocations(), getMyModules()]);
+      setUsers(usersData); setRoles(rolesData); setLocations(locationsData); setAvailableModules(modulesData);
     } catch (error) { console.error('Error loading data:', error); }
     finally { setIsLoading(false); }
   };
@@ -90,13 +96,14 @@ const Users: React.FC = () => {
     setIsProcessing(true);
     try {
       let locationId: number | undefined = newUser.location_id === "-1" ? -1 : newUser.location_id ? parseInt(newUser.location_id) : undefined;
-      await createUser({ username: newUser.username, password: newUser.password, full_name: newUser.full_name, phone: newUser.phone || undefined, cedula: newUser.cedula || undefined, photo_url: newUser.photo_url || undefined, role_id: parseInt(newUser.role_id), location_id: locationId, pin: newUser.pin || undefined });
+      await createUser({ username: newUser.username, password: newUser.password, full_name: newUser.full_name, phone: newUser.phone || undefined, cedula: newUser.cedula || undefined, photo_url: newUser.photo_url || undefined, role_id: parseInt(newUser.role_id), location_id: locationId, pin: newUser.pin || undefined, module_ids: selectedModuleIds.length > 0 ? selectedModuleIds : undefined });
       await loadData();
       setCreatedCredentials({ username: newUser.username, password: newUser.password, pin: newUser.pin });
       setShowAddUser(false);
       setShowCredentials(true);
       setNewUser({ full_name: '', phone: '', cedula: '', username: '', password: '', pin: '', role_id: '', location_id: '', photo_url: '' });
       setPhotoPreview(null);
+      setSelectedModuleIds([]);
     } catch (error: any) { toast.error(error.response?.data?.detail || 'Error al crear usuario'); }
     finally { setIsProcessing(false); }
   };
@@ -117,7 +124,29 @@ const Users: React.FC = () => {
   const handleViewUser = (user: User) => {
     setSelectedUser(user);
     setResetPinResult(null);
+    setEditingModules(false);
+    setDetailModuleIds(user.modules ? user.modules.map(m => m.module_id) : []);
     setShowUserDetail(true);
+  };
+
+  const handleSaveModules = async () => {
+    if (!selectedUser) return;
+    setSavingModules(true);
+    try {
+      const updated = await updateUserModules(selectedUser.id, detailModuleIds);
+      setSelectedUser(updated);
+      setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+      setEditingModules(false);
+      toast.success('Módulos actualizados');
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'Error al actualizar módulos');
+    } finally {
+      setSavingModules(false);
+    }
+  };
+
+  const toggleModuleSelection = (moduleId: number, list: number[], setter: React.Dispatch<React.SetStateAction<number[]>>) => {
+    setter(list.includes(moduleId) ? list.filter(id => id !== moduleId) : [...list, moduleId]);
   };
 
   const handleResetPin = async () => {
@@ -291,6 +320,27 @@ const Users: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
+            {availableModules.length > 0 && (
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block flex items-center gap-1">
+                  <Shield className="w-4 h-4" />Módulos Permitidos
+                </label>
+                <p className="text-xs text-gray-500 mb-2">Si no seleccionas ninguno, el usuario tendrá acceso a todos los módulos activos</p>
+                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3 bg-gray-50">
+                  {availableModules.map(mod => (
+                    <label key={mod.id} className="flex items-center gap-2 cursor-pointer hover:bg-white rounded px-2 py-1.5 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={selectedModuleIds.includes(mod.id)}
+                        onChange={() => toggleModuleSelection(mod.id, selectedModuleIds, setSelectedModuleIds)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm">{mod.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddUser(false)}>Cancelar</Button>
@@ -467,6 +517,62 @@ const Users: React.FC = () => {
                       </Button>
                     </div>
                   </div>
+
+                  {/* Modules Section */}
+                  {availableModules.length > 0 && (
+                    <div className="mt-5 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-100">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                            <Shield className="w-4 h-4 text-purple-600" />
+                          </div>
+                          <p className="text-sm font-semibold text-gray-700">Módulos Permitidos</p>
+                        </div>
+                        {!editingModules ? (
+                          <Button size="sm" variant="outline" className="border-purple-200 text-purple-600 hover:bg-purple-100 rounded-lg text-xs" onClick={() => setEditingModules(true)}>
+                            Editar
+                          </Button>
+                        ) : (
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="outline" className="rounded-lg text-xs" onClick={() => { setEditingModules(false); setDetailModuleIds(selectedUser.modules ? selectedUser.modules.map(m => m.module_id) : []); }}>
+                              Cancelar
+                            </Button>
+                            <Button size="sm" className="bg-purple-600 hover:bg-purple-700 rounded-lg text-xs" onClick={handleSaveModules} disabled={savingModules}>
+                              {savingModules ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Save className="w-3 h-3 mr-1" />Guardar</>}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      {!editingModules ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedUser.modules && selectedUser.modules.length > 0 ? (
+                            selectedUser.modules.map(m => (
+                              <Badge key={m.module_id} className="bg-purple-500 text-xs">{m.name}</Badge>
+                            ))
+                          ) : (
+                            <span className="text-xs text-gray-500">Acceso a todos los módulos activos</span>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-xs text-gray-500 mb-2">Si no seleccionas ninguno, el usuario tendrá acceso a todos los módulos activos</p>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {availableModules.map(mod => (
+                              <label key={mod.id} className="flex items-center gap-2 cursor-pointer bg-white hover:bg-purple-50 rounded px-2 py-1.5 transition-colors border border-gray-100">
+                                <input
+                                  type="checkbox"
+                                  checked={detailModuleIds.includes(mod.id)}
+                                  onChange={() => toggleModuleSelection(mod.id, detailModuleIds, setDetailModuleIds)}
+                                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                />
+                                <span className="text-xs">{mod.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Action Buttons */}
                   <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-gray-100">

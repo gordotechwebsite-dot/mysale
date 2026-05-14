@@ -1,3 +1,10 @@
+export interface UserModuleInfo {
+  module_id: number;
+  code: string;
+  name: string;
+  is_enabled: boolean;
+}
+
 export interface User {
   id: number;
   username: string;
@@ -14,6 +21,7 @@ export interface User {
   is_active: boolean;
   points: number;
   created_at: string;
+  modules?: UserModuleInfo[];
 }
 
 export interface Role {

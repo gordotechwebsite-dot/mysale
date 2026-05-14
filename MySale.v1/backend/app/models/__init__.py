@@ -1,4 +1,4 @@
-from app.models.user import User, Role
+from app.models.user import User, Role, UserModule
 from app.models.location import Location
 from app.models.branch import Branch, WorkSession
 from app.models.inventory import Group, Family, SubFamily, Product, ProductStock, StockMovement
@@ -17,7 +17,7 @@ from app.models.support import SupportConversation, SupportMessage
 from app.models.biometric import Fingerprint, BiometricLog, AttendanceRecord, BiometricEventType
 
 __all__ = [
-    "User", "Role", "Location",
+    "User", "Role", "UserModule", "Location",
     "Branch", "WorkSession",
     "Group", "Family", "SubFamily", "Product", "ProductStock", "StockMovement",
     "Shift", "ShiftAlert",
