@@ -90,6 +90,7 @@ const Deliveries: React.FC = () => {
   const { user } = useAuth();
   const { currentShift } = useShift();
   const searchRef = useRef<HTMLInputElement>(null);
+  const paymentInputRef = useRef<HTMLInputElement>(null);
 
   const sessionLocationId = currentShift?.location_id || user?.location_id || null;
 
@@ -862,9 +863,14 @@ const Deliveries: React.FC = () => {
                 <div>
                   <label className="text-sm font-medium text-gray-700">Monto Recibido</label>
                   <input
+                    ref={paymentInputRef}
                     type="number"
+                    inputMode="decimal"
                     value={amountReceived}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmountReceived(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setAmountReceived(e.target.value);
+                      requestAnimationFrame(() => paymentInputRef.current?.focus());
+                    }}
                     placeholder="0"
                     className="w-full h-12 lg:h-14 text-xl lg:text-2xl text-center font-bold mt-2 outline-none"
                     style={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '16px' }}
