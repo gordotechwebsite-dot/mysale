@@ -474,7 +474,6 @@ const QuickSale: React.FC = () => {
                 onKeyDown={handleKeyDown}
                 className="pl-12 h-14 text-lg"
                 style={{ fontSize: '16px' }}
-                autoFocus
               />
             </div>
             {weightedProductInfo && (

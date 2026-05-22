@@ -736,7 +736,6 @@ const Deliveries: React.FC = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className="pl-12 h-12 text-lg"
-                autoFocus
               />
             </div>
           </div>
