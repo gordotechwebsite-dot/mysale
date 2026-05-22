@@ -26,16 +26,27 @@ from app.utils.auth import get_current_user, require_role
 router = APIRouter(prefix="/api/reports", tags=["Reportes"])
 
 
+def _get_tenant_location_ids(db: Session, current_user: User) -> list:
+    """Get all location IDs belonging to the current user's tenant."""
+    if not current_user.tenant_id:
+        return []
+    locs = db.query(Location.id).filter(Location.tenant_id == current_user.tenant_id).all()
+    return [l[0] for l in locs]
+
+
 @router.post("/sales", response_model=SalesReportResponse)
 async def get_sales_report(
     request: SalesReportRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
+    tenant_loc_ids = _get_tenant_location_ids(db, current_user)
     query = db.query(Sale).filter(
         Sale.created_at >= datetime.combine(request.start_date, datetime.min.time()),
         Sale.created_at <= datetime.combine(request.end_date, datetime.max.time())
     )
+    if tenant_loc_ids:
+        query = query.filter(Sale.location_id.in_(tenant_loc_ids))
     
     if request.location_id:
         query = query.filter(Sale.location_id == request.location_id)
@@ -100,6 +111,7 @@ async def get_inventory_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
+    tenant_loc_ids = _get_tenant_location_ids(db, current_user)
     location = None
     if location_id:
         location = db.query(Location).filter(Location.id == location_id).first()
@@ -107,6 +119,8 @@ async def get_inventory_report(
             raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
     
     query = db.query(ProductStock).join(Product)
+    if tenant_loc_ids:
+        query = query.filter(ProductStock.location_id.in_(tenant_loc_ids))
     if location_id:
         query = query.filter(ProductStock.location_id == location_id)
     
@@ -173,6 +187,8 @@ async def get_employee_report(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if current_user.tenant_id and user.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="No tienes acceso a este empleado")
     
     if not start_date:
         start_date = date.today() - timedelta(days=30)
@@ -237,10 +253,13 @@ async def export_sales_excel(
 ):
     from openpyxl import Workbook
     
+    tenant_loc_ids = _get_tenant_location_ids(db, current_user)
     query = db.query(Sale).filter(
         Sale.created_at >= datetime.combine(start_date, datetime.min.time()),
         Sale.created_at <= datetime.combine(end_date, datetime.max.time())
     )
+    if tenant_loc_ids:
+        query = query.filter(Sale.location_id.in_(tenant_loc_ids))
     
     if location_id:
         query = query.filter(Sale.location_id == location_id)
@@ -296,7 +315,10 @@ async def export_inventory_excel(
 ):
     from openpyxl import Workbook
     
+    tenant_loc_ids = _get_tenant_location_ids(db, current_user)
     query = db.query(ProductStock).join(Product)
+    if tenant_loc_ids:
+        query = query.filter(ProductStock.location_id.in_(tenant_loc_ids))
     if location_id:
         query = query.filter(ProductStock.location_id == location_id)
     
@@ -464,6 +486,8 @@ async def export_profitability_excel(
     from openpyxl import Workbook
     from openpyxl.styles import Font
     
+    tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+    
     if not start_date:
         start_date = date.today() - timedelta(days=30)
     if not end_date:
@@ -479,6 +503,8 @@ async def export_profitability_excel(
     
     # Sales
     sales_query = db.query(Sale).filter(Sale.created_at >= start_dt, Sale.created_at <= end_dt)
+    if tenant_loc_ids:
+        sales_query = sales_query.filter(Sale.location_id.in_(tenant_loc_ids))
     if location_id:
         sales_query = sales_query.filter(Sale.location_id == location_id)
     sales = sales_query.all()
@@ -494,6 +520,8 @@ async def export_profitability_excel(
     
     # Expenses
     expenses_query = db.query(Expense).filter(Expense.expense_date >= start_dt, Expense.expense_date <= end_dt)
+    if tenant_loc_ids:
+        expenses_query = expenses_query.filter(Expense.location_id.in_(tenant_loc_ids))
     if location_id:
         expenses_query = expenses_query.filter(Expense.location_id == location_id)
     expenses = expenses_query.all()
@@ -509,6 +537,8 @@ async def export_profitability_excel(
     
     # Losses
     losses_query = db.query(Loss).filter(Loss.created_at >= start_dt, Loss.created_at <= end_dt)
+    if tenant_loc_ids:
+        losses_query = losses_query.filter(Loss.location_id.in_(tenant_loc_ids))
     if location_id:
         losses_query = losses_query.filter(Loss.location_id == location_id)
     losses = losses_query.all()
@@ -623,6 +653,7 @@ async def get_purchases_report(
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
     """Get purchases report from stock movements of type purchase."""
+    tenant_loc_ids = _get_tenant_location_ids(db, current_user)
     if not start_date:
         start_date = date.today() - timedelta(days=30)
     if not end_date:
@@ -641,6 +672,8 @@ async def get_purchases_report(
         StockMovement.created_at >= start_dt,
         StockMovement.created_at <= end_dt
     )
+    if tenant_loc_ids:
+        query = query.filter(StockMovement.location_id.in_(tenant_loc_ids))
     if location_id:
         query = query.filter(StockMovement.location_id == location_id)
     if product_id:
@@ -697,6 +730,8 @@ async def export_purchases_excel(
     from openpyxl import Workbook
     from openpyxl.styles import Font
 
+    tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+
     if not start_date:
         start_date = date.today() - timedelta(days=30)
     if not end_date:
@@ -710,6 +745,8 @@ async def export_purchases_excel(
         StockMovement.created_at >= start_dt,
         StockMovement.created_at <= end_dt
     )
+    if tenant_loc_ids:
+        query = query.filter(StockMovement.location_id.in_(tenant_loc_ids))
     if location_id:
         query = query.filter(StockMovement.location_id == location_id)
     if product_id:
@@ -870,6 +907,7 @@ async def get_profitability_report(
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
     """Get profitability report: Sales - Cost of Goods - Expenses - Losses = Net Profit."""
+    tenant_loc_ids = _get_tenant_location_ids(db, current_user)
     if not start_date:
         start_date = date.today() - timedelta(days=30)
     if not end_date:
@@ -888,6 +926,8 @@ async def get_profitability_report(
         Sale.created_at >= start_dt,
         Sale.created_at <= end_dt
     )
+    if tenant_loc_ids:
+        sales_query = sales_query.filter(Sale.location_id.in_(tenant_loc_ids))
     if location_id:
         sales_query = sales_query.filter(Sale.location_id == location_id)
     sales = sales_query.all()
@@ -908,6 +948,8 @@ async def get_profitability_report(
         Expense.expense_date >= start_dt,
         Expense.expense_date <= end_dt
     )
+    if tenant_loc_ids:
+        expenses_query = expenses_query.filter(Expense.location_id.in_(tenant_loc_ids))
     if location_id:
         expenses_query = expenses_query.filter(Expense.location_id == location_id)
     expenses = expenses_query.all()
@@ -928,6 +970,8 @@ async def get_profitability_report(
         Loss.created_at >= start_dt,
         Loss.created_at <= end_dt
     )
+    if tenant_loc_ids:
+        losses_query = losses_query.filter(Loss.location_id.in_(tenant_loc_ids))
     if location_id:
         losses_query = losses_query.filter(Loss.location_id == location_id)
     losses = losses_query.all()
@@ -1014,43 +1058,65 @@ async def get_dashboard_data(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    tenant_loc_ids = _get_tenant_location_ids(db, current_user)
     today = date.today()
     start_of_day = datetime.combine(today, datetime.min.time())
     end_of_day = datetime.combine(today, datetime.max.time())
     
-    today_sales = db.query(func.sum(Sale.total)).filter(
+    sales_q = db.query(func.sum(Sale.total)).filter(
         Sale.created_at >= start_of_day,
         Sale.created_at <= end_of_day
-    ).scalar() or 0
+    )
+    if tenant_loc_ids:
+        sales_q = sales_q.filter(Sale.location_id.in_(tenant_loc_ids))
+    today_sales = sales_q.scalar() or 0
     
-    today_transactions = db.query(Sale).filter(
+    tx_q = db.query(Sale).filter(
         Sale.created_at >= start_of_day,
         Sale.created_at <= end_of_day
-    ).count()
+    )
+    if tenant_loc_ids:
+        tx_q = tx_q.filter(Sale.location_id.in_(tenant_loc_ids))
+    today_transactions = tx_q.count()
     
     start_of_month = today.replace(day=1)
-    month_sales = db.query(func.sum(Sale.total)).filter(
+    month_q = db.query(func.sum(Sale.total)).filter(
         Sale.created_at >= datetime.combine(start_of_month, datetime.min.time()),
         Sale.created_at <= end_of_day
-    ).scalar() or 0
+    )
+    if tenant_loc_ids:
+        month_q = month_q.filter(Sale.location_id.in_(tenant_loc_ids))
+    month_sales = month_q.scalar() or 0
     
     low_stock_count = 0
-    stocks = db.query(ProductStock).join(Product).all()
+    stock_q = db.query(ProductStock).join(Product)
+    if tenant_loc_ids:
+        stock_q = stock_q.filter(ProductStock.location_id.in_(tenant_loc_ids))
+    stocks = stock_q.all()
     for stock in stocks:
         if stock.quantity <= stock.product.min_stock:
             low_stock_count += 1
     
-    open_shifts = db.query(Shift).filter(Shift.status == "open").count()
+    shift_q = db.query(Shift).filter(Shift.status == "open")
+    if tenant_loc_ids:
+        shift_q = shift_q.filter(Shift.location_id.in_(tenant_loc_ids))
+    open_shifts = shift_q.count()
     
-    today_losses = db.query(func.sum(Loss.total_value)).filter(
+    loss_q = db.query(func.sum(Loss.total_value)).filter(
         Loss.created_at >= start_of_day,
         Loss.created_at <= end_of_day
-    ).scalar() or 0
+    )
+    if tenant_loc_ids:
+        loss_q = loss_q.filter(Loss.location_id.in_(tenant_loc_ids))
+    today_losses = loss_q.scalar() or 0
     
-    today_expenses = db.query(func.sum(Expense.amount)).filter(
+    expense_q = db.query(func.sum(Expense.amount)).filter(
         Expense.expense_date >= start_of_day,
         Expense.expense_date <= end_of_day
-    ).scalar() or 0
+    )
+    if tenant_loc_ids:
+        expense_q = expense_q.filter(Expense.location_id.in_(tenant_loc_ids))
+    today_expenses = expense_q.scalar() or 0
     
     return {
         "today_sales": today_sales,
