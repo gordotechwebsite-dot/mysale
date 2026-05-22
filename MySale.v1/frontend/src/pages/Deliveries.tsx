@@ -867,10 +867,7 @@ const Deliveries: React.FC = () => {
                     type="number"
                     inputMode="decimal"
                     value={amountReceived}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                      setAmountReceived(e.target.value);
-                      requestAnimationFrame(() => paymentInputRef.current?.focus());
-                    }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmountReceived(e.target.value)}
                     placeholder="0"
                     className="w-full h-12 lg:h-14 text-xl lg:text-2xl text-center font-bold mt-2 outline-none"
                     style={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '16px' }}
@@ -884,12 +881,10 @@ const Deliveries: React.FC = () => {
                     </Button>
                   ))}
                 </div>
-                {change > 0 && (
-                  <div className="bg-green-50 p-3 rounded-lg text-center">
-                    <p className="text-sm text-green-600">Cambio</p>
-                    <p className="text-2xl font-bold text-green-600">{formatCurrency(change)}</p>
-                  </div>
-                )}
+                <div className={`bg-green-50 p-3 rounded-lg text-center transition-opacity ${change > 0 ? 'opacity-100' : 'opacity-0 pointer-events-none h-0 p-0 overflow-hidden'}`}>
+                  <p className="text-sm text-green-600">Cambio</p>
+                  <p className="text-2xl font-bold text-green-600">{formatCurrency(change)}</p>
+                </div>
               </div>
             )}
           </div>

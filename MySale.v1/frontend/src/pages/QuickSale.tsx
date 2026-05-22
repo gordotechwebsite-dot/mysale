@@ -622,10 +622,7 @@ const QuickSale: React.FC = () => {
                     type="number"
                     inputMode="decimal"
                     value={amountReceived}
-                    onChange={(e) => {
-                      setAmountReceived(e.target.value);
-                      requestAnimationFrame(() => paymentInputRef.current?.focus());
-                    }}
+                    onChange={(e) => setAmountReceived(e.target.value)}
                     placeholder="0"
                     className="h-14 text-2xl text-center font-bold mt-2"
                     style={{ fontSize: '16px' }}
@@ -642,12 +639,10 @@ const QuickSale: React.FC = () => {
                 <Button variant="outline" className="w-full" onClick={() => setAmountReceived(total.toString())}>
                   Monto Exacto
                 </Button>
-                {change > 0 && (
-                  <div className="p-4 bg-green-50 rounded-lg text-center">
-                    <p className="text-sm text-gray-600">Cambio a devolver</p>
-                    <p className="text-3xl font-bold text-green-600">{formatCurrency(change)}</p>
-                  </div>
-                )}
+                <div className={`p-4 bg-green-50 rounded-lg text-center transition-opacity ${change > 0 ? 'opacity-100' : 'opacity-0 pointer-events-none h-0 p-0 overflow-hidden'}`}>
+                  <p className="text-sm text-gray-600">Cambio a devolver</p>
+                  <p className="text-3xl font-bold text-green-600">{formatCurrency(change)}</p>
+                </div>
               </div>
             )}
           </div>
