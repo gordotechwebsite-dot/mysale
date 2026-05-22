@@ -83,6 +83,7 @@ const QuickSale: React.FC = () => {
   const { items, addItem, removeItem, updateQuantity, clearCart, total, subtotal } = useCart();
   const { user } = useAuth();
   const searchRef = useRef<HTMLInputElement>(null);
+  const paymentInputRef = useRef<HTMLInputElement>(null);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [families, setFamilies] = useState<Family[]>([]);
@@ -617,9 +618,14 @@ const QuickSale: React.FC = () => {
                 <div>
                   <label className="text-sm font-medium text-gray-700">Monto Recibido</label>
                   <Input
+                    ref={paymentInputRef}
                     type="number"
+                    inputMode="decimal"
                     value={amountReceived}
-                    onChange={(e) => setAmountReceived(e.target.value)}
+                    onChange={(e) => {
+                      setAmountReceived(e.target.value);
+                      requestAnimationFrame(() => paymentInputRef.current?.focus());
+                    }}
                     placeholder="0"
                     className="h-14 text-2xl text-center font-bold mt-2"
                     style={{ fontSize: '16px' }}

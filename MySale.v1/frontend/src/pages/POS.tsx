@@ -102,6 +102,7 @@ const POS: React.FC = () => {
   const { items, addItem, removeItem, updateQuantity, clearCart, total, subtotal } = useCart();
   const navigate = useNavigate();
   const searchRef = useRef<HTMLInputElement>(null);
+  const paymentInputRef = useRef<HTMLInputElement>(null);
   
   const [products, setProducts] = useState<Product[]>([]);
   const [families, setFamilies] = useState<Family[]>([]);
@@ -596,9 +597,14 @@ const POS: React.FC = () => {
                 <div>
                   <label className="text-sm font-medium" style={{ color: '#6b7280' }}>Monto Recibido</label>
                   <input
+                    ref={paymentInputRef}
                     type="number"
+                    inputMode="decimal"
                     value={amountReceived}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmountReceived(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setAmountReceived(e.target.value);
+                      requestAnimationFrame(() => paymentInputRef.current?.focus());
+                    }}
                     placeholder="0"
                     className="w-full h-12 lg:h-14 text-xl lg:text-2xl text-center font-bold mt-2 outline-none transition-all duration-200"
                     style={{ borderRadius: '12px', border: '1px solid #e5e7eb', color: '#111827' }}
