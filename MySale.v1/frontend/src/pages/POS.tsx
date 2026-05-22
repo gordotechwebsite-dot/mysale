@@ -389,7 +389,6 @@ const POS: React.FC = () => {
                 e.target.style.borderColor = '#e5e7eb';
                 e.target.style.boxShadow = 'none';
               }}
-              autoFocus
             />
             {searchTerm && (
               <button
