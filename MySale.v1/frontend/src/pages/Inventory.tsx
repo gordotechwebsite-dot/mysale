@@ -6,7 +6,8 @@ import {
   getLocations, getTransfers, createTransfer, receiveTransfer,
   getLosses, createLoss,
   updateProduct, deleteProduct, deleteFamily, deleteSubFamily, deleteGroup,
-  updateGroup, updateFamily, updateSubFamily
+  updateGroup, updateFamily, updateSubFamily,
+  getStockAlerts
 } from '../api';
 import type { Group, Family, SubFamily, Product, Location, Transfer, Loss } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,6 +56,7 @@ const Inventory: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [stockAlerts, setStockAlerts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string>('');
   const [selectedFamily, setSelectedFamily] = useState<string>('');
@@ -123,13 +125,14 @@ const Inventory: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [groupsData, familiesData, subFamiliesData, locationsData, transfersData, lossesData] = await Promise.all([
+      const [groupsData, familiesData, subFamiliesData, locationsData, transfersData, lossesData, alertsData] = await Promise.all([
         getGroups(),
         getFamilies(),
         getSubFamilies(),
         getLocations(),
         getTransfers(),
-        getLosses()
+        getLosses(),
+        getStockAlerts().catch(() => [])
       ]);
       setGroups(groupsData);
       setFamilies(familiesData);
@@ -137,6 +140,7 @@ const Inventory: React.FC = () => {
       setLocations(locationsData);
       setTransfers(transfersData);
       setLosses(lossesData);
+      setStockAlerts(alertsData);
       await loadProducts();
     } catch (error) {
       console.error('Error loading data:', error);
@@ -557,6 +561,13 @@ const Inventory: React.FC = () => {
           <TabsTrigger value="categories" className="text-xs sm:text-sm">Categorias</TabsTrigger>
           <TabsTrigger value="transfers" className="text-xs sm:text-sm">Traspasos</TabsTrigger>
           <TabsTrigger value="losses" className="text-xs sm:text-sm">Mermas</TabsTrigger>
+          <TabsTrigger value="alerts" className="text-xs sm:text-sm flex items-center gap-1">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Alertas de Stock
+            {stockAlerts.length > 0 && (
+              <Badge variant="destructive" className="ml-1 text-[10px] px-1.5 py-0 min-w-[18px] h-[18px]">{stockAlerts.length}</Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="products">
@@ -979,6 +990,48 @@ const Inventory: React.FC = () => {
                   </TableBody>
                 </Table>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="alerts">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-600">
+                <AlertTriangle className="w-5 h-5" />
+                Alertas de Stock Bajo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {stockAlerts.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p className="text-lg font-medium">Sin alertas</p>
+                  <p className="text-sm">Todos los productos tienen stock suficiente</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {stockAlerts.map((alert, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 rounded-xl"
+                      style={{ backgroundColor: 'rgba(245, 158, 11, 0.08)' }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Package size={20} className="text-amber-500" />
+                        <div>
+                          <p className="font-medium text-gray-900">{alert.product_name}</p>
+                          <p className="text-sm text-gray-500">{alert.location_name}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-amber-600">{alert.current_stock} unidades</p>
+                        <p className="text-xs text-gray-500">Mín: {alert.min_stock}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

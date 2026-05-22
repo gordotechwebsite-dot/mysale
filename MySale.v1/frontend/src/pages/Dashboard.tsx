@@ -3,7 +3,7 @@ import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
-import { getDashboard, getLocations, openShift, closeShift, getStockAlerts } from '../api';
+import { getDashboard, getLocations, openShift, closeShift } from '../api';
 import type { DashboardData, Location } from '../types';
 import {
   Select,
@@ -23,9 +23,7 @@ import { Button } from '@/components/ui/button';
 import {
   DollarSign,
   ShoppingCart,
-  AlertTriangle,
   Clock,
-  Package,
   Play,
   Square,
   Loader2
@@ -51,7 +49,7 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [stockAlerts, setStockAlerts] = useState<any[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [showOpenShift, setShowOpenShift] = useState(false);
   const [showCloseShift, setShowCloseShift] = useState(false);
@@ -68,14 +66,12 @@ const Dashboard: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [dashboardData, locationsData, alerts] = await Promise.all([
+      const [dashboardData, locationsData] = await Promise.all([
         getDashboard(),
-        getLocations(),
-        getStockAlerts().catch(() => [])
+        getLocations()
       ]);
       setData(dashboardData);
       setLocations(locationsData.filter(l => l.location_type === 'pos'));
-      setStockAlerts(alerts);
     } catch (error) {
       console.error('Error loading dashboard:', error);
       toast.error('Error al cargar el dashboard');
@@ -294,62 +290,10 @@ const Dashboard: React.FC = () => {
             </p>
           </div>
 
-          {/* Alertas Stock */}
-          <div 
-            className="bg-white"
-            style={{ 
-              borderRadius: '16px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-              padding: '28px'
-            }}
-          >
-            <p className="text-sm font-medium" style={{ color: '#6b7280' }}>Alertas Stock</p>
-            <p className="text-3xl font-bold mt-2" style={{ color: data?.low_stock_alerts ? '#f59e0b' : '#111827' }}>
-              {data?.low_stock_alerts || 0}
-            </p>
-          </div>
+
         </div>
       )}
 
-      {/* Stock Alerts */}
-      {stockAlerts.length > 0 && (
-        <div 
-          className="bg-white p-6"
-          style={{ 
-            borderRadius: '18px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.08)'
-          }}
-        >
-          <h3 className="flex items-center gap-2 text-lg font-semibold mb-4" style={{ color: '#f59e0b' }}>
-            <AlertTriangle size={20} />
-            Alertas de Stock Bajo
-          </h3>
-          <div className="space-y-3">
-            {stockAlerts.slice(0, 5).map((alert, index) => (
-              <div 
-                key={index} 
-                className="flex items-center justify-between p-4"
-                style={{ 
-                  backgroundColor: 'rgba(245, 158, 11, 0.08)',
-                  borderRadius: '12px'
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <Package size={20} style={{ color: '#f59e0b' }} />
-                  <div>
-                    <p className="font-medium" style={{ color: '#111827' }}>{alert.product_name}</p>
-                    <p className="text-sm" style={{ color: '#6b7280' }}>{alert.location_name}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold" style={{ color: '#f59e0b' }}>{alert.current_stock} unidades</p>
-                  <p className="text-xs" style={{ color: '#6b7280' }}>Min: {alert.min_stock}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <Dialog open={showOpenShift} onOpenChange={setShowOpenShift}>
         <DialogContent>
