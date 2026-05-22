@@ -89,6 +89,10 @@ interface ProfitabilityReport {
   by_day: ProfitabilityByDay[];
 }
 
+const toColombiaDate = (date: Date = new Date()): string => {
+  return date.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+};
+
 const Reports: React.FC = () => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [users, setUsers] = useState<Array<{ id: number; full_name: string; username: string }>>([]);
@@ -104,7 +108,7 @@ const Reports: React.FC = () => {
   const [showCashCloseForm, setShowCashCloseForm] = useState(false);
   const [cashCloseForm, setCashCloseForm] = useState({
     location_id: '',
-    close_date: new Date().toISOString().split('T')[0],
+    close_date: toColombiaDate(),
     total_sales: '',
     total_cash_sales: '',
     total_card_sales: '',
@@ -116,11 +120,10 @@ const Reports: React.FC = () => {
   });
 
   const [startDate, setStartDate] = useState(() => {
-    const date = new Date();
-    date.setDate(1);
-    return date.toISOString().split('T')[0];
+    const parts = toColombiaDate().split('-');
+    return `${parts[0]}-${parts[1]}-01`;
   });
-  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(() => toColombiaDate());
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [selectedEmployee, setSelectedEmployee] = useState<string>('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
@@ -239,7 +242,7 @@ const Reports: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `inventario_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `inventario_${toColombiaDate()}.xlsx`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -585,7 +588,7 @@ const Reports: React.FC = () => {
         notes: cashCloseForm.notes || undefined,
       });
       setShowCashCloseForm(false);
-      setCashCloseForm({ location_id: '', close_date: new Date().toISOString().split('T')[0], total_sales: '', total_cash_sales: '', total_card_sales: '', total_transfer_sales: '', total_transactions: '', base_amount: '', declared_cash: '', notes: '' });
+      setCashCloseForm({ location_id: '', close_date: toColombiaDate(), total_sales: '', total_cash_sales: '', total_card_sales: '', total_transfer_sales: '', total_transactions: '', base_amount: '', declared_cash: '', notes: '' });
       loadCashCloses();
     } catch (error) {
       console.error('Error creating cash close:', error);
@@ -703,21 +706,22 @@ const Reports: React.FC = () => {
   };
 
   const setDateRange = (range: 'today' | 'week' | 'month' | 'last30') => {
-    const today = new Date();
-    const end = today.toISOString().split('T')[0];
-    setEndDate(end);
+    const todayStr = toColombiaDate();
+    setEndDate(todayStr);
+    const todayParts = todayStr.split('-').map(Number);
+    const today = new Date(todayParts[0], todayParts[1] - 1, todayParts[2]);
     if (range === 'today') {
-      setStartDate(end);
+      setStartDate(todayStr);
     } else if (range === 'week') {
       const d = new Date(today);
       d.setDate(d.getDate() - d.getDay());
-      setStartDate(d.toISOString().split('T')[0]);
+      setStartDate(toColombiaDate(d));
     } else if (range === 'month') {
-      setStartDate(new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]);
+      setStartDate(`${todayStr.split('-')[0]}-${todayStr.split('-')[1]}-01`);
     } else if (range === 'last30') {
       const d = new Date(today);
       d.setDate(d.getDate() - 30);
-      setStartDate(d.toISOString().split('T')[0]);
+      setStartDate(toColombiaDate(d));
     }
   };
 
