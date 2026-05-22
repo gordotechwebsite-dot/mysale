@@ -601,10 +601,7 @@ const POS: React.FC = () => {
                     type="number"
                     inputMode="decimal"
                     value={amountReceived}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                      setAmountReceived(e.target.value);
-                      requestAnimationFrame(() => paymentInputRef.current?.focus());
-                    }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmountReceived(e.target.value)}
                     placeholder="0"
                     className="w-full h-12 lg:h-14 text-xl lg:text-2xl text-center font-bold mt-2 outline-none transition-all duration-200"
                     style={{ borderRadius: '12px', border: '1px solid #e5e7eb', color: '#111827' }}
@@ -636,12 +633,10 @@ const POS: React.FC = () => {
                 >
                   Monto Exacto
                 </button>
-                {change > 0 && (
-                  <div className="p-3 lg:p-4 text-center" style={{ backgroundColor: 'rgba(0, 168, 107, 0.1)', borderRadius: '12px' }}>
-                    <p className="text-sm" style={{ color: '#6b7280' }}>Cambio a devolver</p>
-                    <p className="text-2xl lg:text-3xl font-bold" style={{ color: '#00a86b' }}>{formatCurrency(change)}</p>
-                  </div>
-                )}
+                <div className={`p-3 lg:p-4 text-center transition-opacity ${change > 0 ? 'opacity-100' : 'opacity-0 pointer-events-none h-0 p-0 overflow-hidden'}`} style={{ backgroundColor: 'rgba(0, 168, 107, 0.1)', borderRadius: '12px' }}>
+                  <p className="text-sm" style={{ color: '#6b7280' }}>Cambio a devolver</p>
+                  <p className="text-2xl lg:text-3xl font-bold" style={{ color: '#00a86b' }}>{formatCurrency(change)}</p>
+                </div>
               </div>
             )}
           </div>
