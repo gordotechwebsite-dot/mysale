@@ -702,51 +702,78 @@ const Reports: React.FC = () => {
     return `${h}h ${m}m`;
   };
 
+  const setDateRange = (range: 'today' | 'week' | 'month' | 'last30') => {
+    const today = new Date();
+    const end = today.toISOString().split('T')[0];
+    setEndDate(end);
+    if (range === 'today') {
+      setStartDate(end);
+    } else if (range === 'week') {
+      const d = new Date(today);
+      d.setDate(d.getDate() - d.getDay());
+      setStartDate(d.toISOString().split('T')[0]);
+    } else if (range === 'month') {
+      setStartDate(new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]);
+    } else if (range === 'last30') {
+      const d = new Date(today);
+      d.setDate(d.getDate() - 30);
+      setStartDate(d.toISOString().split('T')[0]);
+    }
+  };
+
   const DateFilters = ({ onGenerate, showLocation = true, extraButtons }: {
     onGenerate: () => void;
     showLocation?: boolean;
     extraButtons?: React.ReactNode;
   }) => (
-    <div className="flex flex-wrap gap-4 mb-6 items-end">
-      <div>
-        <label className="text-sm text-gray-500">Fecha Inicio</label>
-        <Input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="w-40"
-        />
+    <div className="space-y-3 mb-6">
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={() => setDateRange('today')} className="text-xs">Hoy</Button>
+        <Button variant="outline" size="sm" onClick={() => setDateRange('week')} className="text-xs">Esta Semana</Button>
+        <Button variant="outline" size="sm" onClick={() => setDateRange('month')} className="text-xs">Este Mes</Button>
+        <Button variant="outline" size="sm" onClick={() => setDateRange('last30')} className="text-xs">Últimos 30 días</Button>
       </div>
-      <div>
-        <label className="text-sm text-gray-500">Fecha Fin</label>
-        <Input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          className="w-40"
-        />
-      </div>
-      {showLocation && (
+      <div className="flex flex-wrap gap-4 items-end">
         <div>
-          <label className="text-sm text-gray-500">Ubicacion</label>
-          <Select value={selectedLocation || "all"} onValueChange={(v) => setSelectedLocation(v === "all" ? "" : v)}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Todas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              {locations.map(l => (
-                <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <label className="text-sm text-gray-500">Fecha Inicio</label>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-40"
+          />
         </div>
-      )}
-      <div className="flex items-end gap-2">
-        <Button onClick={onGenerate} disabled={isLoading}>
-          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Generar'}
-        </Button>
-        {extraButtons}
+        <div>
+          <label className="text-sm text-gray-500">Fecha Fin</label>
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-40"
+          />
+        </div>
+        {showLocation && (
+          <div>
+            <label className="text-sm text-gray-500">Ubicacion</label>
+            <Select value={selectedLocation || "all"} onValueChange={(v) => setSelectedLocation(v === "all" ? "" : v)}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Todas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {locations.map(l => (
+                  <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div className="flex items-end gap-2">
+          <Button onClick={onGenerate} disabled={isLoading}>
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Generar'}
+          </Button>
+          {extraButtons}
+        </div>
       </div>
     </div>
   );
@@ -1562,53 +1589,61 @@ const Reports: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-4 mb-6 items-end">
-                <div>
-                  <label className="text-sm text-gray-500">Fecha Inicio</label>
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-40"
-                  />
+              <div className="space-y-3 mb-6">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setDateRange('today')} className="text-xs">Hoy</Button>
+                  <Button variant="outline" size="sm" onClick={() => setDateRange('week')} className="text-xs">Esta Semana</Button>
+                  <Button variant="outline" size="sm" onClick={() => setDateRange('month')} className="text-xs">Este Mes</Button>
+                  <Button variant="outline" size="sm" onClick={() => setDateRange('last30')} className="text-xs">Últimos 30 días</Button>
                 </div>
-                <div>
-                  <label className="text-sm text-gray-500">Fecha Fin</label>
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-40"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-500">Estado</label>
-                  <Select value={deliveryStatusFilter} onValueChange={setDeliveryStatusFilter}>
-                    <SelectTrigger className="w-44">
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="pending">Pendiente</SelectItem>
-                      <SelectItem value="preparing">Preparando</SelectItem>
-                      <SelectItem value="in_transit">En Camino</SelectItem>
-                      <SelectItem value="delivered">Entregado</SelectItem>
-                      <SelectItem value="cancelled">Cancelado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-end gap-2">
-                  <Button onClick={loadDeliveriesReport} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Generar'}
-                  </Button>
-                  <Button variant="outline" onClick={handleExportDeliveriesExcel} disabled={deliveriesData.length === 0}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Exportar Excel
-                  </Button>
-                  <Button variant="outline" onClick={handleExportDeliveriesPDF} disabled={deliveriesData.length === 0}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Exportar PDF
-                  </Button>
+                <div className="flex flex-wrap gap-4 items-end">
+                  <div>
+                    <label className="text-sm text-gray-500">Fecha Inicio</label>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-40"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-500">Fecha Fin</label>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-40"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-500">Estado</label>
+                    <Select value={deliveryStatusFilter} onValueChange={setDeliveryStatusFilter}>
+                      <SelectTrigger className="w-44">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="pending">Pendiente</SelectItem>
+                        <SelectItem value="preparing">Preparando</SelectItem>
+                        <SelectItem value="in_transit">En Camino</SelectItem>
+                        <SelectItem value="delivered">Entregado</SelectItem>
+                        <SelectItem value="cancelled">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <Button onClick={loadDeliveriesReport} disabled={isLoading}>
+                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Generar'}
+                    </Button>
+                    <Button variant="outline" onClick={handleExportDeliveriesExcel} disabled={deliveriesData.length === 0}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Exportar Excel
+                    </Button>
+                    <Button variant="outline" onClick={handleExportDeliveriesPDF} disabled={deliveriesData.length === 0}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Exportar PDF
+                    </Button>
+                  </div>
                 </div>
               </div>
 
