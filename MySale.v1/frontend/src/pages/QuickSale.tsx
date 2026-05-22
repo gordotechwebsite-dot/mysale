@@ -574,7 +574,12 @@ const QuickSale: React.FC = () => {
 
       {/* Payment Dialog */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" onKeyDown={(e) => {
+          if (e.key === 'Enter' && !isProcessing && !(paymentMethod === 'cash' && (!amountReceived || parseFloat(amountReceived) < total))) {
+            e.preventDefault();
+            handlePayment();
+          }
+        }}>
           <DialogHeader>
             <DialogTitle className="text-2xl">Metodo de Pago</DialogTitle>
           </DialogHeader>
