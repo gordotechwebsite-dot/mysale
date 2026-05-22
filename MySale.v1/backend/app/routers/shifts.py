@@ -13,6 +13,13 @@ from app.utils.auth import get_current_user, require_role
 router = APIRouter(prefix="/api/shifts", tags=["Turnos"])
 
 
+def _get_tenant_location_ids(db: Session, current_user: User) -> list:
+    if not current_user.tenant_id:
+        return []
+    locs = db.query(Location.id).filter(Location.tenant_id == current_user.tenant_id).all()
+    return [l[0] for l in locs]
+
+
 @router.get("/", response_model=List[ShiftResponse])
 async def get_shifts(
     location_id: Optional[int] = None,
@@ -24,6 +31,12 @@ async def get_shifts(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Shift)
+    
+    # Tenant isolation
+    if current_user.tenant_id:
+        tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+        if tenant_loc_ids:
+            query = query.filter(Shift.location_id.in_(tenant_loc_ids))
     
     if location_id:
         query = query.filter(Shift.location_id == location_id)
@@ -204,6 +217,12 @@ async def close_shift_by_admin(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Turno no encontrado"
         )
+    
+    # Tenant isolation
+    if current_user.tenant_id:
+        tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+        if tenant_loc_ids and shift.location_id not in tenant_loc_ids:
+            raise HTTPException(status_code=403, detail="No tienes acceso a este turno")
     
     if shift.status != ShiftStatus.OPEN:
         raise HTTPException(

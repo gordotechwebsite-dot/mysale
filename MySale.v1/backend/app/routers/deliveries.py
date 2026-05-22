@@ -15,6 +15,13 @@ from app.utils.auth import get_current_user
 router = APIRouter(prefix="/api/deliveries", tags=["Domicilios"])
 
 
+def _get_tenant_location_ids(db: Session, current_user: User) -> list:
+    if not current_user.tenant_id:
+        return []
+    locs = db.query(Location.id).filter(Location.tenant_id == current_user.tenant_id).all()
+    return [l[0] for l in locs]
+
+
 def generate_folio(db: Session, location: Location) -> str:
     location.folio_counter += 1
     prefix = location.folio_prefix or location.code
@@ -80,6 +87,12 @@ async def get_deliveries(
 ):
     query = db.query(Sale).filter(Sale.sale_type == SaleType.DELIVERY)
     
+    # Tenant isolation
+    if current_user.tenant_id:
+        tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+        if tenant_loc_ids:
+            query = query.filter(Sale.location_id.in_(tenant_loc_ids))
+    
     if delivery_status:
         query = query.filter(Sale.delivery_status == delivery_status)
     if start_date:
@@ -110,6 +123,12 @@ async def get_delivery(
     ).first()
     if not sale:
         raise HTTPException(status_code=404, detail="Domicilio no encontrado")
+    
+    # Tenant isolation
+    if current_user.tenant_id:
+        tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+        if tenant_loc_ids and sale.location_id not in tenant_loc_ids:
+            raise HTTPException(status_code=403, detail="No tienes acceso a este domicilio")
     
     location = db.query(Location).filter(Location.id == sale.location_id).first()
     cashier = db.query(User).filter(User.id == sale.cashier_id).first()
@@ -237,6 +256,12 @@ async def update_delivery_status(
     ).first()
     if not sale:
         raise HTTPException(status_code=404, detail="Domicilio no encontrado")
+    
+    # Tenant isolation
+    if current_user.tenant_id:
+        tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+        if tenant_loc_ids and sale.location_id not in tenant_loc_ids:
+            raise HTTPException(status_code=403, detail="No tienes acceso a este domicilio")
     
     sale.delivery_status = data.delivery_status
     if data.delivery_person:

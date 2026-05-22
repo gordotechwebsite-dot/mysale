@@ -13,6 +13,13 @@ from app.utils.auth import get_current_user
 router = APIRouter(prefix="/api/losses", tags=["Mermas y Roturas"])
 
 
+def _get_tenant_location_ids(db: Session, current_user: User) -> list:
+    if not current_user.tenant_id:
+        return []
+    locs = db.query(Location.id).filter(Location.tenant_id == current_user.tenant_id).all()
+    return [l[0] for l in locs]
+
+
 @router.get("/", response_model=List[LossResponse])
 async def get_losses(
     location_id: Optional[int] = None,
@@ -25,6 +32,12 @@ async def get_losses(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Loss)
+    
+    # Tenant isolation
+    if current_user.tenant_id:
+        tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+        if tenant_loc_ids:
+            query = query.filter(Loss.location_id.in_(tenant_loc_ids))
     
     if location_id:
         query = query.filter(Loss.location_id == location_id)
@@ -189,6 +202,12 @@ async def get_loss(
     loss = db.query(Loss).filter(Loss.id == loss_id).first()
     if not loss:
         raise HTTPException(status_code=404, detail="Merma no encontrada")
+    
+    # Tenant isolation
+    if current_user.tenant_id:
+        tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+        if tenant_loc_ids and loss.location_id not in tenant_loc_ids:
+            raise HTTPException(status_code=403, detail="No tienes acceso a esta merma")
     
     location = db.query(Location).filter(Location.id == loss.location_id).first()
     user = db.query(User).filter(User.id == loss.reported_by).first()

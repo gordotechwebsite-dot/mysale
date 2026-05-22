@@ -277,6 +277,8 @@ async def get_tables(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Table).filter(Table.is_active == True)
+    # Tenant isolation
+    query = filter_by_tenant(query, Table, current_user.tenant_id)
     if zone_id:
         query = query.filter(Table.zone_id == zone_id)
     if location_id:
@@ -513,6 +515,10 @@ async def get_ticket(
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    # Tenant isolation
+    if current_user.tenant_id and ticket.tenant_id and ticket.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="No tienes acceso a este ticket")
     
     return get_ticket_response(ticket, db)
 

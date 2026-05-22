@@ -525,6 +525,12 @@ async def get_user_fingerprints(
 ):
     target_user_id = user_id or current_user.id
     
+    # Tenant isolation: verify target user belongs to same tenant
+    if user_id and current_user.tenant_id:
+        target_user = db.query(User).filter(User.id == user_id).first()
+        if target_user and target_user.tenant_id != current_user.tenant_id:
+            raise HTTPException(status_code=403, detail="No tienes acceso a este usuario")
+    
     fingerprints = db.query(Fingerprint).filter(
         and_(
             Fingerprint.user_id == target_user_id,

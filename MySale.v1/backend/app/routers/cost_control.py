@@ -25,6 +25,9 @@ async def get_cost_entries(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(CostEntry)
+    # Tenant isolation
+    if current_user.tenant_id:
+        query = query.filter(CostEntry.tenant_id == current_user.tenant_id)
     if active_only:
         query = query.filter(CostEntry.is_active == True)
     entries = query.order_by(CostEntry.created_at.desc()).all()
@@ -71,7 +74,8 @@ async def create_cost_entry(
         recurrence_period=data.recurrence_period,
         start_date=data.start_date or now_colombia(),
         end_date=data.end_date,
-        created_by_id=current_user.id
+        created_by_id=current_user.id,
+        tenant_id=current_user.tenant_id
     )
     db.add(entry)
     db.commit()
@@ -170,12 +174,16 @@ async def get_cost_config(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    config = db.query(CostConfig).first()
+    config_query = db.query(CostConfig)
+    if current_user.tenant_id:
+        config_query = config_query.filter(CostConfig.tenant_id == current_user.tenant_id)
+    config = config_query.first()
     if not config:
         config = CostConfig(
             distribution_method=CostDistributionMethod.PER_PRODUCT,
             percentage_value=0.0,
-            is_auto_apply=False
+            is_auto_apply=False,
+            tenant_id=current_user.tenant_id
         )
         db.add(config)
         db.commit()
@@ -198,9 +206,12 @@ async def update_cost_config(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    config = db.query(CostConfig).first()
+    config_query = db.query(CostConfig)
+    if current_user.tenant_id:
+        config_query = config_query.filter(CostConfig.tenant_id == current_user.tenant_id)
+    config = config_query.first()
     if not config:
-        config = CostConfig()
+        config = CostConfig(tenant_id=current_user.tenant_id)
         db.add(config)
     
     if data.distribution_method is not None:
@@ -233,12 +244,20 @@ async def calculate_costs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    active_entries = db.query(CostEntry).filter(CostEntry.is_active == True).all()
+    entry_query = db.query(CostEntry).filter(CostEntry.is_active == True)
+    product_query = db.query(Product).filter(Product.is_active == True)
+    config_query = db.query(CostConfig)
+    # Tenant isolation
+    if current_user.tenant_id:
+        entry_query = entry_query.filter(CostEntry.tenant_id == current_user.tenant_id)
+        product_query = product_query.filter(Product.tenant_id == current_user.tenant_id)
+        config_query = config_query.filter(CostConfig.tenant_id == current_user.tenant_id)
+    active_entries = entry_query.all()
     total_cost = sum(entry.amount for entry in active_entries)
     
-    product_count = db.query(Product).filter(Product.is_active == True).count()
+    product_count = product_query.count()
     
-    config = db.query(CostConfig).first()
+    config = config_query.first()
     distribution_method = config.distribution_method.value if config else "per_product"
     
     if product_count > 0:
@@ -265,16 +284,25 @@ async def apply_costs_to_products(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    active_entries = db.query(CostEntry).filter(CostEntry.is_active == True).all()
+    entry_query = db.query(CostEntry).filter(CostEntry.is_active == True)
+    product_query = db.query(Product).filter(Product.is_active == True)
+    # Tenant isolation
+    if current_user.tenant_id:
+        entry_query = entry_query.filter(CostEntry.tenant_id == current_user.tenant_id)
+        product_query = product_query.filter(Product.tenant_id == current_user.tenant_id)
+    active_entries = entry_query.all()
     total_cost = sum(entry.amount for entry in active_entries)
     
-    products = db.query(Product).filter(Product.is_active == True).all()
+    products = product_query.all()
     product_count = len(products)
     
     if product_count == 0:
         raise HTTPException(status_code=400, detail="No active products to apply costs to")
     
-    config = db.query(CostConfig).first()
+    config_query = db.query(CostConfig)
+    if current_user.tenant_id:
+        config_query = config_query.filter(CostConfig.tenant_id == current_user.tenant_id)
+    config = config_query.first()
     distribution_method = config.distribution_method if config else CostDistributionMethod.PER_PRODUCT
     
     if distribution_method == CostDistributionMethod.PER_PRODUCT:
@@ -296,6 +324,7 @@ async def apply_costs_to_products(
         cost_per_product=round(cost_per_product, 2),
         distribution_method=distribution_method,
         applied_by_id=current_user.id,
+        tenant_id=current_user.tenant_id,
         notes=data.notes
     )
     db.add(application)
@@ -319,7 +348,11 @@ async def get_cost_applications(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    applications = db.query(CostApplication).order_by(CostApplication.applied_at.desc()).limit(50).all()
+    query = db.query(CostApplication)
+    # Tenant isolation
+    if current_user.tenant_id:
+        query = query.filter(CostApplication.tenant_id == current_user.tenant_id)
+    applications = query.order_by(CostApplication.applied_at.desc()).limit(50).all()
     
     return [
         CostApplicationResponse(

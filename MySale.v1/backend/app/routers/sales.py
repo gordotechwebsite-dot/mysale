@@ -15,6 +15,14 @@ from app.utils.auth import get_current_user, require_role
 router = APIRouter(prefix="/api/sales", tags=["Ventas"])
 
 
+def _get_tenant_location_ids(db: Session, current_user: User) -> list:
+    """Get all location IDs belonging to the current user's tenant."""
+    if not current_user.tenant_id:
+        return []
+    locs = db.query(Location.id).filter(Location.tenant_id == current_user.tenant_id).all()
+    return [l[0] for l in locs]
+
+
 def generate_folio(db: Session, location: Location) -> str:
     location.folio_counter += 1
     prefix = location.folio_prefix or location.code
@@ -104,6 +112,12 @@ async def get_sale(
     sale = db.query(Sale).filter(Sale.id == sale_id).first()
     if not sale:
         raise HTTPException(status_code=404, detail="Venta no encontrada")
+    
+    # Tenant isolation
+    if current_user.tenant_id:
+        tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+        if tenant_loc_ids and sale.location_id not in tenant_loc_ids:
+            raise HTTPException(status_code=403, detail="No tienes acceso a esta venta")
     
     location = db.query(Location).filter(Location.id == sale.location_id).first()
     cashier = db.query(User).filter(User.id == sale.cashier_id).first()
@@ -297,6 +311,12 @@ async def get_sale_by_folio(
     if not sale:
         raise HTTPException(status_code=404, detail="Venta no encontrada")
     
+    # Tenant isolation
+    if current_user.tenant_id:
+        tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+        if tenant_loc_ids and sale.location_id not in tenant_loc_ids:
+            raise HTTPException(status_code=403, detail="No tienes acceso a esta venta")
+    
     location = db.query(Location).filter(Location.id == sale.location_id).first()
     cashier = db.query(User).filter(User.id == sale.cashier_id).first()
     
@@ -367,6 +387,12 @@ async def bulk_import_sales(
     location = db.query(Location).filter(Location.id == data.location_id).first()
     if not location:
         raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
+    
+    # Tenant isolation
+    if current_user.tenant_id:
+        tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+        if tenant_loc_ids and data.location_id not in tenant_loc_ids:
+            raise HTTPException(status_code=403, detail="No tienes acceso a esta ubicacion")
 
     cashier = db.query(User).filter(User.id == data.cashier_id).first()
     if not cashier:
@@ -545,6 +571,12 @@ async def bulk_delete_sales(
     location = db.query(Location).filter(Location.id == data.location_id).first()
     if not location:
         raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
+    
+    # Tenant isolation
+    if current_user.tenant_id:
+        tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+        if tenant_loc_ids and data.location_id not in tenant_loc_ids:
+            raise HTTPException(status_code=403, detail="No tienes acceso a esta ubicacion")
 
     # Delete sale items first
     sales = db.query(Sale).filter(Sale.location_id == data.location_id).all()

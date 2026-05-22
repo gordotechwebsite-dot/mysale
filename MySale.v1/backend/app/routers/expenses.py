@@ -12,6 +12,13 @@ from app.utils.auth import get_current_user, require_role
 router = APIRouter(prefix="/api/expenses", tags=["Gastos"])
 
 
+def _get_tenant_location_ids(db: Session, current_user: User) -> list:
+    if not current_user.tenant_id:
+        return []
+    locs = db.query(Location.id).filter(Location.tenant_id == current_user.tenant_id).all()
+    return [l[0] for l in locs]
+
+
 @router.get("/", response_model=List[ExpenseResponse])
 async def get_expenses(
     location_id: Optional[int] = None,
@@ -24,6 +31,12 @@ async def get_expenses(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Expense)
+    
+    # Tenant isolation
+    if current_user.tenant_id:
+        tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+        if tenant_loc_ids:
+            query = query.filter(Expense.location_id.in_(tenant_loc_ids))
     
     if location_id:
         query = query.filter(Expense.location_id == location_id)
@@ -110,6 +123,12 @@ async def get_expense(
     expense = db.query(Expense).filter(Expense.id == expense_id).first()
     if not expense:
         raise HTTPException(status_code=404, detail="Gasto no encontrado")
+    
+    # Tenant isolation
+    if current_user.tenant_id and expense.location_id:
+        tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+        if tenant_loc_ids and expense.location_id not in tenant_loc_ids:
+            raise HTTPException(status_code=403, detail="No tienes acceso a este gasto")
     
     location = db.query(Location).filter(Location.id == expense.location_id).first() if expense.location_id else None
     user = db.query(User).filter(User.id == expense.created_by_id).first()
