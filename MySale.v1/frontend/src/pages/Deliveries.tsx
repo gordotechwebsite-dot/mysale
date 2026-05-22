@@ -813,7 +813,12 @@ const Deliveries: React.FC = () => {
 
       {/* Payment Dialog */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" onKeyDown={(e) => {
+          if (e.key === 'Enter' && !isProcessing && !(paymentMethod === 'cash' && (!amountReceived || parseFloat(amountReceived) < grandTotal))) {
+            e.preventDefault();
+            handlePayment();
+          }
+        }}>
           <DialogHeader>
             <DialogTitle className="text-xl lg:text-2xl">Pago del Domicilio</DialogTitle>
           </DialogHeader>

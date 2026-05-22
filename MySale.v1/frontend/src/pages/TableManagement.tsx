@@ -1138,7 +1138,12 @@ export default function TableManagement() {
         )}
 
         <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-          <DialogContent className="bg-white text-gray-900 border-gray-200">
+          <DialogContent className="bg-white text-gray-900 border-gray-200" onKeyDown={(e) => {
+            if (e.key === 'Enter' && paymentAmount >= (currentTicket?.total || 0)) {
+              e.preventDefault();
+              handlePayTicket();
+            }
+          }}>
             <DialogHeader>
               <DialogTitle>Cobrar Cuenta</DialogTitle>
             </DialogHeader>
@@ -2048,7 +2053,12 @@ export default function TableManagement() {
       </Dialog>
 
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="bg-white text-gray-900 border-gray-200">
+        <DialogContent className="bg-white text-gray-900 border-gray-200" onKeyDown={(e) => {
+          if (e.key === 'Enter' && paymentAmount >= (currentTicket?.total || 0)) {
+            e.preventDefault();
+            handlePayTicket();
+          }
+        }}>
           <DialogHeader>
             <DialogTitle>Procesar Pago</DialogTitle>
           </DialogHeader>
