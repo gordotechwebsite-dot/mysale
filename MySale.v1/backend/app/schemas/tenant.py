@@ -138,7 +138,6 @@ class TenantModuleUpdate(BaseModel):
 
 
 class TenantPaymentCreate(BaseModel):
-    tenant_id: int
     amount: float
     period_start: datetime
     period_end: datetime
