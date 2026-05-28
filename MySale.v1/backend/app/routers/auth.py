@@ -58,6 +58,17 @@ async def login(
             detail="Usuario inactivo"
         )
     
+    # Check tenant payment status — block login if suspended (superusers bypass this)
+    if user.tenant_id and (not user.role or user.role.role_type != RoleType.SUPERUSER):
+        from app.models.tenant import Tenant, PaymentStatus
+        tenant = db.query(Tenant).filter(Tenant.id == user.tenant_id).first()
+        if tenant and tenant.payment_status == PaymentStatus.SUSPENDED:
+            logger.warning(f"LOGIN_FAILED: username='{form_data.username}' reason='tenant_suspended' tenant_id={user.tenant_id}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Acceso suspendido por falta de pago. Contacta al administrador."
+            )
+    
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username, "user_id": user.id},

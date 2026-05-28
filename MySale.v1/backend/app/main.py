@@ -2,11 +2,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 from app.database import engine, Base, SessionLocal
 from app.models import *
 from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants, integration, faq, biometric, branches, deliveries, business_profile
 from app.routers.tenants import public_router as tenants_public_router
+
+logger = logging.getLogger("mysale.scheduler")
 
 
 def run_migrations():
@@ -562,6 +566,72 @@ def init_summer_sed_products():
         db.close()
 
 
+def check_and_suspend_unpaid_tenants():
+    """Suspend tenants who haven't paid by the 6th of the month (Bogota time)."""
+    from app.timezone import now_colombia
+    from app.models.tenant import Tenant, TenantPayment, PaymentStatus
+    from sqlalchemy import func
+
+    now = now_colombia()
+    if now.day < 6:
+        return
+
+    db = SessionLocal()
+    try:
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        active_tenants = db.query(Tenant).filter(
+            Tenant.is_active == True,
+            Tenant.payment_status.in_([PaymentStatus.ACTIVE, PaymentStatus.PENDING, PaymentStatus.OVERDUE])
+        ).all()
+
+        suspended_count = 0
+        for tenant in active_tenants:
+            has_payment = db.query(TenantPayment).filter(
+                TenantPayment.tenant_id == tenant.id,
+                TenantPayment.payment_date >= month_start
+            ).first()
+
+            if not has_payment:
+                tenant.payment_status = PaymentStatus.SUSPENDED
+                suspended_count += 1
+                logger.info(f"Tenant '{tenant.name}' (ID:{tenant.id}) suspendido por falta de pago")
+
+        if suspended_count > 0:
+            db.commit()
+            logger.info(f"Suspensión automática: {suspended_count} tenant(s) suspendido(s)")
+        else:
+            logger.info("Suspensión automática: todos los tenants activos tienen pago registrado")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error en suspensión automática: {e}")
+    finally:
+        db.close()
+
+
+async def payment_check_scheduler():
+    """Background task that checks daily at 00:00 Bogota time for unpaid tenants."""
+    from app.timezone import now_colombia
+
+    while True:
+        try:
+            now = now_colombia()
+            # Calculate seconds until next 00:05 Bogota time (small buffer after midnight)
+            tomorrow = (now.replace(hour=0, minute=5, second=0, microsecond=0))
+            if now.hour >= 0 and now.minute >= 5:
+                from datetime import timedelta
+                tomorrow = tomorrow + timedelta(days=1)
+            wait_seconds = (tomorrow - now).total_seconds()
+            logger.info(f"Scheduler: próxima verificación de pagos en {wait_seconds/3600:.1f}h")
+            await asyncio.sleep(wait_seconds)
+            check_and_suspend_unpaid_tenants()
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Error en scheduler de pagos: {e}")
+            await asyncio.sleep(3600)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
@@ -569,7 +639,12 @@ async def lifespan(app: FastAPI):
     init_default_data()
     init_default_modules()
     init_summer_sed_products()
+    # Run payment check on startup (in case server was down on the 6th)
+    check_and_suspend_unpaid_tenants()
+    # Start background scheduler
+    scheduler_task = asyncio.create_task(payment_check_scheduler())
     yield
+    scheduler_task.cancel()
 
 
 app = FastAPI(
