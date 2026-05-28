@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
 from app.models.user import User, RoleType
-from app.models.inventory import Group, Family, SubFamily, Product, ProductStock, StockMovement, MovementType
+from app.models.inventory import Group, Family, SubFamily, Product, ProductStock, StockMovement, MovementType, ProductModifier
 from app.models.location import Location
 from app.models.sale import SaleItem
 from app.models.table import TicketItem
@@ -14,7 +14,8 @@ from app.schemas.inventory import (
     FamilyCreate, FamilyUpdate, FamilyResponse,
     SubFamilyCreate, SubFamilyUpdate, SubFamilyResponse,
     ProductCreate, ProductUpdate, ProductResponse, ProductStockResponse,
-    StockAdjustment, PurchaseCreate, BulkProductImport
+    StockAdjustment, PurchaseCreate, BulkProductImport,
+    ModifierCreate, ModifierUpdate, ModifierResponse
 )
 from app.utils.auth import get_current_user, require_role, require_module
 
@@ -220,6 +221,7 @@ async def get_products(
                     last_inventory_date=stock.last_inventory_date
                 ))
         
+        mods = [ModifierResponse(id=m.id, name=m.name, price_adjustment=m.price_adjustment, is_active=m.is_active, display_order=m.display_order) for m in (product.modifiers or []) if m.is_active]
         result.append(ProductResponse(
             id=product.id,
             code=product.code,
@@ -234,7 +236,8 @@ async def get_products(
             max_stock=product.max_stock,
             is_active=product.is_active,
             created_at=product.created_at,
-            stocks=stocks
+            stocks=stocks,
+            modifiers=mods
         ))
     
     return result
@@ -289,7 +292,8 @@ async def create_product(
         max_stock=db_product.max_stock,
         is_active=db_product.is_active,
         created_at=db_product.created_at,
-        stocks=[]
+        stocks=[],
+        modifiers=[]
     )
 
 
@@ -313,6 +317,7 @@ async def get_product(
             last_inventory_date=stock.last_inventory_date
         ))
     
+    mods = [ModifierResponse(id=m.id, name=m.name, price_adjustment=m.price_adjustment, is_active=m.is_active, display_order=m.display_order) for m in (product.modifiers or [])]
     return ProductResponse(
         id=product.id,
         code=product.code,
@@ -327,7 +332,8 @@ async def get_product(
         max_stock=product.max_stock,
         is_active=product.is_active,
         created_at=product.created_at,
-        stocks=stocks
+        stocks=stocks,
+        modifiers=mods
     )
 
 
@@ -777,3 +783,81 @@ async def bulk_import_products(
         "skipped": skipped_count,
         "tenant_id": tenant_id
     }
+
+
+# --- Product Modifiers ---
+
+@router.get("/products/{product_id}/modifiers", response_model=List[ModifierResponse])
+async def get_product_modifiers(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    modifiers = db.query(ProductModifier).filter(
+        ProductModifier.product_id == product_id
+    ).order_by(ProductModifier.display_order).all()
+    return modifiers
+
+
+@router.post("/products/{product_id}/modifiers", response_model=ModifierResponse)
+async def create_product_modifier(
+    product_id: int,
+    data: ModifierCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    modifier = ProductModifier(
+        product_id=product_id,
+        tenant_id=current_user.tenant_id,
+        name=data.name,
+        price_adjustment=data.price_adjustment,
+        display_order=data.display_order
+    )
+    db.add(modifier)
+    db.commit()
+    db.refresh(modifier)
+    return modifier
+
+
+@router.put("/products/modifiers/{modifier_id}", response_model=ModifierResponse)
+async def update_product_modifier(
+    modifier_id: int,
+    data: ModifierUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    modifier = db.query(ProductModifier).filter(ProductModifier.id == modifier_id).first()
+    if not modifier:
+        raise HTTPException(status_code=404, detail="Modificador no encontrado")
+    if data.name is not None:
+        modifier.name = data.name
+    if data.price_adjustment is not None:
+        modifier.price_adjustment = data.price_adjustment
+    if data.is_active is not None:
+        modifier.is_active = data.is_active
+    if data.display_order is not None:
+        modifier.display_order = data.display_order
+    db.commit()
+    db.refresh(modifier)
+    return modifier
+
+
+@router.delete("/products/modifiers/{modifier_id}")
+async def delete_product_modifier(
+    modifier_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    modifier = db.query(ProductModifier).filter(ProductModifier.id == modifier_id).first()
+    if not modifier:
+        raise HTTPException(status_code=404, detail="Modificador no encontrado")
+    db.delete(modifier)
+    db.commit()
+    return {"message": "Modificador eliminado"}

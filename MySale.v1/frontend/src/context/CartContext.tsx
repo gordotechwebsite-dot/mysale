@@ -3,10 +3,10 @@ import type { CartItem, Product } from '../types';
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (product: Product, quantity?: number) => void;
-  removeItem: (productId: number) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
-  updateDiscount: (productId: number, discount: number) => void;
+  addItem: (product: Product, quantity?: number, notes?: string) => void;
+  removeItem: (productId: number, notes?: string) => void;
+  updateQuantity: (productId: number, quantity: number, notes?: string) => void;
+  updateDiscount: (productId: number, discount: number, notes?: string) => void;
   clearCart: () => void;
   total: number;
   subtotal: number;
@@ -15,43 +15,45 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const itemKey = (productId: number, notes?: string) => `${productId}::${notes || ''}`;
+
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
 
-  const addItem = (product: Product, quantity: number = 1) => {
+  const addItem = (product: Product, quantity: number = 1, notes?: string) => {
     setItems((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
+      const existing = prev.find((item) => itemKey(item.product.id, item.notes) === itemKey(product.id, notes));
       if (existing) {
         return prev.map((item) =>
-          item.product.id === product.id
+          itemKey(item.product.id, item.notes) === itemKey(product.id, notes)
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       }
-      return [...prev, { product, quantity, discount: 0 }];
+      return [...prev, { product, quantity, discount: 0, notes }];
     });
   };
 
-  const removeItem = (productId: number) => {
-    setItems((prev) => prev.filter((item) => item.product.id !== productId));
+  const removeItem = (productId: number, notes?: string) => {
+    setItems((prev) => prev.filter((item) => itemKey(item.product.id, item.notes) !== itemKey(productId, notes)));
   };
 
-  const updateQuantity = (productId: number, quantity: number) => {
+  const updateQuantity = (productId: number, quantity: number, notes?: string) => {
     if (quantity <= 0) {
-      removeItem(productId);
+      removeItem(productId, notes);
       return;
     }
     setItems((prev) =>
       prev.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
+        itemKey(item.product.id, item.notes) === itemKey(productId, notes) ? { ...item, quantity } : item
       )
     );
   };
 
-  const updateDiscount = (productId: number, discount: number) => {
+  const updateDiscount = (productId: number, discount: number, notes?: string) => {
     setItems((prev) =>
       prev.map((item) =>
-        item.product.id === productId ? { ...item, discount } : item
+        itemKey(item.product.id, item.notes) === itemKey(productId, notes) ? { ...item, discount } : item
       )
     );
   };

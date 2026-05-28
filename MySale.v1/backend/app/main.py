@@ -157,6 +157,16 @@ def run_migrations():
                     db.commit()
                     print(f"Migration: Added {col_name} column to sales table")
         
+        # Add notes column to sale_items table
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='sale_items'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(sale_items)"))
+            si_cols = [row[1] for row in result.fetchall()]
+            if 'notes' not in si_cols:
+                db.execute(text("ALTER TABLE sale_items ADD COLUMN notes TEXT"))
+                db.commit()
+                print("Migration: Added notes column to sale_items table")
+        
         # Add rotation column to tables table
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='tables'"))
         if result.fetchone():

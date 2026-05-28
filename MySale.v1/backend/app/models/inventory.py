@@ -75,6 +75,22 @@ class Product(Base):
     sale_items = relationship("SaleItem", back_populates="product")
     loss_items = relationship("LossItem", back_populates="product")
     transfer_items = relationship("TransferItem", back_populates="product")
+    modifiers = relationship("ProductModifier", back_populates="product", order_by="ProductModifier.display_order")
+
+
+class ProductModifier(Base):
+    __tablename__ = "product_modifiers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    name = Column(String(200), nullable=False)
+    price_adjustment = Column(Float, default=0.0)
+    is_active = Column(Boolean, default=True)
+    display_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=now_colombia)
+
+    product = relationship("Product", back_populates="modifiers")
 
 
 class ProductStock(Base):

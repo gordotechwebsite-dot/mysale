@@ -109,6 +109,30 @@ class ProductStockResponse(BaseModel):
     last_inventory_date: Optional[datetime]
 
 
+class ModifierResponse(BaseModel):
+    id: int
+    name: str
+    price_adjustment: float
+    is_active: bool
+    display_order: int
+
+    class Config:
+        from_attributes = True
+
+
+class ModifierCreate(BaseModel):
+    name: str
+    price_adjustment: float = 0.0
+    display_order: int = 0
+
+
+class ModifierUpdate(BaseModel):
+    name: Optional[str] = None
+    price_adjustment: Optional[float] = None
+    is_active: Optional[bool] = None
+    display_order: Optional[int] = None
+
+
 class ProductResponse(BaseModel):
     id: int
     code: str
@@ -124,6 +148,7 @@ class ProductResponse(BaseModel):
     is_active: bool
     created_at: datetime
     stocks: Optional[List[ProductStockResponse]] = None
+    modifiers: Optional[List[ModifierResponse]] = None
 
     class Config:
         from_attributes = True

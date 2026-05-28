@@ -8,6 +8,7 @@ class SaleItemCreate(BaseModel):
     product_id: int
     quantity: float
     discount: float = 0.0
+    notes: Optional[str] = None
 
 
 class SaleCreate(BaseModel):
@@ -27,6 +28,7 @@ class SaleItemResponse(BaseModel):
     unit_price: float
     discount: float
     subtotal: float
+    notes: Optional[str] = None
 
     class Config:
         from_attributes = True

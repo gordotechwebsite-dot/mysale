@@ -7,9 +7,10 @@ import {
   getLosses, createLoss,
   updateProduct, deleteProduct, deleteFamily, deleteSubFamily, deleteGroup,
   updateGroup, updateFamily, updateSubFamily,
-  getStockAlerts
+  getStockAlerts,
+  getProductModifiers, createProductModifier, deleteProductModifier
 } from '../api';
-import type { Group, Family, SubFamily, Product, Location, Transfer, Loss } from '../types';
+import type { Group, Family, SubFamily, Product, Location, Transfer, Loss, ProductModifier } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -114,6 +115,13 @@ const Inventory: React.FC = () => {
   const [lossQuantity, setLossQuantity] = useState('');
   const [lossReason, setLossReason] = useState('');
   const [confirmAction, setConfirmAction] = useState<{ title: string; description: string; onConfirm: () => void } | null>(null);
+
+  // Modifiers state
+  const [modifiers, setModifiers] = useState<ProductModifier[]>([]);
+  const [showModifiers, setShowModifiers] = useState(false);
+  const [modifierProductId, setModifierProductId] = useState<number | null>(null);
+  const [modifierProductName, setModifierProductName] = useState('');
+  const [newModifier, setNewModifier] = useState({ name: '', price_adjustment: '0' });
 
   useEffect(() => {
     loadData();
@@ -287,6 +295,44 @@ const Inventory: React.FC = () => {
       toast.error(error.response?.data?.detail || 'Error al editar producto');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const openModifiers = async (product: Product) => {
+    setModifierProductId(product.id);
+    setModifierProductName(product.name);
+    setShowModifiers(true);
+    try {
+      const data = await getProductModifiers(product.id);
+      setModifiers(data);
+    } catch {
+      toast.error('Error al cargar variaciones');
+    }
+  };
+
+  const handleAddModifier = async () => {
+    if (!modifierProductId || !newModifier.name) return;
+    try {
+      await createProductModifier(modifierProductId, {
+        name: newModifier.name,
+        price_adjustment: parseFloat(newModifier.price_adjustment) || 0
+      });
+      const data = await getProductModifiers(modifierProductId);
+      setModifiers(data);
+      setNewModifier({ name: '', price_adjustment: '0' });
+      toast.success('Variación agregada');
+    } catch {
+      toast.error('Error al agregar variación');
+    }
+  };
+
+  const handleDeleteModifier = async (modId: number) => {
+    try {
+      await deleteProductModifier(modId);
+      setModifiers(prev => prev.filter(m => m.id !== modId));
+      toast.success('Variación eliminada');
+    } catch {
+      toast.error('Error al eliminar variación');
     }
   };
 
@@ -651,6 +697,9 @@ const Inventory: React.FC = () => {
                       </Button>
                       {isSuperuser && (
                         <>
+                          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openModifiers(product)}>
+                            Variaciones
+                          </Button>
                           <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => openEditProduct(product)}>
                             <Pencil className="w-3 h-3" />
                           </Button>
@@ -697,6 +746,14 @@ const Inventory: React.FC = () => {
                             </Button>
                             {isSuperuser && (
                               <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openModifiers(product)}
+                                  title="Variaciones"
+                                >
+                                  Var.
+                                </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -1500,6 +1557,59 @@ const Inventory: React.FC = () => {
         variant="danger"
         onConfirm={() => confirmAction?.onConfirm()}
       />
+
+      {/* Modifiers Dialog */}
+      <Dialog open={showModifiers} onOpenChange={(open) => { if (!open) { setShowModifiers(false); setModifierProductId(null); setModifiers([]); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Variaciones — {modifierProductName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {modifiers.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-4">No hay variaciones registradas</p>
+            ) : (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {modifiers.map(mod => (
+                  <div key={mod.id} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-lg">
+                    <div>
+                      <span className="font-medium text-sm">{mod.name}</span>
+                      {mod.price_adjustment !== 0 && (
+                        <span className="text-xs text-gray-500 ml-2">
+                          {mod.price_adjustment > 0 ? '+' : ''}{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(mod.price_adjustment)}
+                        </span>
+                      )}
+                    </div>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500 hover:text-red-700" onClick={() => handleDeleteModifier(mod.id)}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="border-t pt-3">
+              <p className="text-sm font-medium mb-2">Agregar variación</p>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Nombre (ej: Sin arroz)"
+                  value={newModifier.name}
+                  onChange={(e) => setNewModifier({ ...newModifier, name: e.target.value })}
+                  className="flex-1"
+                />
+                <Input
+                  type="number"
+                  placeholder="Ajuste $"
+                  value={newModifier.price_adjustment}
+                  onChange={(e) => setNewModifier({ ...newModifier, price_adjustment: e.target.value })}
+                  className="w-24"
+                />
+                <Button size="sm" onClick={handleAddModifier} disabled={!newModifier.name}>
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

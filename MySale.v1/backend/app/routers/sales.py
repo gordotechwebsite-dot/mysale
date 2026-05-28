@@ -77,7 +77,8 @@ async def get_sales(
                 quantity=item.quantity,
                 unit_price=item.unit_price,
                 discount=item.discount,
-                subtotal=item.subtotal
+                subtotal=item.subtotal,
+                notes=item.notes
             ))
         
         result.append(SaleResponse(
@@ -133,7 +134,8 @@ async def get_sale(
             quantity=item.quantity,
             unit_price=item.unit_price,
             discount=item.discount,
-            subtotal=item.subtotal
+            subtotal=item.subtotal,
+            notes=item.notes
         ))
     
     return SaleResponse(
@@ -213,7 +215,8 @@ async def create_sale(
             "unit_price": product.sale_price,
             "cost_at_sale": product.weighted_cost,
             "discount": item_discount,
-            "subtotal": item_subtotal - item_discount
+            "subtotal": item_subtotal - item_discount,
+            "notes": item_data.notes
         })
         
         subtotal += item_subtotal
@@ -251,7 +254,8 @@ async def create_sale(
             unit_price=item_info["unit_price"],
             cost_at_sale=item_info["cost_at_sale"],
             discount=item_info["discount"],
-            subtotal=item_info["subtotal"]
+            subtotal=item_info["subtotal"],
+            notes=item_info["notes"]
         )
         db.add(sale_item)
         
@@ -277,7 +281,8 @@ async def create_sale(
             quantity=item.quantity,
             unit_price=item.unit_price,
             discount=item.discount,
-            subtotal=item.subtotal
+            subtotal=item.subtotal,
+            notes=item.notes
         ))
     
     return SaleResponse(
@@ -331,7 +336,8 @@ async def get_sale_by_folio(
             quantity=item.quantity,
             unit_price=item.unit_price,
             discount=item.discount,
-            subtotal=item.subtotal
+            subtotal=item.subtotal,
+            notes=item.notes
         ))
     
     return SaleResponse(

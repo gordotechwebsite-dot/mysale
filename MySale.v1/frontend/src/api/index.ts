@@ -158,6 +158,27 @@ export const deleteProduct = async (id: number): Promise<{ message: string }> =>
   return response.data;
 };
 
+// Product Modifiers
+export const getProductModifiers = async (productId: number) => {
+  const response = await api.get(`/api/inventory/products/${productId}/modifiers`);
+  return response.data;
+};
+
+export const createProductModifier = async (productId: number, data: { name: string; price_adjustment?: number; display_order?: number }) => {
+  const response = await api.post(`/api/inventory/products/${productId}/modifiers`, data);
+  return response.data;
+};
+
+export const updateProductModifier = async (modifierId: number, data: { name?: string; price_adjustment?: number; is_active?: boolean; display_order?: number }) => {
+  const response = await api.put(`/api/inventory/products/modifiers/${modifierId}`, data);
+  return response.data;
+};
+
+export const deleteProductModifier = async (modifierId: number) => {
+  const response = await api.delete(`/api/inventory/products/modifiers/${modifierId}`);
+  return response.data;
+};
+
 export const deleteFamily = async (id: number): Promise<{ message: string }> => {
   const response = await api.delete(`/api/inventory/families/${id}`);
   return response.data;

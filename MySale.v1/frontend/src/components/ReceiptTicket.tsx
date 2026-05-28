@@ -65,6 +65,7 @@ const thermalStyles = `
   .item-detail span:nth-child(2) { width: 30px; text-align: center; }
   .item-detail span:nth-child(3) { width: 55px; text-align: right; }
   .item-detail span:nth-child(4) { width: 60px; text-align: right; }
+  .item-notes { font-size: 9px; color: #555; font-style: italic; }
   .item-discount { font-size: 9px; color: #666; text-align: right; }
   .totals-section { margin-top: 4px; }
   .totals-row { display: flex; justify-content: space-between; font-size: 11px; padding: 1px 0; }
@@ -314,6 +315,11 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
                   <div style={{ fontSize: '11px', fontWeight: 600 }}>
                     {item.product_name || `Producto #${item.product_id}`}
                   </div>
+                  {item.notes && (
+                    <div style={{ fontSize: '9px', color: '#555', fontStyle: 'italic' }}>
+                      ▸ {item.notes}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', fontSize: '10px', color: '#333' }}>
                     <span style={{ flex: 1 }}></span>
                     <span style={{ width: '30px', textAlign: 'center' }}>{item.quantity}</span>

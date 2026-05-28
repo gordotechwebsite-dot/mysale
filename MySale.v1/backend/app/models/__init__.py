@@ -1,7 +1,7 @@
 from app.models.user import User, Role, UserModule
 from app.models.location import Location
 from app.models.branch import Branch, WorkSession
-from app.models.inventory import Group, Family, SubFamily, Product, ProductStock, StockMovement
+from app.models.inventory import Group, Family, SubFamily, Product, ProductStock, StockMovement, ProductModifier
 from app.models.shift import Shift, ShiftAlert
 from app.models.sale import Sale, SaleItem
 from app.models.cash import CashRegister, CashDenomination, CashCut
@@ -19,7 +19,7 @@ from app.models.biometric import Fingerprint, BiometricLog, AttendanceRecord, Bi
 __all__ = [
     "User", "Role", "UserModule", "Location",
     "Branch", "WorkSession",
-    "Group", "Family", "SubFamily", "Product", "ProductStock", "StockMovement",
+    "Group", "Family", "SubFamily", "Product", "ProductStock", "StockMovement", "ProductModifier",
     "Shift", "ShiftAlert",
     "Sale", "SaleItem",
     "CashRegister", "CashDenomination", "CashCut",

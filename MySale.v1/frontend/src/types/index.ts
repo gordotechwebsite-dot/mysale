@@ -76,6 +76,14 @@ export interface SubFamily {
   is_active: boolean;
 }
 
+export interface ProductModifier {
+  id: number;
+  name: string;
+  price_adjustment: number;
+  is_active: boolean;
+  display_order: number;
+}
+
 export interface ProductStock {
   location_id: number;
   location_name: string;
@@ -101,6 +109,7 @@ export interface Product {
   plu_code: string | null;
   created_at: string;
   stocks?: ProductStock[];
+  modifiers?: ProductModifier[];
 }
 
 export interface WeightedBarcodeResult {
@@ -159,6 +168,7 @@ export interface SaleItem {
   unit_price: number;
   discount: number;
   subtotal: number;
+  notes?: string | null;
 }
 
 export interface Sale {
@@ -185,6 +195,7 @@ export interface CartItem {
   product: Product;
   quantity: number;
   discount: number;
+  notes?: string;
 }
 
 export interface CashDenomination {

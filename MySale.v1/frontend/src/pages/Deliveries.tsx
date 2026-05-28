@@ -123,6 +123,8 @@ const Deliveries: React.FC = () => {
 
   // Mobile step: 'categories' | 'products' | 'checkout'
   const [mobileStep, setMobileStep] = useState<'categories' | 'products' | 'checkout'>('categories');
+  const [modifierProduct, setModifierProduct] = useState<Product | null>(null);
+  const [selectedModifiers, setSelectedModifiers] = useState<number[]>([]);
 
   useEffect(() => {
     loadInitialData();
@@ -210,7 +212,22 @@ const Deliveries: React.FC = () => {
   };
 
   const handleProductClick = (product: Product) => {
-    addItem(product);
+    if (product.modifiers && product.modifiers.length > 0) {
+      setModifierProduct(product);
+      setSelectedModifiers([]);
+    } else {
+      addItem(product);
+    }
+  };
+
+  const handleConfirmModifiers = () => {
+    if (!modifierProduct) return;
+    const mods = modifierProduct.modifiers || [];
+    const selected = mods.filter(m => selectedModifiers.includes(m.id));
+    const notesText = selected.length > 0 ? selected.map(m => m.name).join(', ') : undefined;
+    addItem(modifierProduct, 1, notesText);
+    setModifierProduct(null);
+    setSelectedModifiers([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -243,7 +260,8 @@ const Deliveries: React.FC = () => {
         items: items.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
-          discount: item.discount
+          discount: item.discount,
+          notes: item.notes || undefined
         })),
         customer_name: customerName,
         customer_phone: customerPhone,
@@ -398,23 +416,24 @@ const Deliveries: React.FC = () => {
         ) : (
           <div className="space-y-2">
             {items.map((item) => (
-              <div key={item.product.id} className="bg-gray-50 rounded-lg p-2">
+              <div key={`${item.product.id}-${item.notes || ''}`} className="bg-gray-50 rounded-lg p-2">
                 <div className="flex justify-between items-start mb-1">
                   <div className="flex-1">
                     <p className="font-medium text-sm">{item.product.name}</p>
+                    {item.notes && <p className="text-xs text-purple-600 truncate">▸ {item.notes}</p>}
                     <p className="text-xs text-gray-500">{formatCurrency(item.product.sale_price)} c/u</p>
                   </div>
-                  <button onClick={() => removeItem(item.product.id)} className="text-red-500 hover:text-red-700 p-1">
+                  <button onClick={() => removeItem(item.product.id, item.notes)} className="text-red-500 hover:text-red-700 p-1">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)} className="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center">
+                    <button onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.notes)} className="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center">
                       <Minus className="w-3 h-3" />
                     </button>
                     <span className="w-8 text-center font-bold text-sm">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.product.id, item.quantity + 1)} className="w-7 h-7 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center">
+                    <button onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.notes)} className="w-7 h-7 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center">
                       <Plus className="w-3 h-3" />
                     </button>
                   </div>
@@ -537,20 +556,21 @@ const Deliveries: React.FC = () => {
                 </h4>
                 <div className="space-y-2">
                   {items.map((item) => (
-                    <div key={item.product.id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: '#f9fafb' }}>
+                    <div key={`${item.product.id}-${item.notes || ''}`} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: '#f9fafb' }}>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate" style={{ color: '#111827' }}>{item.product.name}</p>
+                        {item.notes && <p className="text-xs text-purple-600 truncate">▸ {item.notes}</p>}
                         <p className="text-xs" style={{ color: '#6b7280' }}>{formatCurrency(item.product.sale_price)} c/u</p>
                       </div>
                       <div className="flex items-center gap-1.5 ml-2">
-                        <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)} className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#e5e7eb' }}>
+                        <button onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.notes)} className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: '#e5e7eb' }}>
                           <Minus size={12} />
                         </button>
                         <span className="w-6 text-center font-bold text-xs">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.product.id, item.quantity + 1)} className="w-6 h-6 rounded-full text-white flex items-center justify-center" style={{ backgroundColor: '#9333ea' }}>
+                        <button onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.notes)} className="w-6 h-6 rounded-full text-white flex items-center justify-center" style={{ backgroundColor: '#9333ea' }}>
                           <Plus size={12} />
                         </button>
-                        <button onClick={() => removeItem(item.product.id)} className="ml-1 p-1" style={{ color: '#ef4444' }}>
+                        <button onClick={() => removeItem(item.product.id, item.notes)} className="ml-1 p-1" style={{ color: '#ef4444' }}>
                           <X size={14} />
                         </button>
                       </div>
@@ -986,6 +1006,37 @@ const Deliveries: React.FC = () => {
         variant="danger"
         onConfirm={() => { clearCart(); setShowClearConfirm(false); }}
       />
+
+      {/* Modifier Selection Dialog */}
+      <Dialog open={!!modifierProduct} onOpenChange={(open) => { if (!open) { setModifierProduct(null); setSelectedModifiers([]); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg">{modifierProduct?.name}</DialogTitle>
+            <p className="text-sm text-gray-500">Selecciona las variaciones</p>
+          </DialogHeader>
+          <div className="space-y-2 max-h-60 overflow-y-auto py-2">
+            {(modifierProduct?.modifiers || []).map(mod => (
+              <button
+                key={mod.id}
+                onClick={() => setSelectedModifiers(prev => prev.includes(mod.id) ? prev.filter(id => id !== mod.id) : [...prev, mod.id])}
+                className={`w-full flex items-center justify-between p-3 rounded-lg border transition-colors ${selectedModifiers.includes(mod.id) ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-gray-200 hover:border-gray-300'}`}
+              >
+                <span className="font-medium text-sm">{mod.name}</span>
+                <div className="flex items-center gap-2">
+                  {mod.price_adjustment !== 0 && (
+                    <span className="text-xs text-gray-500">{mod.price_adjustment > 0 ? '+' : ''}{formatCurrency(mod.price_adjustment)}</span>
+                  )}
+                  {selectedModifiers.includes(mod.id) && <Check className="w-4 h-4 text-purple-500" />}
+                </div>
+              </button>
+            ))}
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => { addItem(modifierProduct!); setModifierProduct(null); setSelectedModifiers([]); }}>Sin variaciones</Button>
+            <Button className="bg-purple-600 hover:bg-purple-700" onClick={handleConfirmModifiers}>Agregar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

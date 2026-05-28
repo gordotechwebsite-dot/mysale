@@ -109,6 +109,8 @@ const QuickSale: React.FC = () => {
 
   // Mobile step flow
   const [mobileStep, setMobileStep] = useState<'categories' | 'products' | 'checkout'>('categories');
+  const [modifierProduct, setModifierProduct] = useState<Product | null>(null);
+  const [selectedModifiers, setSelectedModifiers] = useState<number[]>([]);
 
   useEffect(() => { loadInitialData(); }, []);
   useEffect(() => { if (selectedLocation) loadProducts(); }, [selectedLocation]);
@@ -174,7 +176,22 @@ const QuickSale: React.FC = () => {
   };
 
   const handleProductClick = (product: Product) => {
-    addItem(product);
+    if (product.modifiers && product.modifiers.length > 0) {
+      setModifierProduct(product);
+      setSelectedModifiers([]);
+    } else {
+      addItem(product);
+    }
+  };
+
+  const handleConfirmModifiers = () => {
+    if (!modifierProduct) return;
+    const mods = modifierProduct.modifiers || [];
+    const selected = mods.filter(m => selectedModifiers.includes(m.id));
+    const notes = selected.length > 0 ? selected.map(m => m.name).join(', ') : undefined;
+    addItem(modifierProduct, 1, notes);
+    setModifierProduct(null);
+    setSelectedModifiers([]);
   };
 
   const handleWeightedBarcode = async (barcode: string) => {
@@ -228,7 +245,8 @@ const QuickSale: React.FC = () => {
       const saleData = {
         payment_method: paymentMethod,
         items: items.map(item => ({
-          product_id: item.product.id, quantity: item.quantity, discount: item.discount
+          product_id: item.product.id, quantity: item.quantity, discount: item.discount,
+          notes: item.notes || undefined
         })),
         amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) || total : undefined,
         location_id: selectedLocation
@@ -281,23 +299,24 @@ const QuickSale: React.FC = () => {
         ) : (
           <div className="space-y-2">
             {items.map((item) => (
-              <div key={item.product.id} className="bg-gray-50 rounded-lg p-2.5">
+              <div key={`${item.product.id}-${item.notes || ''}`} className="bg-gray-50 rounded-lg p-2.5">
                 <div className="flex justify-between items-start mb-1.5">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm leading-tight">{item.product.name}</p>
+                    {item.notes && <p className="text-xs text-orange-600 truncate">▸ {item.notes}</p>}
                     <p className="text-xs text-gray-500">{formatCurrency(item.product.sale_price)} c/u</p>
                   </div>
-                  <button onClick={() => removeItem(item.product.id)} className="text-red-500 hover:text-red-700 p-0.5 ml-1">
+                  <button onClick={() => removeItem(item.product.id, item.notes)} className="text-red-500 hover:text-red-700 p-0.5 ml-1">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)} className="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center">
+                    <button onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.notes)} className="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center">
                       <Minus className="w-3.5 h-3.5" />
                     </button>
                     <span className="w-8 text-center font-bold text-sm">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.product.id, item.quantity + 1)} className="w-7 h-7 rounded-full bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center">
+                    <button onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.notes)} className="w-7 h-7 rounded-full bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center">
                       <Plus className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -699,6 +718,37 @@ const QuickSale: React.FC = () => {
         variant="danger"
         onConfirm={() => { clearCart(); setShowClearConfirm(false); }}
       />
+
+      {/* Modifier Selection Dialog */}
+      <Dialog open={!!modifierProduct} onOpenChange={(open) => { if (!open) { setModifierProduct(null); setSelectedModifiers([]); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg">{modifierProduct?.name}</DialogTitle>
+            <p className="text-sm text-gray-500">Selecciona las variaciones</p>
+          </DialogHeader>
+          <div className="space-y-2 max-h-60 overflow-y-auto py-2">
+            {(modifierProduct?.modifiers || []).map(mod => (
+              <button
+                key={mod.id}
+                onClick={() => setSelectedModifiers(prev => prev.includes(mod.id) ? prev.filter(id => id !== mod.id) : [...prev, mod.id])}
+                className={`w-full flex items-center justify-between p-3 rounded-lg border transition-colors ${selectedModifiers.includes(mod.id) ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-200 hover:border-gray-300'}`}
+              >
+                <span className="font-medium text-sm">{mod.name}</span>
+                <div className="flex items-center gap-2">
+                  {mod.price_adjustment !== 0 && (
+                    <span className="text-xs text-gray-500">{mod.price_adjustment > 0 ? '+' : ''}{formatCurrency(mod.price_adjustment)}</span>
+                  )}
+                  {selectedModifiers.includes(mod.id) && <Check className="w-4 h-4 text-orange-500" />}
+                </div>
+              </button>
+            ))}
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => { addItem(modifierProduct!); setModifierProduct(null); setSelectedModifiers([]); }}>Sin variaciones</Button>
+            <Button className="bg-orange-500 hover:bg-orange-600" onClick={handleConfirmModifiers}>Agregar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

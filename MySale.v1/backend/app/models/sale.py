@@ -71,6 +71,7 @@ class SaleItem(Base):
     cost_at_sale = Column(Float, nullable=True)
     discount = Column(Float, default=0.0)
     subtotal = Column(Float, nullable=False)
+    notes = Column(Text, nullable=True)
 
     sale = relationship("Sale", back_populates="items")
     product = relationship("Product", back_populates="sale_items")
