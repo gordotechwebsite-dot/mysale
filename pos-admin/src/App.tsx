@@ -1,7 +1,7 @@
 import { useState, useEffect, createContext, useContext, useCallback } from 'react'
 import './App.css'
 import { 
-  Building2, Package, DollarSign, Users, LogOut, Menu, X,
+  Building2, Package, DollarSign, LogOut, Menu, X,
   Plus, Edit, Trash2, Eye, CreditCard, ToggleLeft, ToggleRight,
   AlertCircle, CheckCircle, Clock, Ban, LayoutDashboard, Search,
   MessageCircle, Save, TrendingUp, Activity, ShoppingCart, AlertTriangle
@@ -1947,9 +1947,6 @@ function MainApp() {
 
         <div className="p-4 border-t min-w-[256px]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <Users className="w-5 h-5 text-emerald-600" />
-            </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-gray-900 truncate">{user?.full_name}</p>
               <p className="text-sm text-gray-500 truncate">{user?.email}</p>
