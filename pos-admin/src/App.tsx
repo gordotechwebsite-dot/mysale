@@ -1912,20 +1912,14 @@ function MainApp() {
       {/* Sidebar */}
       <aside className={`
         fixed lg:sticky lg:top-0 z-40 h-full lg:h-screen
-        ${sidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full lg:w-16 lg:translate-x-0'}
+        ${sidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full lg:w-64 lg:translate-x-0'}
         bg-white shadow-lg transition-all duration-300 flex flex-col overflow-hidden
       `}>
-        <div className="p-4 border-b flex items-center justify-between min-w-[256px] lg:min-w-0">
+        <div className="p-4 border-b flex items-center justify-between min-w-[256px]">
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="MySale Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
-            {sidebarOpen && <span className="font-bold text-gray-900">MySale Factory</span>}
+            <span className="font-bold text-gray-900">MySale Factory</span>
           </div>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-100 rounded-lg hidden lg:block"
-          >
-            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
           <button
             onClick={() => setSidebarOpen(false)}
             className="p-2 hover:bg-gray-100 rounded-lg lg:hidden"
@@ -1934,7 +1928,7 @@ function MainApp() {
           </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2 min-w-[256px] lg:min-w-0">
+        <nav className="flex-1 p-4 space-y-2 min-w-[256px]">
           {menuItems.map((item) => (
             <button
               key={item.id}
@@ -1946,23 +1940,20 @@ function MainApp() {
               }`}
             >
               <item.icon className="w-5 h-5 flex-shrink-0" />
-              {(sidebarOpen || true) && <span className="font-medium lg:hidden">{item.label}</span>}
-              {sidebarOpen && <span className="font-medium hidden lg:inline">{item.label}</span>}
+              <span className="font-medium">{item.label}</span>
             </button>
           ))}
         </nav>
 
-        <div className="p-4 border-t min-w-[256px] lg:min-w-0">
-          <div className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center'}`}>
+        <div className="p-4 border-t min-w-[256px]">
+          <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
               <Users className="w-5 h-5 text-emerald-600" />
             </div>
-            {sidebarOpen && (
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 truncate">{user?.full_name}</p>
-                <p className="text-sm text-gray-500 truncate">{user?.email}</p>
-              </div>
-            )}
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-gray-900 truncate">{user?.full_name}</p>
+              <p className="text-sm text-gray-500 truncate">{user?.email}</p>
+            </div>
             <button
               onClick={logout}
               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
