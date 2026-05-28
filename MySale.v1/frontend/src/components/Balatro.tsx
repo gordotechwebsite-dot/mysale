@@ -107,6 +107,22 @@ void main() {
 
 const DEFAULT_OFFSET: [number, number] = [0.0, 0.0];
 
+interface BalatoProps {
+  spinRotation?: number;
+  spinSpeed?: number;
+  offset?: [number, number];
+  color1?: string;
+  color2?: string;
+  color3?: string;
+  contrast?: number;
+  lighting?: number;
+  spinAmount?: number;
+  pixelFilter?: number;
+  spinEase?: number;
+  isRotate?: boolean;
+  mouseInteraction?: boolean;
+}
+
 export default memo(function Balatro({
   spinRotation = -2.0,
   spinSpeed = 7.0,
@@ -121,7 +137,7 @@ export default memo(function Balatro({
   spinEase = 1.0,
   isRotate = false,
   mouseInteraction = true
-}) {
+}: BalatoProps) {
   const containerRef = useRef(null);
 
   useEffect(() => {
