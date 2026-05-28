@@ -1911,7 +1911,7 @@ function MainApp() {
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:relative z-40 h-full lg:h-auto
+        fixed lg:sticky lg:top-0 z-40 h-full lg:h-screen
         ${sidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full lg:w-16 lg:translate-x-0'}
         bg-white shadow-lg transition-all duration-300 flex flex-col overflow-hidden
       `}>
