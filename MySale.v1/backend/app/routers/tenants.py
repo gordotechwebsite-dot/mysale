@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func, case, cast, Integer
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.timezone import now_colombia
 import secrets
 import string
@@ -541,6 +542,85 @@ async def get_admin_dashboard(
         Tenant.payment_status == PaymentStatus.ACTIVE
     ).scalar() or 0
     
+    # Enhanced dashboard data
+    from app.models.sale import Sale
+    from app.models.location import Location
+
+    now = now_colombia()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Recent tenants (last 5 created)
+    recent_tenants = db.query(Tenant).order_by(Tenant.created_at.desc()).limit(5).all()
+    recent_tenants_list = [
+        {"id": t.id, "name": t.name, "code": t.code, "created_at": t.created_at.isoformat() if t.created_at else None}
+        for t in recent_tenants
+    ]
+
+    # Revenue by month (last 6 months) from payments
+    revenue_by_month = []
+    for i in range(5, -1, -1):
+        month_start = (now.replace(day=1) - timedelta(days=30 * i)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if month_start.month == 12:
+            month_end = month_start.replace(year=month_start.year + 1, month=1)
+        else:
+            month_end = month_start.replace(month=month_start.month + 1)
+        month_rev = db.query(func.sum(TenantPayment.amount)).filter(
+            TenantPayment.payment_date >= month_start,
+            TenantPayment.payment_date < month_end
+        ).scalar() or 0
+        revenue_by_month.append({
+            "month": month_start.strftime("%b %Y"),
+            "revenue": float(month_rev)
+        })
+
+    # Tenant activity: sales count and total per tenant (last 30 days)
+    thirty_days_ago = now - timedelta(days=30)
+    tenant_activity = []
+    active_tenants_list = db.query(Tenant).filter(Tenant.is_active == True).all()
+    for tenant in active_tenants_list:
+        location_ids = [loc.id for loc in db.query(Location).filter(Location.tenant_id == tenant.id).all()]
+        if not location_ids:
+            tenant_activity.append({
+                "tenant_id": tenant.id,
+                "name": tenant.name,
+                "code": tenant.code,
+                "payment_status": tenant.payment_status.value,
+                "monthly_fee": float(tenant.monthly_fee),
+                "sales_count": 0,
+                "sales_total": 0,
+                "last_sale": None
+            })
+            continue
+        sales_count = db.query(func.count(Sale.id)).filter(
+            Sale.location_id.in_(location_ids),
+            Sale.created_at >= thirty_days_ago
+        ).scalar() or 0
+        sales_total = db.query(func.sum(Sale.total)).filter(
+            Sale.location_id.in_(location_ids),
+            Sale.created_at >= thirty_days_ago
+        ).scalar() or 0
+        last_sale = db.query(func.max(Sale.created_at)).filter(
+            Sale.location_id.in_(location_ids)
+        ).scalar()
+        tenant_activity.append({
+            "tenant_id": tenant.id,
+            "name": tenant.name,
+            "code": tenant.code,
+            "payment_status": tenant.payment_status.value,
+            "monthly_fee": float(tenant.monthly_fee),
+            "sales_count": int(sales_count),
+            "sales_total": float(sales_total),
+            "last_sale": last_sale.isoformat() if last_sale else None
+        })
+
+    # Today's sales across all tenants
+    today_sales_count = db.query(func.count(Sale.id)).filter(
+        Sale.created_at >= today_start
+    ).scalar() or 0
+    today_sales_total = db.query(func.sum(Sale.total)).filter(
+        Sale.created_at >= today_start
+    ).scalar() or 0
+
     return {
         "total_tenants": total_tenants,
         "active_tenants": active_tenants,
@@ -551,7 +631,12 @@ async def get_admin_dashboard(
             "suspended": suspended
         },
         "total_modules": total_modules,
-        "monthly_revenue": monthly_revenue
+        "monthly_revenue": monthly_revenue,
+        "recent_tenants": recent_tenants_list,
+        "revenue_by_month": revenue_by_month,
+        "tenant_activity": tenant_activity,
+        "today_sales_count": int(today_sales_count),
+        "today_sales_total": float(today_sales_total)
     }
 
 

@@ -1,12 +1,124 @@
-import { useState, useEffect, createContext, useContext } from 'react'
+import { useState, useEffect, createContext, useContext, useCallback } from 'react'
 import './App.css'
 import { 
   Building2, Package, DollarSign, Users, LogOut, Menu, X,
   Plus, Edit, Trash2, Eye, CreditCard, ToggleLeft, ToggleRight,
   AlertCircle, CheckCircle, Clock, Ban, LayoutDashboard, Search,
-  MessageCircle, Save
+  MessageCircle, Save, TrendingUp, Activity, ShoppingCart, AlertTriangle
 } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import Balatro from './components/Balatro'
+
+// ============ Toast System ============
+interface ToastItem {
+  id: number
+  message: string
+  type: 'success' | 'error' | 'info'
+}
+
+const ToastContext = createContext<{
+  showToast: (message: string, type?: 'success' | 'error' | 'info') => void
+} | null>(null)
+
+function useToast() {
+  const context = useContext(ToastContext)
+  if (!context) throw new Error('useToast must be used within ToastProvider')
+  return context
+}
+
+let toastId = 0
+
+function ToastProvider({ children }: { children: React.ReactNode }) {
+  const [toasts, setToasts] = useState<ToastItem[]>([])
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const id = ++toastId
+    setToasts(prev => [...prev, { id, message, type }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
+  }, [])
+
+  const colors = {
+    success: 'bg-emerald-600',
+    error: 'bg-red-600',
+    info: 'bg-blue-600'
+  }
+  const icons = {
+    success: CheckCircle,
+    error: AlertCircle,
+    info: AlertCircle
+  }
+
+  return (
+    <ToastContext.Provider value={{ showToast }}>
+      {children}
+      <div className="fixed bottom-4 right-4 z-[100] space-y-2 max-w-sm">
+        {toasts.map(toast => {
+          const Icon = icons[toast.type]
+          return (
+            <div key={toast.id} className={`${colors[toast.type]} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-slide-in`}>
+              <Icon className="w-4 h-4 flex-shrink-0" />
+              <span className="text-sm">{toast.message}</span>
+            </div>
+          )
+        })}
+      </div>
+    </ToastContext.Provider>
+  )
+}
+
+// ============ Confirm Dialog ============
+interface ConfirmDialogState {
+  open: boolean
+  title: string
+  description: string
+  variant: 'danger' | 'warning' | 'default'
+  confirmLabel: string
+  onConfirm: () => void
+}
+
+function ConfirmDialog({ state, onClose }: { state: ConfirmDialogState; onClose: () => void }) {
+  if (!state.open) return null
+
+  const btnColors = {
+    danger: 'bg-red-600 hover:bg-red-700',
+    warning: 'bg-orange-500 hover:bg-orange-600',
+    default: 'bg-emerald-600 hover:bg-emerald-700'
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+        <h3 className="text-lg font-bold text-gray-900 mb-2">{state.title}</h3>
+        <p className="text-sm text-gray-600 mb-6">{state.description}</p>
+        <div className="flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg text-sm font-medium">
+            Cancelar
+          </button>
+          <button
+            onClick={() => { state.onConfirm(); onClose() }}
+            className={`px-4 py-2 text-white rounded-lg text-sm font-medium ${btnColors[state.variant]}`}
+          >
+            {state.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function useConfirm() {
+  const [state, setState] = useState<ConfirmDialogState>({
+    open: false, title: '', description: '', variant: 'default', confirmLabel: 'Confirmar', onConfirm: () => {}
+  })
+
+  const confirm = useCallback((opts: Omit<ConfirmDialogState, 'open'>) => {
+    setState({ ...opts, open: true })
+  }, [])
+
+  const close = useCallback(() => setState(prev => ({ ...prev, open: false })), [])
+
+  return { state, confirm, close }
+}
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001'
 
@@ -163,6 +275,29 @@ interface TenantPayment {
   notes: string | null
 }
 
+interface TenantActivity {
+  tenant_id: number
+  name: string
+  code: string
+  payment_status: string
+  monthly_fee: number
+  sales_count: number
+  sales_total: number
+  last_sale: string | null
+}
+
+interface RevenueMonth {
+  month: string
+  revenue: number
+}
+
+interface RecentTenant {
+  id: number
+  name: string
+  code: string
+  created_at: string | null
+}
+
 interface Dashboard {
   total_tenants: number
   active_tenants: number
@@ -174,6 +309,11 @@ interface Dashboard {
   }
   total_modules: number
   monthly_revenue: number
+  recent_tenants: RecentTenant[]
+  revenue_by_month: RevenueMonth[]
+  tenant_activity: TenantActivity[]
+  today_sales_count: number
+  today_sales_total: number
 }
 
 interface AuthContextType {
@@ -378,9 +518,12 @@ function LoginPage() {
   )
 }
 
+const PIE_COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6b7280']
+
 function DashboardPage({ token }: { token: string }) {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [loading, setLoading] = useState(true)
+  const { showToast } = useToast()
 
   useEffect(() => {
     loadDashboard()
@@ -391,24 +534,24 @@ function DashboardPage({ token }: { token: string }) {
       const data = await apiCall('/api/admin/dashboard', {}, token)
       setDashboard(data)
     } catch (err) {
-      console.error('Error loading dashboard:', err)
+      showToast('Error al cargar el dashboard', 'error')
     } finally {
       setLoading(false)
     }
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64">Cargando...</div>
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" /></div>
   }
 
   if (!dashboard) {
-    return <div className="text-red-500">Error al cargar el dashboard</div>
+    return <div className="text-red-500 text-center py-8">Error al cargar el dashboard</div>
   }
 
   const stats = [
     { label: 'Total Clientes', value: dashboard.total_tenants, icon: Building2, color: 'bg-blue-500' },
     { label: 'Clientes Activos', value: dashboard.active_tenants, icon: CheckCircle, color: 'bg-emerald-500' },
-    { label: 'Módulos Disponibles', value: dashboard.total_modules, icon: Package, color: 'bg-purple-500' },
+    { label: 'Ventas Hoy', value: dashboard.today_sales_count, icon: ShoppingCart, color: 'bg-purple-500' },
     { label: 'Ingresos Mensuales', value: `$${dashboard.monthly_revenue.toLocaleString()}`, icon: DollarSign, color: 'bg-amber-500' },
   ]
 
@@ -419,40 +562,180 @@ function DashboardPage({ token }: { token: string }) {
     { label: 'Suspendidos', value: dashboard.payment_stats.suspended, icon: Ban, color: 'text-gray-600', bg: 'bg-gray-100' },
   ]
 
+  const paymentPieData = paymentStats.filter(s => s.value > 0).map(s => ({ name: s.label, value: s.value }))
+
+  const formatTimeAgo = (dateStr: string | null) => {
+    if (!dateStr) return 'Sin actividad'
+    const diff = Date.now() - new Date(dateStr).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 60) return `Hace ${mins}m`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `Hace ${hours}h`
+    const days = Math.floor(hours / 24)
+    return `Hace ${days}d`
+  }
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center gap-4">
-              <div className={`${stat.color} p-3 rounded-lg`}>
-                <stat.icon className="w-6 h-6 text-white" />
+          <div key={stat.label} className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className={`${stat.color} p-2 sm:p-3 rounded-lg`}>
+                <stat.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <p className="text-sm text-gray-500">{stat.label}</p>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-gray-500 truncate">{stat.label}</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{stat.value}</p>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Estado de Pagos</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {paymentStats.map((stat) => (
-            <div key={stat.label} className={`${stat.bg} rounded-lg p-4`}>
-              <div className="flex items-center gap-2 mb-2">
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                <span className={`text-sm font-medium ${stat.color}`}>{stat.label}</span>
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Revenue Chart */}
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+          <h2 className="text-sm sm:text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-emerald-600" />
+            Ingresos por Mes
+          </h2>
+          <div className="h-48 sm:h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dashboard.revenue_by_month}>
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                <Tooltip formatter={(value: number) => [`$${value.toLocaleString()}`, 'Ingresos']} />
+                <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Payment Status Pie */}
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+          <h2 className="text-sm sm:text-lg font-semibold text-gray-900 mb-4">Estado de Pagos</h2>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="h-40 w-40 sm:h-48 sm:w-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={paymentPieData} cx="50%" cy="50%" innerRadius={35} outerRadius={65} dataKey="value" label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
+                    {paymentPieData.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="grid grid-cols-2 gap-3 flex-1 w-full">
+              {paymentStats.map((stat) => (
+                <div key={stat.label} className={`${stat.bg} rounded-lg p-3`}>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                    <span className={`text-xs font-medium ${stat.color}`}>{stat.label}</span>
+                  </div>
+                  <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tenant Activity Table */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-6 border-b">
+          <h2 className="text-sm sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Activity className="w-5 h-5 text-blue-600" />
+            Actividad de Clientes (últimos 30 días)
+          </h2>
+        </div>
+        {/* Mobile cards view */}
+        <div className="block sm:hidden divide-y divide-gray-100">
+          {(dashboard.tenant_activity || []).map((t) => (
+            <div key={t.tenant_id} className="p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-gray-900 text-sm">{t.name}</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                  t.payment_status === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                  t.payment_status === 'overdue' ? 'bg-red-100 text-red-700' :
+                  t.payment_status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-700'
+                }`}>{t.payment_status === 'active' ? 'Activo' : t.payment_status === 'overdue' ? 'Vencido' : t.payment_status === 'pending' ? 'Pendiente' : 'Suspendido'}</span>
               </div>
-              <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+              <div className="grid grid-cols-3 gap-2 text-xs text-gray-500">
+                <div><span className="block text-gray-400">Ventas</span><span className="font-medium text-gray-900">{t.sales_count}</span></div>
+                <div><span className="block text-gray-400">Total</span><span className="font-medium text-gray-900">${t.sales_total.toLocaleString()}</span></div>
+                <div><span className="block text-gray-400">Última</span><span className="font-medium text-gray-900">{formatTimeAgo(t.last_sale)}</span></div>
+              </div>
             </div>
           ))}
         </div>
+        {/* Desktop table view */}
+        <div className="hidden sm:block overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ventas</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Ventas</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Mensualidad</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Última Venta</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {(dashboard.tenant_activity || []).map((t) => (
+                <tr key={t.tenant_id} className={t.sales_count === 0 ? 'bg-red-50/50' : ''}>
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-gray-900 text-sm">{t.name}</p>
+                    <p className="text-xs text-gray-400">{t.code}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      t.payment_status === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                      t.payment_status === 'overdue' ? 'bg-red-100 text-red-700' :
+                      t.payment_status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {t.payment_status === 'active' ? 'Activo' : t.payment_status === 'overdue' ? 'Vencido' : t.payment_status === 'pending' ? 'Pendiente' : 'Suspendido'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right text-sm font-medium">{t.sales_count}</td>
+                  <td className="px-4 py-3 text-right text-sm font-medium">${t.sales_total.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-right text-sm">${t.monthly_fee.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">
+                    {t.last_sale ? (
+                      <span className={t.sales_count === 0 ? 'text-red-500' : ''}>{formatTimeAgo(t.last_sale)}</span>
+                    ) : (
+                      <span className="text-red-400 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Sin actividad</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {/* Recent Tenants */}
+      {dashboard.recent_tenants && dashboard.recent_tenants.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+          <h2 className="text-sm sm:text-lg font-semibold text-gray-900 mb-3">Clientes Recientes</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {dashboard.recent_tenants.map((t) => (
+              <div key={t.id} className="border rounded-lg p-3">
+                <p className="font-medium text-gray-900 text-sm truncate">{t.name}</p>
+                <p className="text-xs text-gray-400">{t.code}</p>
+                {t.created_at && <p className="text-xs text-gray-500 mt-1">{new Date(t.created_at).toLocaleDateString('es-CO')}</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -468,6 +751,8 @@ function TenantsPage({ token }: { token: string }) {
   const [showPaymentsHistory, setShowPaymentsHistory] = useState<Tenant | null>(null)
   const [payments, setPayments] = useState<TenantPayment[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const { showToast } = useToast()
+  const { state: confirmState, confirm, close: closeConfirm } = useConfirm()
 
   useEffect(() => {
     loadData()
@@ -475,14 +760,14 @@ function TenantsPage({ token }: { token: string }) {
 
   const loadData = async () => {
     try {
-            const [tenantsData, modulesData] = await Promise.all([
-              apiCall('/api/admin/tenants', {}, token),
-              apiCall('/api/admin/modules', {}, token)
-            ])
+      const [tenantsData, modulesData] = await Promise.all([
+        apiCall('/api/admin/tenants', {}, token),
+        apiCall('/api/admin/modules', {}, token)
+      ])
       setTenants(tenantsData)
       setModules(modulesData)
     } catch (err) {
-      console.error('Error loading data:', err)
+      showToast('Error al cargar los datos', 'error')
     } finally {
       setLoading(false)
     }
@@ -493,7 +778,7 @@ function TenantsPage({ token }: { token: string }) {
       const data = await apiCall(`/api/admin/tenants/${tenantId}`, {}, token)
       return data
     } catch (err) {
-      console.error('Error loading tenant details:', err)
+      showToast('Error al cargar detalles del cliente', 'error')
       return null
     }
   }
@@ -503,39 +788,49 @@ function TenantsPage({ token }: { token: string }) {
       const data = await apiCall(`/api/admin/tenants/${tenantId}/payments`, {}, token)
       setPayments(data)
     } catch (err) {
-      console.error('Error loading payments:', err)
+      showToast('Error al cargar pagos', 'error')
     }
   }
 
   const handleSaveTenant = async (data: Partial<Tenant>) => {
     try {
       if (editingTenant) {
-        await      apiCall(`/api/admin/tenants/${editingTenant.id}`, {
-                method: 'PUT',
-                body: JSON.stringify(data)
-              }, token)
-            } else {
-                      await apiCall('/api/admin/tenants', {
-                        method: 'POST',
+        await apiCall(`/api/admin/tenants/${editingTenant.id}`, {
+          method: 'PUT',
           body: JSON.stringify(data)
         }, token)
+        showToast('Cliente actualizado correctamente')
+      } else {
+        await apiCall('/api/admin/tenants', {
+          method: 'POST',
+          body: JSON.stringify(data)
+        }, token)
+        showToast('Cliente creado correctamente')
       }
       setShowForm(false)
       setEditingTenant(null)
       loadData()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al guardar')
+      showToast(err instanceof Error ? err.message : 'Error al guardar', 'error')
     }
   }
 
-    const handleDeleteTenant = async (tenant: Tenant) => {
-      if (!confirm(`¿Estás seguro de ELIMINAR PERMANENTEMENTE "${tenant.name}"? Esta acción no se puede deshacer.`)) return
-    try {
-      await apiCall(`/api/admin/tenants/${tenant.id}`, { method: 'DELETE' }, token)
-      loadData()
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al eliminar')
-    }
+  const handleDeleteTenant = (tenant: Tenant) => {
+    confirm({
+      title: 'Eliminar Cliente',
+      description: `¿Estás seguro de ELIMINAR PERMANENTEMENTE "${tenant.name}"? Esta acción no se puede deshacer.`,
+      variant: 'danger',
+      confirmLabel: 'Eliminar',
+      onConfirm: async () => {
+        try {
+          await apiCall(`/api/admin/tenants/${tenant.id}`, { method: 'DELETE' }, token)
+          showToast('Cliente eliminado correctamente')
+          loadData()
+        } catch (err) {
+          showToast(err instanceof Error ? err.message : 'Error al eliminar', 'error')
+        }
+      }
+    })
   }
 
   const handleOpenModules = async (tenant: Tenant) => {
@@ -548,31 +843,33 @@ function TenantsPage({ token }: { token: string }) {
   const handleToggleModule = async (moduleId: number, isEnabled: boolean) => {
     if (!showModulesModal) return
     try {
-            await apiCall(`/api/admin/tenants/${showModulesModal.id}/modules`, {
-              method: 'PUT',
-              body: JSON.stringify([{ module_id: moduleId, is_enabled: isEnabled }])
-            }, token)
+      await apiCall(`/api/admin/tenants/${showModulesModal.id}/modules`, {
+        method: 'PUT',
+        body: JSON.stringify([{ module_id: moduleId, is_enabled: isEnabled }])
+      }, token)
       const details = await loadTenantDetails(showModulesModal.id)
       if (details) {
         setShowModulesModal(details)
       }
+      showToast(isEnabled ? 'Módulo habilitado' : 'Módulo deshabilitado')
       loadData()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al actualizar módulo')
+      showToast(err instanceof Error ? err.message : 'Error al actualizar módulo', 'error')
     }
   }
 
   const handleSavePayment = async (data: { amount: number; period_start: string; period_end: string; payment_method: string; reference: string }) => {
     if (!showPaymentModal) return
     try {
-            await apiCall(`/api/admin/tenants/${showPaymentModal.id}/payments`, {
-              method: 'POST',
-              body: JSON.stringify(data)
-            }, token)
+      await apiCall(`/api/admin/tenants/${showPaymentModal.id}/payments`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }, token)
+      showToast('Pago registrado correctamente')
       setShowPaymentModal(null)
       loadData()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al registrar pago')
+      showToast(err instanceof Error ? err.message : 'Error al registrar pago', 'error')
     }
   }
 
@@ -608,24 +905,25 @@ function TenantsPage({ token }: { token: string }) {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64">Cargando...</div>
+    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" /></div>
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Clientes POS</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Clientes POS</h1>
         <button
           onClick={() => { setEditingTenant(null); setShowForm(true) }}
-          className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 flex items-center gap-2"
+          className="bg-emerald-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 flex items-center gap-2 text-sm sm:text-base"
         >
-          <Plus className="w-5 h-5" />
-          Nuevo Cliente
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="hidden sm:inline">Nuevo Cliente</span>
+          <span className="sm:hidden">Nuevo</span>
         </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm">
-        <div className="p-4 border-b">
+        <div className="p-3 sm:p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -633,12 +931,50 @@ function TenantsPage({ token }: { token: string }) {
               placeholder="Buscar por nombre, código o email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
+              style={{ fontSize: '16px' }}
             />
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile card view */}
+        <div className="block sm:hidden divide-y divide-gray-100">
+          {filteredTenants.map((tenant) => (
+            <div key={tenant.id} className={`p-4 space-y-3 ${!tenant.is_active ? 'opacity-60 bg-gray-50' : ''}`}>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="font-medium text-gray-900">{tenant.name}</p>
+                  <p className="text-xs text-gray-400">{tenant.code}</p>
+                </div>
+                {getStatusBadge(tenant.payment_status)}
+              </div>
+              <div className="text-xs space-y-1">
+                <p className="text-gray-500">{tenant.contact_name || '-'} · {tenant.contact_email || '-'}</p>
+                <p className="font-medium">${tenant.monthly_fee.toLocaleString('es-CO')} COP · {tenant.enabled_modules_count || 0} módulos</p>
+              </div>
+              <div className="text-xs space-y-1">
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-500">Usuario:</span>
+                  <span className="font-mono bg-gray-100 px-1 rounded">{tenant.pos_username || '-'}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-500">Clave:</span>
+                  <span className="font-mono bg-gray-100 px-1 rounded">{tenant.pos_password || '-'}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <button onClick={() => handleOpenModules(tenant)} className="flex-1 p-2 text-purple-600 bg-purple-50 rounded-lg text-xs font-medium text-center">Módulos</button>
+                <button onClick={() => setShowPaymentModal(tenant)} className="flex-1 p-2 text-emerald-600 bg-emerald-50 rounded-lg text-xs font-medium text-center">Pago</button>
+                <button onClick={() => handleOpenPaymentsHistory(tenant)} className="flex-1 p-2 text-blue-600 bg-blue-50 rounded-lg text-xs font-medium text-center">Historial</button>
+                <button onClick={() => { setEditingTenant(tenant); setShowForm(true) }} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"><Edit className="w-4 h-4" /></button>
+                <button onClick={() => handleDeleteTenant(tenant)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop table view */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -672,7 +1008,7 @@ function TenantsPage({ token }: { token: string }) {
                         <span className="text-gray-500">Usuario:</span>
                         <span className="font-mono bg-gray-100 px-1 rounded">{tenant.pos_username || '-'}</span>
                         <button
-                          onClick={() => navigator.clipboard.writeText(tenant.pos_username || '')}
+                          onClick={() => { navigator.clipboard.writeText(tenant.pos_username || ''); showToast('Usuario copiado') }}
                           className="text-gray-400 hover:text-gray-600"
                           title="Copiar usuario"
                         >
@@ -683,7 +1019,7 @@ function TenantsPage({ token }: { token: string }) {
                         <span className="text-gray-500">Clave:</span>
                         <span className="font-mono bg-gray-100 px-1 rounded">{tenant.pos_password || '-'}</span>
                         <button
-                          onClick={() => navigator.clipboard.writeText(tenant.pos_password || '')}
+                          onClick={() => { navigator.clipboard.writeText(tenant.pos_password || ''); showToast('Contraseña copiada') }}
                           className="text-gray-400 hover:text-gray-600"
                           title="Copiar contraseña"
                         >
@@ -703,41 +1039,11 @@ function TenantsPage({ token }: { token: string }) {
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleOpenModules(tenant)}
-                        className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg"
-                        title="Gestionar módulos"
-                      >
-                        <Package className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setShowPaymentModal(tenant)}
-                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg"
-                        title="Registrar pago"
-                      >
-                        <CreditCard className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleOpenPaymentsHistory(tenant)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                        title="Ver historial de pagos"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => { setEditingTenant(tenant); setShowForm(true) }}
-                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-                        title="Editar"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                                            <button
-                                                onClick={() => handleDeleteTenant(tenant)}
-                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                                                title="Eliminar"
-                                              >
-                                                <Trash2 className="w-4 h-4" />
-                                              </button>
+                      <button onClick={() => handleOpenModules(tenant)} className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg" title="Gestionar módulos"><Package className="w-4 h-4" /></button>
+                      <button onClick={() => setShowPaymentModal(tenant)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg" title="Registrar pago"><CreditCard className="w-4 h-4" /></button>
+                      <button onClick={() => handleOpenPaymentsHistory(tenant)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Ver historial"><Eye className="w-4 h-4" /></button>
+                      <button onClick={() => { setEditingTenant(tenant); setShowForm(true) }} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg" title="Editar"><Edit className="w-4 h-4" /></button>
+                      <button onClick={() => handleDeleteTenant(tenant)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Eliminar"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </td>
                 </tr>
@@ -746,6 +1052,8 @@ function TenantsPage({ token }: { token: string }) {
           </table>
         </div>
       </div>
+
+      <ConfirmDialog state={confirmState} onClose={closeConfirm} />
 
       {showForm && (
         <TenantFormModal
@@ -1315,6 +1623,8 @@ function FAQsPage({ token }: { token: string }) {
     is_active: true,
     priority: 0
   })
+  const { showToast } = useToast()
+  const { state: confirmState, confirm, close: closeConfirm } = useConfirm()
 
   useEffect(() => {
     loadFaqs()
@@ -1325,7 +1635,7 @@ function FAQsPage({ token }: { token: string }) {
       const data = await apiCall('/faq/', {}, token)
       setFaqs(data)
     } catch (err) {
-      console.error('Error loading FAQs:', err)
+      showToast('Error al cargar FAQs', 'error')
     } finally {
       setLoading(false)
     }
@@ -1334,9 +1644,10 @@ function FAQsPage({ token }: { token: string }) {
   const seedDefaultFaqs = async () => {
     try {
       await apiCall('/faq/seed', { method: 'POST' }, token)
+      showToast('FAQs cargadas correctamente')
       await loadFaqs()
     } catch (err) {
-      console.error('Error seeding FAQs:', err)
+      showToast('Error al cargar FAQs por defecto', 'error')
     }
   }
 
@@ -1347,18 +1658,20 @@ function FAQsPage({ token }: { token: string }) {
           method: 'PUT',
           body: JSON.stringify(formData)
         }, token)
+        showToast('FAQ actualizada correctamente')
       } else {
         await apiCall('/faq/', {
           method: 'POST',
           body: JSON.stringify(formData)
         }, token)
+        showToast('FAQ creada correctamente')
       }
       setShowForm(false)
       setEditingFaq(null)
       setFormData({ question: '', keywords: '', answer: '', category: '', is_active: true, priority: 0 })
       await loadFaqs()
     } catch (err) {
-      console.error('Error saving FAQ:', err)
+      showToast('Error al guardar FAQ', 'error')
     }
   }
 
@@ -1375,14 +1688,22 @@ function FAQsPage({ token }: { token: string }) {
     setShowForm(true)
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('¿Estás seguro de eliminar esta pregunta?')) return
-    try {
-      await apiCall(`/faq/${id}`, { method: 'DELETE' }, token)
-      await loadFaqs()
-    } catch (err) {
-      console.error('Error deleting FAQ:', err)
-    }
+  const handleDelete = (id: number) => {
+    confirm({
+      title: 'Eliminar Pregunta',
+      description: '¿Estás seguro de eliminar esta pregunta frecuente?',
+      variant: 'danger',
+      confirmLabel: 'Eliminar',
+      onConfirm: async () => {
+        try {
+          await apiCall(`/faq/${id}`, { method: 'DELETE' }, token)
+          showToast('FAQ eliminada')
+          await loadFaqs()
+        } catch (err) {
+          showToast('Error al eliminar FAQ', 'error')
+        }
+      }
+    })
   }
 
   const handleNew = () => {
@@ -1578,6 +1899,7 @@ function FAQsPage({ token }: { token: string }) {
           </tbody>
         </table>
       </div>
+      <ConfirmDialog state={confirmState} onClose={closeConfirm} />
     </div>
   )
 }
@@ -1585,7 +1907,7 @@ function FAQsPage({ token }: { token: string }) {
 function MainApp() {
   const { user, logout, token } = useAuth()
   const [currentPage, setCurrentPage] = useState('dashboard')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -1596,42 +1918,57 @@ function MainApp() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 flex flex-col`}>
-        <div className="p-4 border-b flex items-center justify-between">
-          {sidebarOpen && (
-            <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="MySale Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
-              <span className="font-bold text-gray-900">MySale Factory</span>
-            </div>
-          )}
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-30 sm:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`
+        fixed sm:relative z-40 h-full sm:h-auto
+        ${sidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full sm:w-16 sm:translate-x-0'}
+        bg-white shadow-lg transition-all duration-300 flex flex-col overflow-hidden
+      `}>
+        <div className="p-4 border-b flex items-center justify-between min-w-[256px] sm:min-w-0">
+          <div className="flex items-center gap-2">
+            <img src="/logo.png" alt="MySale Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
+            {sidebarOpen && <span className="font-bold text-gray-900">MySale Factory</span>}
+          </div>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 hover:bg-gray-100 rounded-lg hidden sm:block"
           >
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="p-2 hover:bg-gray-100 rounded-lg sm:hidden"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 min-w-[256px] sm:min-w-0">
           {menuItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setCurrentPage(item.id)}
+              onClick={() => { setCurrentPage(item.id); setSidebarOpen(false) }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                 currentPage === item.id
                   ? 'bg-emerald-100 text-emerald-700'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <item.icon className="w-5 h-5" />
-              {sidebarOpen && <span className="font-medium">{item.label}</span>}
+              <item.icon className="w-5 h-5 flex-shrink-0" />
+              {(sidebarOpen || true) && <span className="font-medium sm:hidden">{item.label}</span>}
+              {sidebarOpen && <span className="font-medium hidden sm:inline">{item.label}</span>}
             </button>
           ))}
         </nav>
 
-        <div className="p-4 border-t">
+        <div className="p-4 border-t min-w-[256px] sm:min-w-0">
           <div className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center'}`}>
-            <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
               <Users className="w-5 h-5 text-emerald-600" />
             </div>
             {sidebarOpen && (
@@ -1651,7 +1988,19 @@ function MainApp() {
         </div>
       </aside>
 
-      <main className="flex-1 p-8 overflow-auto">
+      {/* Main content */}
+      <main className="flex-1 p-4 sm:p-8 overflow-auto min-w-0">
+        {/* Mobile header */}
+        <div className="sm:hidden flex items-center gap-3 mb-4">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 hover:bg-gray-200 rounded-lg bg-white shadow-sm"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <span className="font-bold text-gray-900">MySale Factory</span>
+        </div>
+
         {currentPage === 'dashboard' && <DashboardPage token={token!} />}
         {currentPage === 'tenants' && <TenantsPage token={token!} />}
         {currentPage === 'modules' && <ModulesPage token={token!} />}
@@ -1718,7 +2067,9 @@ function App() {
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout }}>
-      {user ? <MainApp /> : <LoginPage />}
+      <ToastProvider>
+        {user ? <MainApp /> : <LoginPage />}
+      </ToastProvider>
     </AuthContext.Provider>
   )
 }
