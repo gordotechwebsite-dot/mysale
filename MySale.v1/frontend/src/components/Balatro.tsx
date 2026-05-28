@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { Renderer, Program, Mesh, Triangle } from 'ogl';
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 
 import './Balatro.css';
 
@@ -105,10 +105,28 @@ void main() {
 }
 `;
 
-export default function Balatro({
+const DEFAULT_OFFSET: [number, number] = [0.0, 0.0];
+
+interface BalatoProps {
+  spinRotation?: number;
+  spinSpeed?: number;
+  offset?: [number, number];
+  color1?: string;
+  color2?: string;
+  color3?: string;
+  contrast?: number;
+  lighting?: number;
+  spinAmount?: number;
+  pixelFilter?: number;
+  spinEase?: number;
+  isRotate?: boolean;
+  mouseInteraction?: boolean;
+}
+
+export default memo(function Balatro({
   spinRotation = -2.0,
   spinSpeed = 7.0,
-  offset = [0.0, 0.0],
+  offset = DEFAULT_OFFSET,
   color1 = '#DE443B',
   color2 = '#006BB4',
   color3 = '#162325',
@@ -119,7 +137,7 @@ export default function Balatro({
   spinEase = 1.0,
   isRotate = false,
   mouseInteraction = true
-}) {
+}: BalatoProps) {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -210,4 +228,4 @@ export default function Balatro({
   ]);
 
   return <div ref={containerRef} className="balatro-container" />;
-}
+})
