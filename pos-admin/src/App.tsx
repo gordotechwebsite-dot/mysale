@@ -656,7 +656,7 @@ function DashboardPage({ token }: { token: string }) {
           </h2>
         </div>
         {/* Mobile cards view */}
-        <div className="block sm:hidden divide-y divide-gray-100">
+        <div className="block lg:hidden divide-y divide-gray-100">
           {(dashboard.tenant_activity || []).map((t) => (
             <div key={t.tenant_id} className="p-4 space-y-2">
               <div className="flex items-center justify-between">
@@ -676,7 +676,7 @@ function DashboardPage({ token }: { token: string }) {
           ))}
         </div>
         {/* Desktop table view */}
-        <div className="hidden sm:block overflow-x-auto">
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -903,8 +903,8 @@ function TenantsPage({ token }: { token: string }) {
           className="bg-emerald-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:bg-emerald-700 flex items-center gap-2 text-sm sm:text-base"
         >
           <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-          <span className="hidden sm:inline">Nuevo Cliente</span>
-          <span className="sm:hidden">Nuevo</span>
+          <span className="hidden lg:inline">Nuevo Cliente</span>
+          <span className="lg:hidden">Nuevo</span>
         </button>
       </div>
 
@@ -924,7 +924,7 @@ function TenantsPage({ token }: { token: string }) {
         </div>
 
         {/* Mobile card view */}
-        <div className="block sm:hidden divide-y divide-gray-100">
+        <div className="block lg:hidden divide-y divide-gray-100">
           {filteredTenants.map((tenant) => (
             <div key={tenant.id} className={`p-4 space-y-3 ${!tenant.is_active ? 'opacity-60 bg-gray-50' : ''}`}>
               <div className="flex items-start justify-between">
@@ -960,7 +960,7 @@ function TenantsPage({ token }: { token: string }) {
         </div>
 
         {/* Desktop table view */}
-        <div className="hidden sm:block overflow-x-auto">
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -1906,35 +1906,35 @@ function MainApp() {
     <div className="min-h-screen bg-gray-100 flex">
       {/* Mobile overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-30 sm:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Sidebar */}
       <aside className={`
-        fixed sm:relative z-40 h-full sm:h-auto
-        ${sidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full sm:w-16 sm:translate-x-0'}
+        fixed lg:relative z-40 h-full lg:h-auto
+        ${sidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full lg:w-16 lg:translate-x-0'}
         bg-white shadow-lg transition-all duration-300 flex flex-col overflow-hidden
       `}>
-        <div className="p-4 border-b flex items-center justify-between min-w-[256px] sm:min-w-0">
+        <div className="p-4 border-b flex items-center justify-between min-w-[256px] lg:min-w-0">
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="MySale Logo" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
             {sidebarOpen && <span className="font-bold text-gray-900">MySale Factory</span>}
           </div>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-100 rounded-lg hidden sm:block"
+            className="p-2 hover:bg-gray-100 rounded-lg hidden lg:block"
           >
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="p-2 hover:bg-gray-100 rounded-lg sm:hidden"
+            className="p-2 hover:bg-gray-100 rounded-lg lg:hidden"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2 min-w-[256px] sm:min-w-0">
+        <nav className="flex-1 p-4 space-y-2 min-w-[256px] lg:min-w-0">
           {menuItems.map((item) => (
             <button
               key={item.id}
@@ -1946,13 +1946,13 @@ function MainApp() {
               }`}
             >
               <item.icon className="w-5 h-5 flex-shrink-0" />
-              {(sidebarOpen || true) && <span className="font-medium sm:hidden">{item.label}</span>}
-              {sidebarOpen && <span className="font-medium hidden sm:inline">{item.label}</span>}
+              {(sidebarOpen || true) && <span className="font-medium lg:hidden">{item.label}</span>}
+              {sidebarOpen && <span className="font-medium hidden lg:inline">{item.label}</span>}
             </button>
           ))}
         </nav>
 
-        <div className="p-4 border-t min-w-[256px] sm:min-w-0">
+        <div className="p-4 border-t min-w-[256px] lg:min-w-0">
           <div className={`flex items-center ${sidebarOpen ? 'gap-3' : 'justify-center'}`}>
             <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
               <Users className="w-5 h-5 text-emerald-600" />
@@ -1975,9 +1975,9 @@ function MainApp() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 p-4 sm:p-8 overflow-auto min-w-0">
+      <main className="flex-1 p-4 lg:p-8 overflow-auto min-w-0">
         {/* Mobile header */}
-        <div className="sm:hidden flex items-center gap-3 mb-4">
+        <div className="lg:hidden flex items-center gap-3 mb-4">
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 hover:bg-gray-200 rounded-lg bg-white shadow-sm"
