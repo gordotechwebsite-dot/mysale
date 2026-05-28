@@ -644,7 +644,7 @@ function TenantsPage({ token }: { token: string }) {
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contacto</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acceso POS</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Credenciales POS</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado Pago</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mensualidad</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Módulos</th>
@@ -668,11 +668,6 @@ function TenantsPage({ token }: { token: string }) {
                   </td>
                   <td className="px-4 py-4">
                     <div className="text-xs space-y-1">
-                      {tenant.pos_url ? (
-                        <a href={tenant.pos_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline block truncate max-w-xs">{tenant.pos_url}</a>
-                      ) : (
-                        <span className="text-gray-400">Sin URL</span>
-                      )}
                       <div className="flex items-center gap-1">
                         <span className="text-gray-500">Usuario:</span>
                         <span className="font-mono bg-gray-100 px-1 rounded">{tenant.pos_username || '-'}</span>
@@ -956,17 +951,7 @@ function TenantFormModal({ tenant, onSave, onClose }: {
 
           <div className="border-t pt-4 mt-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Acceso al POS</h3>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">URL del POS</label>
-              <input
-                type="url"
-                value={formData.pos_url}
-                onChange={(e) => setFormData({ ...formData, pos_url: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                placeholder="https://pos.ejemplo.com"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4 mt-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Usuario POS</label>
                 <input
