@@ -721,21 +721,7 @@ function DashboardPage({ token }: { token: string }) {
         </div>
       </div>
 
-      {/* Recent Tenants */}
-      {dashboard.recent_tenants && dashboard.recent_tenants.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
-          <h2 className="text-sm sm:text-lg font-semibold text-gray-900 mb-3">Clientes Recientes</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {dashboard.recent_tenants.map((t) => (
-              <div key={t.id} className="border rounded-lg p-3">
-                <p className="font-medium text-gray-900 text-sm truncate">{t.name}</p>
-                <p className="text-xs text-gray-400">{t.code}</p>
-                {t.created_at && <p className="text-xs text-gray-500 mt-1">{new Date(t.created_at).toLocaleDateString('es-CO')}</p>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
     </div>
   )
 }
