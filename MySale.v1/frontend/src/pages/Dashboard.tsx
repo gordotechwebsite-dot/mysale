@@ -58,7 +58,6 @@ const Dashboard: React.FC = () => {
   const [cashCount, setCashCount] = useState<Record<number, number>>({});
 
   const isAdmin = user?.role?.role_type === 'superuser' || user?.role?.role_type === 'admin';
-  const isSuperuser = user?.role?.role_type === 'superuser';
 
   useEffect(() => {
     loadData();
@@ -340,20 +339,7 @@ const Dashboard: React.FC = () => {
                     Turno en <strong>{currentShift?.location_name}</strong>
                   </p>
             
-                  {currentShift && isSuperuser && (
-                    <div className="p-3 lg:p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-                      <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                        <div>
-                          <p className="text-xs lg:text-sm text-gray-500">Ventas Totales</p>
-                          <p className="font-bold text-base lg:text-lg">{formatCurrency(currentShift.total_sales)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs lg:text-sm text-gray-500">Efectivo en Ventas</p>
-                          <p className="font-bold text-base lg:text-lg text-emerald-600">{formatCurrency(currentShift.total_cash_sales)}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+
 
                   <div className="border rounded-lg p-3 lg:p-4">
                     <h4 className="font-semibold text-sm lg:text-base mb-3 flex items-center gap-2">
@@ -415,14 +401,7 @@ const Dashboard: React.FC = () => {
                       <span className="text-sm lg:text-lg">Total Declarado:</span>
                       <span className="text-xl lg:text-2xl font-bold">{formatCurrency(calculateTotalCash())}</span>
                     </div>
-                    {currentShift && isSuperuser && (
-                      <div className="mt-2 pt-2 border-t border-slate-700 flex justify-between text-xs lg:text-sm">
-                        <span className="text-slate-400">Diferencia con efectivo esperado:</span>
-                        <span className={`font-semibold ${calculateTotalCash() - (currentShift.initial_cash + currentShift.total_cash_sales) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {formatCurrency(calculateTotalCash() - (currentShift.initial_cash + currentShift.total_cash_sales))}
-                        </span>
-                      </div>
-                    )}
+
                   </div>
                 </div>
                 <DialogFooter className="gap-2">
