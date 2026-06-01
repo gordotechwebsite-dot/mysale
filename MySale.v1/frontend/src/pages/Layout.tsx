@@ -2,7 +2,8 @@ import React from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
-import { clockWithPin } from '@/api';
+import { clockWithPin, getNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead } from '@/api';
+import type { NotificationItem } from '@/api';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -658,6 +659,44 @@ const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [pinModalOpen, setPinModalOpen] = React.useState(false);
   const [collapsedGroups, setCollapsedGroups] = React.useState<Record<string, boolean>>({});
+  const [notifOpen, setNotifOpen] = React.useState(false);
+  const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = React.useState(0);
+  const notifRef = React.useRef<HTMLDivElement>(null);
+
+  const loadNotifications = React.useCallback(async () => {
+    try {
+      const [notifs, count] = await Promise.all([getNotifications(), getUnreadCount()]);
+      setNotifications(notifs);
+      setUnreadCount(count.unread_count);
+    } catch { /* ignore */ }
+  }, []);
+
+  React.useEffect(() => {
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 60000);
+    return () => clearInterval(interval);
+  }, [loadNotifications]);
+
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleMarkRead = async (id: number) => {
+    await markNotificationRead(id);
+    loadNotifications();
+  };
+
+  const handleMarkAllRead = async () => {
+    await markAllNotificationsRead();
+    loadNotifications();
+  };
 
   const toggleGroup = (group: string) => {
     setCollapsedGroups(prev => ({ ...prev, [group]: !prev[group] }));
@@ -894,24 +933,70 @@ const Layout: React.FC = () => {
           </h2>
           <div className="flex items-center gap-3">
             <ColombiaClockDisplay onClick={() => setPinModalOpen(true)} />
-            <button 
-              className="relative p-2 transition-colors"
-              style={{ borderRadius: '10px' }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 0, 0, 0.04)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
-              }}
-            >
-              <Bell size={20} style={{ color: '#6b7280' }} />
-              <span 
-                className="absolute -top-1 -right-1 w-4 h-4 text-xs text-white flex items-center justify-center"
-                style={{ backgroundColor: '#ef4444', borderRadius: '50%' }}
+            <div className="relative" ref={notifRef}>
+              <button 
+                className="relative p-2 transition-colors"
+                style={{ borderRadius: '10px' }}
+                onClick={() => setNotifOpen(!notifOpen)}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 0, 0, 0.04)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                }}
               >
-                0
-              </span>
-            </button>
+                <Bell size={20} style={{ color: '#6b7280' }} />
+                {unreadCount > 0 && (
+                  <span 
+                    className="absolute -top-1 -right-1 w-4 h-4 text-xs text-white flex items-center justify-center"
+                    style={{ backgroundColor: '#ef4444', borderRadius: '50%' }}
+                  >
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <span className="font-semibold text-gray-900 text-sm">Notificaciones</span>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                      >
+                        Marcar todas como leidas
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-gray-400 text-sm">No hay notificaciones</div>
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          className={`px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors ${
+                            !n.is_read ? 'bg-emerald-50/50' : ''
+                          }`}
+                          onClick={() => !n.is_read && handleMarkRead(n.id)}
+                        >
+                          <div className="flex items-start gap-2">
+                            {!n.is_read && <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />}
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm ${!n.is_read ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>{n.title}</p>
+                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                {new Date(n.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
         

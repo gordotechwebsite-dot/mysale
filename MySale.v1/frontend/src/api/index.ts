@@ -1413,3 +1413,33 @@ export const uploadBusinessLogo = async (file: File) => {
   });
   return response.data;
 };
+
+// ---- Notifications ----
+export interface NotificationItem {
+  id: number;
+  tenant_id: number | null;
+  title: string;
+  message: string;
+  type: string;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+}
+
+export const getNotifications = async (): Promise<NotificationItem[]> => {
+  const response = await api.get('/api/notifications');
+  return response.data;
+};
+
+export const getUnreadCount = async (): Promise<{ unread_count: number }> => {
+  const response = await api.get('/api/notifications/unread-count');
+  return response.data;
+};
+
+export const markNotificationRead = async (id: number): Promise<void> => {
+  await api.put(`/api/notifications/${id}/read`);
+};
+
+export const markAllNotificationsRead = async (): Promise<void> => {
+  await api.put('/api/notifications/read-all');
+};

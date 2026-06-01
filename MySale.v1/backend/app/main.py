@@ -7,7 +7,7 @@ import logging
 from contextlib import asynccontextmanager
 from app.database import engine, Base, SessionLocal
 from app.models import *
-from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants, integration, faq, biometric, branches, deliveries, business_profile
+from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants, integration, faq, biometric, branches, deliveries, business_profile, notifications
 from app.routers.tenants import public_router as tenants_public_router
 
 logger = logging.getLogger("mysale.scheduler")
@@ -576,6 +576,48 @@ def init_summer_sed_products():
         db.close()
 
 
+def generate_payment_reminders():
+    """Generate payment reminder notifications on the 6th of each month."""
+    from app.timezone import now_colombia
+    from app.models.tenant import Tenant
+    from app.models.notification import Notification, NotificationType
+
+    now = now_colombia()
+    if now.day < 6:
+        return
+
+    db = SessionLocal()
+    try:
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        active_tenants = db.query(Tenant).filter(Tenant.is_active == True).all()
+
+        created_count = 0
+        for tenant in active_tenants:
+            existing = db.query(Notification).filter(
+                Notification.tenant_id == tenant.id,
+                Notification.type == NotificationType.PAYMENT_REMINDER,
+                Notification.created_at >= month_start
+            ).first()
+            if not existing:
+                notification = Notification(
+                    tenant_id=tenant.id,
+                    title="Recordatorio de pago",
+                    message=f"Tu corte de servicio es el dia 6 de cada mes. Por favor realiza tu pago para evitar la suspension del servicio.",
+                    type=NotificationType.PAYMENT_REMINDER
+                )
+                db.add(notification)
+                created_count += 1
+
+        if created_count > 0:
+            db.commit()
+            logger.info(f"Recordatorios de pago: {created_count} notificacion(es) creada(s)")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error generando recordatorios de pago: {e}")
+    finally:
+        db.close()
+
+
 def check_and_suspend_unpaid_tenants():
     """Suspend tenants who haven't paid by the 6th of the month (Bogota time)."""
     from app.timezone import now_colombia
@@ -635,6 +677,7 @@ async def payment_check_scheduler():
             logger.info(f"Scheduler: próxima verificación de pagos en {wait_seconds/3600:.1f}h")
             await asyncio.sleep(wait_seconds)
             check_and_suspend_unpaid_tenants()
+            generate_payment_reminders()
         except asyncio.CancelledError:
             break
         except Exception as e:
@@ -649,8 +692,9 @@ async def lifespan(app: FastAPI):
     init_default_data()
     init_default_modules()
     init_summer_sed_products()
-    # Run payment check on startup (in case server was down on the 6th)
+    # Run payment check and reminders on startup (in case server was down on the 6th)
     check_and_suspend_unpaid_tenants()
+    generate_payment_reminders()
     # Start background scheduler
     scheduler_task = asyncio.create_task(payment_check_scheduler())
     yield
@@ -705,6 +749,7 @@ app.include_router(faq.router)
 app.include_router(biometric.router)
 app.include_router(deliveries.router)
 app.include_router(business_profile.router)
+app.include_router(notifications.router)
 
 # Serve uploaded logos as static files
 LOGO_UPLOAD_DIR = "/data/uploads/logos"
