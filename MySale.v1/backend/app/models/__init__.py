@@ -15,6 +15,7 @@ from app.models.audit import AuditLog, AuditAction
 from app.models.faq import FAQ
 from app.models.support import SupportConversation, SupportMessage
 from app.models.biometric import Fingerprint, BiometricLog, AttendanceRecord, BiometricEventType
+from app.models.notification import Notification, NotificationType
 
 __all__ = [
     "User", "Role", "UserModule", "Location",
@@ -30,5 +31,6 @@ __all__ = [
     "Zone", "Table", "Ticket", "TicketItem", "Comanda", "TicketPayment",
     "Module", "Tenant", "TenantModule", "TenantPayment", "PaymentStatus",
     "AuditLog", "AuditAction",
-    "FAQ"
+    "FAQ",
+    "Notification", "NotificationType"
 ]

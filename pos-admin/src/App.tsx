@@ -4,7 +4,8 @@ import {
   Building2, Package, DollarSign, LogOut, Menu, X,
   Plus, Edit, Trash2, Eye, CreditCard, ToggleLeft, ToggleRight,
   AlertCircle, CheckCircle, Clock, Ban, LayoutDashboard, Search,
-  MessageCircle, Save, TrendingUp, Activity, ShoppingCart, AlertTriangle
+  MessageCircle, Save, TrendingUp, Activity, ShoppingCart, AlertTriangle,
+  Bell, Send, Megaphone
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import Balatro from './components/Balatro'
@@ -1890,6 +1891,201 @@ function FAQsPage({ token }: { token: string }) {
   )
 }
 
+interface AdminNotification {
+  id: number
+  tenant_id: number | null
+  title: string
+  message: string
+  type: string
+  is_read: boolean
+  created_at: string
+}
+
+function NotificationsPage({ token }: { token: string }) {
+  const [notifications, setNotifications] = useState<AdminNotification[]>([])
+  const [tenants, setTenants] = useState<Tenant[]>([])
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [title, setTitle] = useState('')
+  const [message, setMessage] = useState('')
+  const [selectedTenant, setSelectedTenant] = useState<string>('all')
+  const { showToast } = useToast()
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    try {
+      const [notifsData, tenantsData] = await Promise.all([
+        apiCall('/api/admin/notifications', {}, token),
+        apiCall('/api/admin/tenants', {}, token)
+      ])
+      setNotifications(notifsData)
+      setTenants(tenantsData)
+    } catch {
+      showToast('Error al cargar datos', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSend = async () => {
+    if (!title.trim() || !message.trim()) {
+      showToast('Completa titulo y mensaje', 'error')
+      return
+    }
+    setSending(true)
+    try {
+      if (selectedTenant === 'all') {
+        await apiCall('/api/admin/notifications/broadcast', {
+          method: 'POST',
+          body: JSON.stringify({ title, message })
+        }, token)
+        showToast('Notificacion enviada a todos los clientes')
+      } else {
+        await apiCall(`/api/admin/tenants/${selectedTenant}/notifications`, {
+          method: 'POST',
+          body: JSON.stringify({ title, message })
+        }, token)
+        const tenant = tenants.find(t => t.id === Number(selectedTenant))
+        showToast(`Notificacion enviada a ${tenant?.name || 'cliente'}`)
+      }
+      setTitle('')
+      setMessage('')
+      setSelectedTenant('all')
+      await loadData()
+    } catch {
+      showToast('Error al enviar notificacion', 'error')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const typeLabel = (type: string) => {
+    switch (type) {
+      case 'payment_reminder': return 'Recordatorio de pago'
+      case 'custom': return 'Personalizada'
+      case 'system': return 'Sistema'
+      default: return type
+    }
+  }
+
+  const typeColor = (type: string) => {
+    switch (type) {
+      case 'payment_reminder': return 'bg-amber-100 text-amber-700'
+      case 'custom': return 'bg-blue-100 text-blue-700'
+      case 'system': return 'bg-gray-100 text-gray-700'
+      default: return 'bg-gray-100 text-gray-700'
+    }
+  }
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" /></div>
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-gray-900">Notificaciones</h1>
+
+      {/* Send notification form */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <Send className="w-5 h-5 text-emerald-600" />
+          Enviar Notificacion
+        </h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Destinatario</label>
+            <select
+              value={selectedTenant}
+              onChange={(e) => setSelectedTenant(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            >
+              <option value="all">Todos los clientes</option>
+              {tenants.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Titulo</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Ej: Mantenimiento programado"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje</label>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Escribe el mensaje de la notificacion..."
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
+          </div>
+          <button
+            onClick={handleSend}
+            disabled={sending || !title.trim() || !message.trim()}
+            className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {sending ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+            {selectedTenant === 'all' ? 'Enviar a todos' : 'Enviar'}
+          </button>
+        </div>
+      </div>
+
+      {/* Notification history */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Megaphone className="w-5 h-5 text-gray-600" />
+            Historial de Notificaciones
+          </h2>
+        </div>
+        <div className="divide-y divide-gray-100">
+          {notifications.length === 0 ? (
+            <div className="px-4 py-8 text-center text-gray-400">No hay notificaciones enviadas</div>
+          ) : (
+            notifications.map(n => (
+              <div key={n.id} className="px-4 py-3 hover:bg-gray-50">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-gray-900 text-sm">{n.title}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${typeColor(n.type)}`}>
+                        {typeLabel(n.type)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 line-clamp-2">{n.message}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs text-gray-400">
+                        {new Date(n.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {n.tenant_id && (
+                        <span className="text-xs text-gray-400">
+                          → {tenants.find(t => t.id === n.tenant_id)?.name || `Tenant #${n.tenant_id}`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${n.is_read ? 'bg-gray-300' : 'bg-emerald-500'}`} />
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function MainApp() {
   const { logout, token } = useAuth()
   const [currentPage, setCurrentPage] = useState('dashboard')
@@ -1900,6 +2096,7 @@ function MainApp() {
     { id: 'tenants', label: 'Clientes POS', icon: Building2 },
     { id: 'modules', label: 'Módulos', icon: Package },
     { id: 'faqs', label: 'Chatbot FAQs', icon: MessageCircle },
+    { id: 'notifications', label: 'Notificaciones', icon: Bell },
   ]
 
   return (
@@ -1978,6 +2175,7 @@ function MainApp() {
         {currentPage === 'tenants' && <TenantsPage token={token!} />}
         {currentPage === 'modules' && <ModulesPage token={token!} />}
         {currentPage === 'faqs' && <FAQsPage token={token!} />}
+        {currentPage === 'notifications' && <NotificationsPage token={token!} />}
       </main>
     </div>
   )
