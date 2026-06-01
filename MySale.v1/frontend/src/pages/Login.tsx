@@ -10,6 +10,7 @@ const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -20,8 +21,15 @@ const Login: React.FC = () => {
   // Detect if we're on the admin subdomain
   const isAdmin = window.location.hostname.startsWith('admin');
 
-  // Animation on mount
+  // Load saved credentials and animate on mount
   useEffect(() => {
+    const savedUsername = localStorage.getItem('remembered_username');
+    const savedPassword = localStorage.getItem('remembered_password');
+    if (savedUsername && savedPassword) {
+      setUsername(savedUsername);
+      setPassword(savedPassword);
+      setRememberMe(true);
+    }
     setIsVisible(true);
     usernameRef.current?.focus();
   }, []);
@@ -34,6 +42,13 @@ const Login: React.FC = () => {
 
     try {
       const response = await apiLogin(username, password);
+      if (rememberMe) {
+        localStorage.setItem('remembered_username', username);
+        localStorage.setItem('remembered_password', password);
+      } else {
+        localStorage.removeItem('remembered_username');
+        localStorage.removeItem('remembered_password');
+      }
       login(response.access_token, response.user);
       navigate('/');
     } catch (err: any) {
@@ -221,6 +236,17 @@ const Login: React.FC = () => {
                     )}
                   </button>
                 </div>
+
+                {/* Remember Me Checkbox */}
+                <label className="flex items-center gap-2 cursor-pointer select-none" style={{ marginTop: '4px' }}>
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 cursor-pointer accent-[#00a86b]"
+                  />
+                  <span style={{ color: '#6b7280', fontSize: '14px' }}>Recordar mis datos</span>
+                </label>
 
                 {/* Error Message */}
                 {error && (
