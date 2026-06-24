@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import { Settings as SettingsIcon, Upload, Save, Building2, FileText, Hash, MessageSquare, MapPin, Phone, Mail, Palette, Loader2, CheckCircle } from 'lucide-react';
+import { Settings as SettingsIcon, Upload, Save, Loader2, CheckCircle } from 'lucide-react';
 import { getBusinessProfile, updateBusinessProfile, uploadBusinessLogo } from '../api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -153,8 +153,7 @@ export default function Settings() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Logo Section */}
           <div className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
-            <h2 className="font-semibold mb-4 flex items-center gap-2 self-start" style={{ color: '#111827' }}>
-              <Upload size={18} style={{ color: '#00a86b' }} />
+            <h2 className="font-semibold mb-4 self-start" style={{ color: '#111827' }}>
               Logo del Negocio
             </h2>
             <div
@@ -198,14 +197,12 @@ export default function Settings() {
 
           {/* Business Info Section */}
           <div className="lg:col-span-2 bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
-            <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ color: '#111827' }}>
-              <Building2 size={18} style={{ color: '#00a86b' }} />
+            <h2 className="font-semibold mb-4" style={{ color: '#111827' }}>
               Informacion del Negocio
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
-                  <FileText size={14} style={{ color: '#9ca3af' }} />
+                <label className="text-sm font-medium mb-1.5 block" style={{ color: '#374151' }}>
                   Nombre del Negocio
                 </label>
                 <input
@@ -218,8 +215,7 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
-                  <Hash size={14} style={{ color: '#9ca3af' }} />
+                <label className="text-sm font-medium mb-1.5 block" style={{ color: '#374151' }}>
                   NIT
                 </label>
                 <input
@@ -232,8 +228,7 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
-                  <Building2 size={14} style={{ color: '#9ca3af' }} />
+                <label className="text-sm font-medium mb-1.5 block" style={{ color: '#374151' }}>
                   Razon Social
                 </label>
                 <input
@@ -246,8 +241,7 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
-                  <MessageSquare size={14} style={{ color: '#9ca3af' }} />
+                <label className="text-sm font-medium mb-1.5 block" style={{ color: '#374151' }}>
                   Eslogan
                 </label>
                 <input
@@ -267,14 +261,12 @@ export default function Settings() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Contact Info Section */}
           <div className="lg:col-span-2 bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
-            <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ color: '#111827' }}>
-              <Phone size={18} style={{ color: '#00a86b' }} />
+            <h2 className="font-semibold mb-4" style={{ color: '#111827' }}>
               Contacto
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
-                  <Phone size={14} style={{ color: '#9ca3af' }} />
+                <label className="text-sm font-medium mb-1.5 block" style={{ color: '#374151' }}>
                   Telefono
                 </label>
                 <input
@@ -287,8 +279,7 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
-                  <Mail size={14} style={{ color: '#9ca3af' }} />
+                <label className="text-sm font-medium mb-1.5 block" style={{ color: '#374151' }}>
                   Correo Electronico
                 </label>
                 <input
@@ -301,8 +292,7 @@ export default function Settings() {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
-                  <MapPin size={14} style={{ color: '#9ca3af' }} />
+                <label className="text-sm font-medium mb-1.5 block" style={{ color: '#374151' }}>
                   Direccion
                 </label>
                 <input
@@ -319,8 +309,7 @@ export default function Settings() {
 
           {/* Color Section */}
           <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
-            <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ color: '#111827' }}>
-              <Palette size={18} style={{ color: '#00a86b' }} />
+            <h2 className="font-semibold mb-4" style={{ color: '#111827' }}>
               Personalizacion
             </h2>
             <div className="flex flex-col items-center gap-3 pt-2">
