@@ -711,7 +711,7 @@ const Layout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#f6f7f9' }}>
+    <div className="h-screen flex overflow-hidden" style={{ backgroundColor: '#f6f7f9' }}>
       {/* PIN Modal */}
       <PinModal isOpen={pinModalOpen} onClose={() => setPinModalOpen(false)} />
 
@@ -879,7 +879,7 @@ const Layout: React.FC = () => {
       )}
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide flex flex-col">
+      <main className="flex-1 overflow-y-auto flex flex-col min-w-0">
         {/* Header */}
         <header 
           className="bg-white px-3 py-3 lg:px-6 lg:py-4 flex items-center justify-between"
