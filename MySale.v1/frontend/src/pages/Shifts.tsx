@@ -187,7 +187,7 @@ const Shifts: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap items-end gap-4 mb-6">
+          <div className="flex items-end justify-between mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-500 mb-1">Sucursal</label>
               <Select value={filterLocation || "all"} onValueChange={(v) => setFilterLocation(v === "all" ? "" : v)}>
@@ -240,20 +240,18 @@ const Shifts: React.FC = () => {
               />
             </div>
 
-            <div className="flex items-end gap-2 ml-auto">
-              <Button onClick={handleSearch} className="bg-[#00a86b] hover:bg-[#00965f] text-white">
-                <Search className="w-4 h-4 mr-2" />
-                Buscar
-              </Button>
-              <Button variant="outline" onClick={handleExportExcel} disabled={sessions.length === 0}>
-                <Download className="w-4 h-4 mr-2" />
-                Exportar Excel
-              </Button>
-              <Button variant="outline" onClick={handleExportPDF} disabled={sessions.length === 0}>
-                <FileText className="w-4 h-4 mr-2" />
-                Exportar PDF
-              </Button>
-            </div>
+            <Button onClick={handleSearch} className="bg-[#00a86b] hover:bg-[#00965f] text-white">
+              <Search className="w-4 h-4 mr-2" />
+              Buscar
+            </Button>
+            <Button variant="outline" onClick={handleExportExcel} disabled={sessions.length === 0}>
+              <Download className="w-4 h-4 mr-2" />
+              Exportar Excel
+            </Button>
+            <Button variant="outline" onClick={handleExportPDF} disabled={sessions.length === 0}>
+              <FileText className="w-4 h-4 mr-2" />
+              Exportar PDF
+            </Button>
           </div>
 
           {!hasSearched ? (
