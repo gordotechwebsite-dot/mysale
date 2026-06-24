@@ -80,7 +80,7 @@ const getCategoryIcon = (name: string): LucideIcon => {
 };
 
 const QuickSale: React.FC = () => {
-  const { items, addItem, removeItem, updateQuantity, clearCart, total, subtotal } = useCart();
+  const { items, addItem, removeItem, updateQuantity, updateNotes, clearCart, total, subtotal } = useCart();
   const { user } = useAuth();
   const searchRef = useRef<HTMLInputElement>(null);
   const paymentInputRef = useRef<HTMLInputElement>(null);
@@ -111,6 +111,8 @@ const QuickSale: React.FC = () => {
   const [mobileStep, setMobileStep] = useState<'categories' | 'products' | 'checkout'>('categories');
   const [modifierProduct, setModifierProduct] = useState<Product | null>(null);
   const [selectedModifiers, setSelectedModifiers] = useState<number[]>([]);
+  const [editingNoteKey, setEditingNoteKey] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState('');
 
   useEffect(() => { loadInitialData(); }, []);
   useEffect(() => { if (selectedLocation) loadProducts(); }, [selectedLocation]);
@@ -298,18 +300,72 @@ const QuickSale: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            {items.map((item) => (
+            {items.map((item) => {
+              const key = `${item.product.id}::${item.notes || ''}`;
+              const isEditing = editingNoteKey === key;
+              const hasNote = !!item.notes;
+              return (
               <div key={`${item.product.id}-${item.notes || ''}`} className="bg-gray-50 rounded-lg p-2.5">
                 <div className="flex justify-between items-start mb-1.5">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm leading-tight">{item.product.name}</p>
-                    {item.notes && <p className="text-xs text-orange-600 truncate">▸ {item.notes}</p>}
+                    {item.notes && !isEditing && <p className="text-[10px] text-gray-400 italic truncate">▸ {item.notes}</p>}
                     <p className="text-xs text-gray-500">{formatCurrency(item.product.sale_price)} c/u</p>
                   </div>
                   <button onClick={() => removeItem(item.product.id, item.notes)} className="text-red-500 hover:text-red-700 p-0.5 ml-1">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
+                <label className="flex items-center gap-1 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={isEditing || hasNote}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setEditingNoteKey(key);
+                        setNoteText(item.notes || '');
+                      } else {
+                        updateNotes(item.product.id, item.notes, undefined);
+                        setEditingNoteKey(null);
+                        setNoteText('');
+                      }
+                    }}
+                    className="w-3 h-3 rounded border-gray-300 accent-orange-400"
+                  />
+                  <span className="text-[10px] text-gray-400">Nota</span>
+                </label>
+                {(isEditing || hasNote) && (
+                  <div className="mt-1 mb-1">
+                    <input
+                      autoFocus={isEditing}
+                      type="text"
+                      value={isEditing ? noteText : (item.notes || '')}
+                      onChange={(e) => setNoteText(e.target.value)}
+                      onFocus={() => {
+                        if (!isEditing) {
+                          setEditingNoteKey(key);
+                          setNoteText(item.notes || '');
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          updateNotes(item.product.id, item.notes, noteText.trim() || undefined);
+                          setEditingNoteKey(null);
+                        } else if (e.key === 'Escape') {
+                          setEditingNoteKey(null);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (isEditing) {
+                          updateNotes(item.product.id, item.notes, noteText.trim() || undefined);
+                          setEditingNoteKey(null);
+                        }
+                      }}
+                      placeholder="Ej: sin azúcar"
+                      className="w-full text-[11px] text-gray-400 italic border border-gray-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-orange-300 bg-white"
+                    />
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <button onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.notes)} className="w-7 h-7 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center">
@@ -323,7 +379,8 @@ const QuickSale: React.FC = () => {
                   <p className="font-bold text-sm">{formatCurrency(item.product.sale_price * item.quantity)}</p>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
