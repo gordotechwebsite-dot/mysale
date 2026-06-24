@@ -663,10 +663,24 @@ const Layout: React.FC = () => {
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = React.useState(0);
   const notifRef = React.useRef<HTMLDivElement>(null);
+  const [toastNotif, setToastNotif] = React.useState<NotificationItem | null>(null);
+  const seenIdsRef = React.useRef<Set<number>>(new Set());
+  const initialLoadDone = React.useRef(false);
 
   const loadNotifications = React.useCallback(async () => {
     try {
       const [notifs, count] = await Promise.all([getNotifications(), getUnreadCount()]);
+      if (!initialLoadDone.current) {
+        notifs.forEach((n: NotificationItem) => seenIdsRef.current.add(n.id));
+        initialLoadDone.current = true;
+      } else {
+        const newNotifs = notifs.filter((n: NotificationItem) => !n.is_read && !seenIdsRef.current.has(n.id));
+        if (newNotifs.length > 0) {
+          setToastNotif(newNotifs[0]);
+          newNotifs.forEach((n: NotificationItem) => seenIdsRef.current.add(n.id));
+        }
+      }
+      notifs.forEach((n: NotificationItem) => seenIdsRef.current.add(n.id));
       setNotifications(notifs);
       setUnreadCount(count.unread_count);
     } catch { /* ignore */ }
@@ -674,9 +688,15 @@ const Layout: React.FC = () => {
 
   React.useEffect(() => {
     loadNotifications();
-    const interval = setInterval(loadNotifications, 60000);
+    const interval = setInterval(loadNotifications, 15000);
     return () => clearInterval(interval);
   }, [loadNotifications]);
+
+  React.useEffect(() => {
+    if (!toastNotif) return;
+    const timer = setTimeout(() => setToastNotif(null), 5000);
+    return () => clearTimeout(timer);
+  }, [toastNotif]);
 
   React.useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -955,6 +975,26 @@ const Layout: React.FC = () => {
                   </span>
                 )}
               </button>
+              {toastNotif && !notifOpen && (
+                <div
+                  className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300"
+                  style={{ animation: 'fadeSlideIn 0.3s ease-out' }}
+                >
+                  <div className="px-3 py-2.5 flex items-start gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-gray-900 truncate">{toastNotif.title}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{toastNotif.message}</p>
+                    </div>
+                    <button
+                      onClick={() => setToastNotif(null)}
+                      className="text-gray-400 hover:text-gray-600 text-xs ml-1 flex-shrink-0"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                </div>
+              )}
               {notifOpen && (
                 <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
