@@ -240,7 +240,7 @@ const Shifts: React.FC = () => {
               />
             </div>
 
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-2 ml-auto">
               <Button onClick={handleSearch} className="bg-[#00a86b] hover:bg-[#00965f] text-white">
                 <Search className="w-4 h-4 mr-2" />
                 Buscar
