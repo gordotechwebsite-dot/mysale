@@ -350,7 +350,7 @@ const QuickSale: React.FC = () => {
 
   // --- MOBILE VIEW ---
   const MobileView = () => (
-    <div className="lg:hidden flex flex-col h-[calc(100vh-140px)]">
+    <div className="lg:hidden flex flex-col flex-1 min-h-0">
       {/* Mobile search + back */}
       <div className="px-3 pt-2 pb-2 flex items-center gap-2">
         {(mobileStep !== 'categories' || selectedFamily) && (
@@ -478,7 +478,7 @@ const QuickSale: React.FC = () => {
 
   // --- DESKTOP VIEW ---
   const DesktopView = () => (
-    <div className="hidden lg:flex h-[calc(100vh-180px)] flex-col gap-4 overflow-hidden">
+    <div className="hidden lg:flex flex-1 min-h-0 flex-col gap-4 overflow-hidden">
       <div className="flex-1 flex gap-4 min-h-0">
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="mb-4">

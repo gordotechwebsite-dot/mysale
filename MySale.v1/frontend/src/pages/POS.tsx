@@ -255,7 +255,7 @@ const POS: React.FC = () => {
 
   if (isShiftLoading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-140px)]">
+      <div className="flex items-center justify-center flex-1 min-h-0">
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#00a86b' }} />
       </div>
     );
@@ -375,7 +375,7 @@ const POS: React.FC = () => {
   );
 
   return (
-    <div className="h-[calc(100vh-140px)] lg:flex lg:gap-4">
+    <div className="flex-1 min-h-0 flex flex-col lg:flex-row lg:gap-4">
       {/* Products Section */}
       <div className="flex-1 flex flex-col h-full">
         {/* Search Bar */}

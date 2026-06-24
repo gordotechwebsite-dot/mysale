@@ -474,7 +474,7 @@ const Deliveries: React.FC = () => {
   );
 
   return (
-    <div className="h-[calc(100vh-140px)] lg:flex lg:gap-3">
+    <div className="flex-1 min-h-0 flex flex-col lg:flex-row lg:gap-3">
       {/* ===== MOBILE VIEW ===== */}
       <div className="lg:hidden flex flex-col h-full">
         {/* Mobile Search */}
