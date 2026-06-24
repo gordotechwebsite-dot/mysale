@@ -135,3 +135,24 @@
   display: none;
 }
 
+/* Show scrollbar only on hover */
+.scrollbar-on-hover {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-on-hover::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+}
+.scrollbar-on-hover::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
+.scrollbar-on-hover:hover {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.2) transparent;
+}
+.scrollbar-on-hover:hover::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.2);
+}
+
