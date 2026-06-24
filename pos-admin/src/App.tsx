@@ -1891,7 +1891,7 @@ function FAQsPage({ token }: { token: string }) {
 }
 
 function MainApp() {
-  const { user, logout, token } = useAuth()
+  const { logout, token } = useAuth()
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
 

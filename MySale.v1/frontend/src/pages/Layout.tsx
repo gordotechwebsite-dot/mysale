@@ -879,7 +879,7 @@ const Layout: React.FC = () => {
       )}
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
         {/* Header */}
         <header 
           className="bg-white px-3 py-3 lg:px-6 lg:py-4 flex items-center justify-between"
