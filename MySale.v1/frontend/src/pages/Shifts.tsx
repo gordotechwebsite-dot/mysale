@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Download, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Download, FileText, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Shifts: React.FC = () => {
@@ -41,14 +41,12 @@ const Shifts: React.FC = () => {
     loadData();
   }, []);
 
-  useEffect(() => {
-    const hasFilter = filterLocation || filterUser || filterStartDate || filterEndDate;
-    if (hasFilter) {
-      loadShifts();
-    } else {
-      setSessions([]);
-    }
-  }, [filterLocation, filterUser, filterStartDate, filterEndDate]);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  const handleSearch = () => {
+    setHasSearched(true);
+    loadShifts();
+  };
 
   const loadData = async () => {
     try {
@@ -243,6 +241,10 @@ const Shifts: React.FC = () => {
             </div>
 
             <div className="flex items-end gap-2">
+              <Button onClick={handleSearch} className="bg-[#00a86b] hover:bg-[#00965f] text-white">
+                <Search className="w-4 h-4 mr-2" />
+                Buscar
+              </Button>
               <Button variant="outline" onClick={handleExportExcel} disabled={sessions.length === 0}>
                 <Download className="w-4 h-4 mr-2" />
                 Exportar Excel
@@ -254,8 +256,8 @@ const Shifts: React.FC = () => {
             </div>
           </div>
 
-          {sessions.length === 0 && !(filterLocation || filterUser || filterStartDate || filterEndDate) ? (
-            <p className="text-center text-gray-400 py-12 text-sm">Selecciona al menos un filtro para ver los registros</p>
+          {!hasSearched ? (
+            <p className="text-center text-gray-400 py-12 text-sm">Usa los filtros y presiona Buscar para ver los registros</p>
           ) : (
           <div className="overflow-x-auto">
             <Table>
