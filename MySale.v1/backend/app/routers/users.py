@@ -3,8 +3,20 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
 from app.models.user import User, Role, RoleType, UserModule
-from app.models.tenant import Module, TenantModule
+from app.models.tenant import Module, TenantModule, TenantPayment
 from app.models.branch import WorkSession
+from app.models.shift import Shift, ShiftAlert
+from app.models.sale import Sale, SaleItem
+from app.models.cash import CashCut, CashClose, CashDenomination
+from app.models.loss import Loss, LossItem
+from app.models.transfer import Transfer, TransferItem
+from app.models.expense import Expense
+from app.models.cost_control import CostEntry, CostConfig, CostApplication
+from app.models.table import Ticket, TicketItem, TicketPayment
+from app.models.audit import AuditLog
+from app.models.support import SupportConversation, SupportMessage
+from app.models.biometric import Fingerprint, BiometricLog, AttendanceRecord
+from app.models.inventory import StockMovement
 from app.schemas.user import (
     UserCreate, UserUpdate, UserResponse,
     RoleCreate, RoleResponse, UserModuleResponse
@@ -314,9 +326,76 @@ async def delete_user(
             detail="No puede eliminar su propio usuario"
         )
     
-    # Delete related work sessions first to avoid foreign key constraint errors
-    db.query(WorkSession).filter(WorkSession.user_id == user_id).delete()
-    
+    # Delete all related records to avoid foreign key constraint errors
+    # Order matters: child records first, then parents
+
+    # 1. Sale items → Sales (via shifts)
+    shift_ids = [s.id for s in db.query(Shift.id).filter(Shift.user_id == user_id).all()]
+    if shift_ids:
+        sale_ids = [s.id for s in db.query(Sale.id).filter(Sale.shift_id.in_(shift_ids)).all()]
+        if sale_ids:
+            db.query(SaleItem).filter(SaleItem.sale_id.in_(sale_ids)).delete(synchronize_session=False)
+            db.query(Sale).filter(Sale.id.in_(sale_ids)).delete(synchronize_session=False)
+        # Cash denominations → Cash cuts (via shifts)
+        cut_ids = [c.id for c in db.query(CashCut.id).filter(CashCut.shift_id.in_(shift_ids)).all()]
+        if cut_ids:
+            db.query(CashDenomination).filter(CashDenomination.cash_cut_id.in_(cut_ids)).delete(synchronize_session=False)
+        db.query(CashCut).filter(CashCut.shift_id.in_(shift_ids)).delete(synchronize_session=False)
+
+    # 2. Also delete cash cuts/sales directly linked to user
+    user_cut_ids = [c.id for c in db.query(CashCut.id).filter(CashCut.user_id == user_id).all()]
+    if user_cut_ids:
+        db.query(CashDenomination).filter(CashDenomination.cash_cut_id.in_(user_cut_ids)).delete(synchronize_session=False)
+    db.query(CashCut).filter(CashCut.user_id == user_id).delete(synchronize_session=False)
+    remaining_sale_ids = [s.id for s in db.query(Sale.id).filter(Sale.cashier_id == user_id).all()]
+    if remaining_sale_ids:
+        db.query(SaleItem).filter(SaleItem.sale_id.in_(remaining_sale_ids)).delete(synchronize_session=False)
+    db.query(Sale).filter(Sale.cashier_id == user_id).delete(synchronize_session=False)
+
+    # 3. Shifts
+    db.query(Shift).filter(Shift.user_id == user_id).delete(synchronize_session=False)
+    db.query(Shift).filter(Shift.closed_by_id == user_id).update({Shift.closed_by_id: None}, synchronize_session=False)
+
+    # 4. Cash closes
+    db.query(CashClose).filter(CashClose.user_id == user_id).delete(synchronize_session=False)
+
+    # 5. Loss items → Losses
+    loss_ids = [l.id for l in db.query(Loss.id).filter(Loss.reported_by == user_id).all()]
+    if loss_ids:
+        db.query(LossItem).filter(LossItem.loss_id.in_(loss_ids)).delete(synchronize_session=False)
+    db.query(Loss).filter(Loss.reported_by == user_id).delete(synchronize_session=False)
+
+    # 6. Transfer items → Transfers
+    transfer_ids = [t.id for t in db.query(Transfer.id).filter(Transfer.created_by_id == user_id).all()]
+    if transfer_ids:
+        db.query(TransferItem).filter(TransferItem.transfer_id.in_(transfer_ids)).delete(synchronize_session=False)
+    db.query(Transfer).filter(Transfer.created_by_id == user_id).delete(synchronize_session=False)
+    db.query(Transfer).filter(Transfer.received_by_id == user_id).update({Transfer.received_by_id: None}, synchronize_session=False)
+
+    # 7. Expenses
+    db.query(Expense).filter(Expense.created_by_id == user_id).delete(synchronize_session=False)
+
+    # 8. Tickets (nullable waiter_id)
+    db.query(Ticket).filter(Ticket.waiter_id == user_id).update({Ticket.waiter_id: None}, synchronize_session=False)
+
+    # 9. Nullable references
+    db.query(AuditLog).filter(AuditLog.user_id == user_id).update({AuditLog.user_id: None}, synchronize_session=False)
+    db.query(SupportConversation).filter(SupportConversation.user_id == user_id).update({SupportConversation.user_id: None}, synchronize_session=False)
+    db.query(SupportMessage).filter(SupportMessage.user_id == user_id).update({SupportMessage.user_id: None}, synchronize_session=False)
+    db.query(CostEntry).filter(CostEntry.created_by_id == user_id).update({CostEntry.created_by_id: None}, synchronize_session=False)
+    db.query(CostConfig).filter(CostConfig.updated_by_id == user_id).update({CostConfig.updated_by_id: None}, synchronize_session=False)
+    db.query(CostApplication).filter(CostApplication.applied_by_id == user_id).update({CostApplication.applied_by_id: None}, synchronize_session=False)
+    db.query(StockMovement).filter(StockMovement.created_by_id == user_id).update({StockMovement.created_by_id: None}, synchronize_session=False)
+    db.query(TenantPayment).filter(TenantPayment.created_by_id == user_id).update({TenantPayment.created_by_id: None}, synchronize_session=False)
+
+    # 10. User-specific records
+    db.query(WorkSession).filter(WorkSession.user_id == user_id).delete(synchronize_session=False)
+    db.query(ShiftAlert).filter(ShiftAlert.user_id == user_id).delete(synchronize_session=False)
+    db.query(Fingerprint).filter(Fingerprint.user_id == user_id).delete(synchronize_session=False)
+    db.query(BiometricLog).filter(BiometricLog.user_id == user_id).delete(synchronize_session=False)
+    db.query(AttendanceRecord).filter(AttendanceRecord.user_id == user_id).delete(synchronize_session=False)
+    db.query(UserModule).filter(UserModule.user_id == user_id).delete(synchronize_session=False)
+
     db.delete(user)
     db.commit()
     
