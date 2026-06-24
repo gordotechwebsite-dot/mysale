@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import { Settings as SettingsIcon, Upload, Save, Loader2, CheckCircle } from 'lucide-react';
+import { Upload, Save, Loader2, CheckCircle } from 'lucide-react';
 import { getBusinessProfile, updateBusinessProfile, uploadBusinessLogo } from '../api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -121,14 +121,9 @@ export default function Settings() {
     <div className="space-y-6 px-2">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(0, 168, 107, 0.1)' }}>
-            <SettingsIcon size={20} style={{ color: '#00a86b' }} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#111827' }}>Perfil del Negocio</h1>
-            <p className="text-sm" style={{ color: '#6b7280' }}>Configura la informacion de tu negocio</p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: '#111827' }}>Perfil del Negocio</h1>
+          <p className="text-sm" style={{ color: '#6b7280' }}>Configura la informacion de tu negocio</p>
         </div>
         <button
           type="button"
