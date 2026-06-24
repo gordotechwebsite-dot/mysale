@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Clock, Loader2, Download, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Download, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Shifts: React.FC = () => {
@@ -42,7 +42,12 @@ const Shifts: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadShifts();
+    const hasFilter = filterLocation || filterUser || filterStartDate || filterEndDate;
+    if (hasFilter) {
+      loadShifts();
+    } else {
+      setSessions([]);
+    }
   }, [filterLocation, filterUser, filterStartDate, filterEndDate]);
 
   const loadData = async () => {
@@ -53,7 +58,6 @@ const Shifts: React.FC = () => {
       ]);
       setLocations(locationsData);
       setUsers(usersData);
-      await loadShifts();
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Error al cargar turnos');
@@ -180,8 +184,7 @@ const Shifts: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5" />
+          <CardTitle>
             Historial de Turnos
           </CardTitle>
         </CardHeader>
@@ -225,7 +228,7 @@ const Shifts: React.FC = () => {
                 type="date"
                 value={filterStartDate}
                 onChange={(e) => setFilterStartDate(e.target.value)}
-                className="h-10 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="h-10 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 date-no-icon"
               />
             </div>
 
@@ -235,7 +238,7 @@ const Shifts: React.FC = () => {
                 type="date"
                 value={filterEndDate}
                 onChange={(e) => setFilterEndDate(e.target.value)}
-                className="h-10 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="h-10 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 date-no-icon"
               />
             </div>
 
@@ -251,6 +254,9 @@ const Shifts: React.FC = () => {
             </div>
           </div>
 
+          {sessions.length === 0 && !(filterLocation || filterUser || filterStartDate || filterEndDate) ? (
+            <p className="text-center text-gray-400 py-12 text-sm">Selecciona al menos un filtro para ver los registros</p>
+          ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -280,6 +286,7 @@ const Shifts: React.FC = () => {
               </TableBody>
             </Table>
           </div>
+          )}
 
           {sessions.length > itemsPerPage && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t">

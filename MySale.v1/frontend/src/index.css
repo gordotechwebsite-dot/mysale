@@ -152,3 +152,11 @@
   background: rgba(0, 0, 0, 0.18);
 }
 
+/* Hide native calendar picker icon on date inputs */
+.date-no-icon::-webkit-calendar-picker-indicator {
+  display: none;
+}
+.date-no-icon::-webkit-inner-spin-button {
+  display: none;
+}
+
