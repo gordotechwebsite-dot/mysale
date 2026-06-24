@@ -111,7 +111,7 @@ const Users: React.FC = () => {
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
     setIsProcessing(true);
-    try { await deleteUser(userToDelete.id); await loadData(); setShowDeleteConfirm(false); setUserToDelete(null); }
+    try { await deleteUser(userToDelete.id); toast.success('Usuario eliminado exitosamente'); await loadData(); setShowDeleteConfirm(false); setUserToDelete(null); }
     catch (error: any) { toast.error(error.response?.data?.detail || 'Error al eliminar usuario'); }
     finally { setIsProcessing(false); }
   };
