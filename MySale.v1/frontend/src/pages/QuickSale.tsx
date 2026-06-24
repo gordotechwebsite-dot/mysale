@@ -534,7 +534,7 @@ const QuickSale: React.FC = () => {
           )}
 
           {/* Product Grid (Desktop) */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
             {!selectedLocation ? (
               <div className="flex items-center justify-center h-full text-gray-400">
                 <p>Selecciona un punto de venta para comenzar</p>
