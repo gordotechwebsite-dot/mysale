@@ -135,7 +135,7 @@
   display: none;
 }
 
-/* Show scrollbar only on hover */
+/* Scrollbar: always present but invisible, thumb appears on hover without shifting content */
 .scrollbar-on-hover {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -148,11 +148,7 @@
   background: transparent;
   border-radius: 3px;
 }
-.scrollbar-on-hover:hover {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0,0,0,0.2) transparent;
-}
 .scrollbar-on-hover:hover::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.2);
+  background: rgba(0, 0, 0, 0.18);
 }
 
