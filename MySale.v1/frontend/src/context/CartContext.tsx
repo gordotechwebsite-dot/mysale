@@ -7,6 +7,7 @@ interface CartContextType {
   removeItem: (productId: number, notes?: string) => void;
   updateQuantity: (productId: number, quantity: number, notes?: string) => void;
   updateDiscount: (productId: number, discount: number, notes?: string) => void;
+  updateNotes: (productId: number, oldNotes: string | undefined, newNotes: string | undefined) => void;
   clearCart: () => void;
   total: number;
   subtotal: number;
@@ -58,6 +59,16 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
   };
 
+  const updateNotes = (productId: number, oldNotes: string | undefined, newNotes: string | undefined) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        itemKey(item.product.id, item.notes) === itemKey(productId, oldNotes)
+          ? { ...item, notes: newNotes }
+          : item
+      )
+    );
+  };
+
   const clearCart = () => {
     setItems([]);
   };
@@ -79,6 +90,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         removeItem,
         updateQuantity,
         updateDiscount,
+        updateNotes,
         clearCart,
         total,
         subtotal,
