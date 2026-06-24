@@ -658,7 +658,7 @@ const Layout: React.FC = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [pinModalOpen, setPinModalOpen] = React.useState(false);
-  const [collapsedGroups, setCollapsedGroups] = React.useState<Record<string, boolean>>({});
+  const [collapsedGroups, setCollapsedGroups] = React.useState<Record<string, boolean>>({ 'Operaciones': true });
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = React.useState(0);
@@ -750,7 +750,7 @@ const Layout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#f6f7f9' }}>
+    <div className="h-screen flex overflow-hidden" style={{ backgroundColor: '#f6f7f9' }}>
       {/* PIN Modal */}
       <PinModal isOpen={pinModalOpen} onClose={() => setPinModalOpen(false)} />
 
@@ -821,7 +821,7 @@ const Layout: React.FC = () => {
         </div>
 
         {/* Navigation - Premium Style with scroll, grouped by usage */}
-        <nav className="flex-1 overflow-y-auto px-4 py-3" style={{ minHeight: 0 }}>
+        <nav className="flex-1 overflow-y-auto scrollbar-on-hover px-4 py-3" style={{ minHeight: 0 }}>
           {(() => {
             // Group menu items by their group
             const groups: Record<string, typeof menuItems> = {};
@@ -918,7 +918,7 @@ const Layout: React.FC = () => {
       )}
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-y-auto scrollbar-on-hover flex flex-col min-w-0">
         {/* Header */}
         <header 
           className="bg-white px-3 py-3 lg:px-6 lg:py-4 flex items-center justify-between"
@@ -1001,7 +1001,7 @@ const Layout: React.FC = () => {
         </header>
         
         {/* Page content */}
-        <div className="p-3 lg:p-6">
+        <div className="p-3 pb-0 lg:px-6 lg:pt-6 lg:pb-0 flex-1 flex flex-col min-h-0">
           <Outlet />
         </div>
       </main>

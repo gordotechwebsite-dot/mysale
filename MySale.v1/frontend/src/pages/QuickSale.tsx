@@ -289,7 +289,7 @@ const QuickSale: React.FC = () => {
           )}
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-3">
+      <div className="flex-1 overflow-auto scrollbar-on-hover p-3">
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
             <ShoppingCart className="w-14 h-14 mb-3" />
@@ -350,7 +350,7 @@ const QuickSale: React.FC = () => {
 
   // --- MOBILE VIEW ---
   const MobileView = () => (
-    <div className="lg:hidden flex flex-col h-[calc(100vh-140px)]">
+    <div className="lg:hidden flex flex-col flex-1 min-h-0">
       {/* Mobile search + back */}
       <div className="px-3 pt-2 pb-2 flex items-center gap-2">
         {(mobileStep !== 'categories' || selectedFamily) && (
@@ -393,7 +393,7 @@ const QuickSale: React.FC = () => {
       )}
 
       {/* Mobile content */}
-      <div className="flex-1 overflow-auto px-3 pb-24">
+      <div className="flex-1 overflow-auto scrollbar-on-hover px-3 pb-24">
         {mobileStep === 'checkout' ? (
           /* Checkout: show cart panel inline */
           <div className="flex flex-col" style={{ minHeight: '100%' }}>
@@ -478,7 +478,7 @@ const QuickSale: React.FC = () => {
 
   // --- DESKTOP VIEW ---
   const DesktopView = () => (
-    <div className="hidden lg:flex h-[calc(100vh-180px)] flex-col gap-4 overflow-hidden">
+    <div className="hidden lg:flex flex-1 min-h-0 flex-col gap-4 overflow-hidden">
       <div className="flex-1 flex gap-4 min-h-0">
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="mb-4">
@@ -534,7 +534,7 @@ const QuickSale: React.FC = () => {
           )}
 
           {/* Product Grid (Desktop) */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto scrollbar-on-hover">
             {!selectedLocation ? (
               <div className="flex items-center justify-center h-full text-gray-400">
                 <p>Selecciona un punto de venta para comenzar</p>
