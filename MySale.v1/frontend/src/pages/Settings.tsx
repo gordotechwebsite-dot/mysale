@@ -118,28 +118,47 @@ export default function Settings() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="space-y-6 px-2">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(0, 168, 107, 0.1)' }}>
-          <SettingsIcon size={20} style={{ color: '#00a86b' }} />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(0, 168, 107, 0.1)' }}>
+            <SettingsIcon size={20} style={{ color: '#00a86b' }} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: '#111827' }}>Perfil del Negocio</h1>
+            <p className="text-sm" style={{ color: '#6b7280' }}>Configura la informacion de tu negocio</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: '#111827' }}>Perfil del Negocio</h1>
-          <p className="text-sm" style={{ color: '#6b7280' }}>Configura la informacion de tu negocio</p>
-        </div>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-6 py-3 text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
+          style={{ backgroundColor: saved ? '#059669' : '#00a86b' }}
+        >
+          {saving ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : saved ? (
+            <CheckCircle size={18} />
+          ) : (
+            <Save size={18} />
+          )}
+          {saving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar Cambios'}
+        </button>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-6">
-        {/* Logo Section */}
-        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
-          <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ color: '#111827' }}>
-            <Upload size={18} style={{ color: '#00a86b' }} />
-            Logo del Negocio
-          </h2>
-          <div className="flex items-center gap-6">
+      <form onSubmit={handleSave}>
+        {/* Top Row: Logo + Business Info */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Logo Section */}
+          <div className="bg-white rounded-2xl p-6 flex flex-col items-center justify-center" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
+            <h2 className="font-semibold mb-4 flex items-center gap-2 self-start" style={{ color: '#111827' }}>
+              <Upload size={18} style={{ color: '#00a86b' }} />
+              Logo del Negocio
+            </h2>
             <div
-              className="w-28 h-28 rounded-2xl flex items-center justify-center overflow-hidden cursor-pointer relative group"
+              className="w-36 h-36 rounded-2xl flex items-center justify-center overflow-hidden cursor-pointer relative group mb-4"
               style={{ backgroundColor: '#f3f4f6', border: '2px dashed #d1d5db' }}
               onClick={() => fileInputRef.current?.click()}
             >
@@ -154,23 +173,20 @@ export default function Settings() {
                 </>
               ) : (
                 <div className="text-center">
-                  <Upload size={24} style={{ color: '#9ca3af' }} className="mx-auto mb-1" />
+                  <Upload size={28} style={{ color: '#9ca3af' }} className="mx-auto mb-1" />
                   <span className="text-xs" style={{ color: '#9ca3af' }}>Subir logo</span>
                 </div>
               )}
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium" style={{ color: '#374151' }}>Sube el logo de tu negocio</p>
-              <p className="text-xs mt-1" style={{ color: '#9ca3af' }}>PNG, JPG o SVG. Maximo 2MB.</p>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="mt-3 px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-                style={{ backgroundColor: 'rgba(0, 168, 107, 0.1)', color: '#00a86b' }}
-              >
-                {logoUrl ? 'Cambiar logo' : 'Seleccionar archivo'}
-              </button>
-            </div>
+            <p className="text-xs mb-3 text-center" style={{ color: '#9ca3af' }}>PNG, JPG o SVG. Maximo 2MB.</p>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+              style={{ backgroundColor: 'rgba(0, 168, 107, 0.1)', color: '#00a86b' }}
+            >
+              {logoUrl ? 'Cambiar logo' : 'Seleccionar archivo'}
+            </button>
             <input
               ref={fileInputRef}
               type="file"
@@ -179,165 +195,147 @@ export default function Settings() {
               className="hidden"
             />
           </div>
-        </div>
 
-        {/* Business Info Section */}
-        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
-          <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ color: '#111827' }}>
-            <Building2 size={18} style={{ color: '#00a86b' }} />
-            Informacion del Negocio
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
-                <FileText size={14} style={{ color: '#9ca3af' }} />
-                Nombre del Negocio
-              </label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
-                style={{ border: '1px solid #e5e7eb' }}
-                placeholder="Ej: Foodgo"
-              />
-            </div>
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
-                <Hash size={14} style={{ color: '#9ca3af' }} />
-                NIT
-              </label>
-              <input
-                type="text"
-                value={form.nit}
-                onChange={(e) => setForm({ ...form, nit: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
-                style={{ border: '1px solid #e5e7eb' }}
-                placeholder="Ej: 900.123.456-7"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
-                <Building2 size={14} style={{ color: '#9ca3af' }} />
-                Razon Social
-              </label>
-              <input
-                type="text"
-                value={form.razon_social}
-                onChange={(e) => setForm({ ...form, razon_social: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
-                style={{ border: '1px solid #e5e7eb' }}
-                placeholder="Ej: Foodgo S.A.S."
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
-                <MessageSquare size={14} style={{ color: '#9ca3af' }} />
-                Eslogan
-              </label>
-              <input
-                type="text"
-                value={form.slogan}
-                onChange={(e) => setForm({ ...form, slogan: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
-                style={{ border: '1px solid #e5e7eb' }}
-                placeholder="Ej: La mejor comida rapida de la ciudad"
-              />
+          {/* Business Info Section */}
+          <div className="lg:col-span-2 bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
+            <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ color: '#111827' }}>
+              <Building2 size={18} style={{ color: '#00a86b' }} />
+              Informacion del Negocio
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
+                  <FileText size={14} style={{ color: '#9ca3af' }} />
+                  Nombre del Negocio
+                </label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                  style={{ border: '1px solid #e5e7eb' }}
+                  placeholder="Ej: Foodgo"
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
+                  <Hash size={14} style={{ color: '#9ca3af' }} />
+                  NIT
+                </label>
+                <input
+                  type="text"
+                  value={form.nit}
+                  onChange={(e) => setForm({ ...form, nit: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                  style={{ border: '1px solid #e5e7eb' }}
+                  placeholder="Ej: 900.123.456-7"
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
+                  <Building2 size={14} style={{ color: '#9ca3af' }} />
+                  Razon Social
+                </label>
+                <input
+                  type="text"
+                  value={form.razon_social}
+                  onChange={(e) => setForm({ ...form, razon_social: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                  style={{ border: '1px solid #e5e7eb' }}
+                  placeholder="Ej: Foodgo S.A.S."
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
+                  <MessageSquare size={14} style={{ color: '#9ca3af' }} />
+                  Eslogan
+                </label>
+                <input
+                  type="text"
+                  value={form.slogan}
+                  onChange={(e) => setForm({ ...form, slogan: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                  style={{ border: '1px solid #e5e7eb' }}
+                  placeholder="Ej: La mejor comida rapida de la ciudad"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Contact Info Section */}
-        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
-          <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ color: '#111827' }}>
-            <Phone size={18} style={{ color: '#00a86b' }} />
-            Contacto
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
-                <Phone size={14} style={{ color: '#9ca3af' }} />
-                Telefono
-              </label>
-              <input
-                type="text"
-                value={form.contact_phone}
-                onChange={(e) => setForm({ ...form, contact_phone: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
-                style={{ border: '1px solid #e5e7eb' }}
-                placeholder="Ej: +57 300 123 4567"
-              />
-            </div>
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
-                <Mail size={14} style={{ color: '#9ca3af' }} />
-                Correo Electronico
-              </label>
-              <input
-                type="email"
-                value={form.contact_email}
-                onChange={(e) => setForm({ ...form, contact_email: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
-                style={{ border: '1px solid #e5e7eb' }}
-                placeholder="Ej: contacto@foodgo.co"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
-                <MapPin size={14} style={{ color: '#9ca3af' }} />
-                Direccion
-              </label>
-              <input
-                type="text"
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
-                style={{ border: '1px solid #e5e7eb' }}
-                placeholder="Ej: Calle 123 #45-67, Bogota"
-              />
+        {/* Bottom Row: Contact + Personalization */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Contact Info Section */}
+          <div className="lg:col-span-2 bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
+            <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ color: '#111827' }}>
+              <Phone size={18} style={{ color: '#00a86b' }} />
+              Contacto
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
+                  <Phone size={14} style={{ color: '#9ca3af' }} />
+                  Telefono
+                </label>
+                <input
+                  type="text"
+                  value={form.contact_phone}
+                  onChange={(e) => setForm({ ...form, contact_phone: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                  style={{ border: '1px solid #e5e7eb' }}
+                  placeholder="Ej: +57 300 123 4567"
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
+                  <Mail size={14} style={{ color: '#9ca3af' }} />
+                  Correo Electronico
+                </label>
+                <input
+                  type="email"
+                  value={form.contact_email}
+                  onChange={(e) => setForm({ ...form, contact_email: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                  style={{ border: '1px solid #e5e7eb' }}
+                  placeholder="Ej: contacto@foodgo.co"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="flex items-center gap-2 text-sm font-medium mb-1.5" style={{ color: '#374151' }}>
+                  <MapPin size={14} style={{ color: '#9ca3af' }} />
+                  Direccion
+                </label>
+                <input
+                  type="text"
+                  value={form.address}
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                  style={{ border: '1px solid #e5e7eb' }}
+                  placeholder="Ej: Calle 123 #45-67, Bogota"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Color Section */}
-        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
-          <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ color: '#111827' }}>
-            <Palette size={18} style={{ color: '#00a86b' }} />
-            Personalizacion
-          </h2>
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium" style={{ color: '#374151' }}>
-              Color principal
-            </label>
-            <div className="flex items-center gap-3">
+          {/* Color Section */}
+          <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
+            <h2 className="font-semibold mb-4 flex items-center gap-2" style={{ color: '#111827' }}>
+              <Palette size={18} style={{ color: '#00a86b' }} />
+              Personalizacion
+            </h2>
+            <div className="flex flex-col items-center gap-3 pt-2">
+              <label className="text-sm font-medium" style={{ color: '#374151' }}>
+                Color principal
+              </label>
               <input
                 type="color"
                 value={form.primary_color}
                 onChange={(e) => setForm({ ...form, primary_color: e.target.value })}
-                className="w-10 h-10 rounded-lg cursor-pointer border-0"
+                className="w-16 h-16 rounded-xl cursor-pointer border-0"
               />
               <span className="text-sm font-mono" style={{ color: '#6b7280' }}>{form.primary_color}</span>
             </div>
           </div>
-        </div>
-
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex items-center gap-2 px-6 py-3 text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
-            style={{ backgroundColor: saved ? '#059669' : '#00a86b' }}
-          >
-            {saving ? (
-              <Loader2 size={18} className="animate-spin" />
-            ) : saved ? (
-              <CheckCircle size={18} />
-            ) : (
-              <Save size={18} />
-            )}
-            {saving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar Cambios'}
-          </button>
         </div>
       </form>
     </div>
