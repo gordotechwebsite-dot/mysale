@@ -289,7 +289,7 @@ const QuickSale: React.FC = () => {
           )}
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-3">
+      <div className="flex-1 overflow-auto scrollbar-on-hover p-3">
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
             <ShoppingCart className="w-14 h-14 mb-3" />
@@ -393,7 +393,7 @@ const QuickSale: React.FC = () => {
       )}
 
       {/* Mobile content */}
-      <div className="flex-1 overflow-auto px-3 pb-24">
+      <div className="flex-1 overflow-auto scrollbar-on-hover px-3 pb-24">
         {mobileStep === 'checkout' ? (
           /* Checkout: show cart panel inline */
           <div className="flex flex-col" style={{ minHeight: '100%' }}>
@@ -534,7 +534,7 @@ const QuickSale: React.FC = () => {
           )}
 
           {/* Product Grid (Desktop) */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto scrollbar-on-hover">
             {!selectedLocation ? (
               <div className="flex items-center justify-center h-full text-gray-400">
                 <p>Selecciona un punto de venta para comenzar</p>

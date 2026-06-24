@@ -434,7 +434,7 @@ const POS: React.FC = () => {
         )}
 
         {/* Main content area */}
-        <div className="flex-1 overflow-auto pb-20 lg:pb-0">
+        <div className="flex-1 overflow-auto scrollbar-on-hover pb-20 lg:pb-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#00a86b' }} />

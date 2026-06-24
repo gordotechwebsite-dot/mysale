@@ -657,7 +657,7 @@ const Layout: React.FC = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [pinModalOpen, setPinModalOpen] = React.useState(false);
-  const [collapsedGroups, setCollapsedGroups] = React.useState<Record<string, boolean>>({});
+  const [collapsedGroups, setCollapsedGroups] = React.useState<Record<string, boolean>>({ 'Operaciones': true });
 
   const toggleGroup = (group: string) => {
     setCollapsedGroups(prev => ({ ...prev, [group]: !prev[group] }));
@@ -782,7 +782,7 @@ const Layout: React.FC = () => {
         </div>
 
         {/* Navigation - Premium Style with scroll, grouped by usage */}
-        <nav className="flex-1 overflow-y-auto px-4 py-3" style={{ minHeight: 0 }}>
+        <nav className="flex-1 overflow-y-auto scrollbar-on-hover px-4 py-3" style={{ minHeight: 0 }}>
           {(() => {
             // Group menu items by their group
             const groups: Record<string, typeof menuItems> = {};
@@ -879,7 +879,7 @@ const Layout: React.FC = () => {
       )}
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto flex flex-col min-w-0">
+      <main className="flex-1 overflow-y-auto scrollbar-on-hover flex flex-col min-w-0">
         {/* Header */}
         <header 
           className="bg-white px-3 py-3 lg:px-6 lg:py-4 flex items-center justify-between"
