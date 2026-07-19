@@ -57,6 +57,11 @@ const Expenses: React.FC = () => {
   const [filterYear, setFilterYear] = useState<string>(String(currentYear));
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [appliedFilters, setAppliedFilters] = useState<{ year: string; month: string; category: string } | null>(null);
+
+  const handleGenerate = () => {
+    setAppliedFilters({ year: filterYear, month: filterMonth, category: filterCategory });
+  };
 
   const [newExpense, setNewExpense] = useState({
     location_id: '',
@@ -160,14 +165,15 @@ const Expenses: React.FC = () => {
   }, [expenses, currentYear]);
 
   const filteredExpenses = React.useMemo(() => {
+    if (!appliedFilters) return [];
     return expenses.filter(e => {
       const { year, month } = getYearMonth(e.expense_date);
-      if (filterYear !== 'all' && year !== parseInt(filterYear)) return false;
-      if (filterMonth !== 'all' && month !== parseInt(filterMonth)) return false;
-      if (filterCategory !== 'all' && e.category !== filterCategory) return false;
+      if (appliedFilters.year !== 'all' && year !== parseInt(appliedFilters.year)) return false;
+      if (appliedFilters.month !== 'all' && month !== parseInt(appliedFilters.month)) return false;
+      if (appliedFilters.category !== 'all' && e.category !== appliedFilters.category) return false;
       return true;
     });
-  }, [expenses, filterYear, filterMonth, filterCategory]);
+  }, [expenses, appliedFilters]);
 
   const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -254,6 +260,9 @@ const Expenses: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
+            <Button onClick={handleGenerate} className="bg-blue-600 hover:bg-blue-700">
+              Generar
+            </Button>
           </div>
           <div className="overflow-x-auto">
             <Table>
@@ -269,7 +278,13 @@ const Expenses: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredExpenses.length === 0 ? (
+                {!appliedFilters ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-gray-400 py-8">
+                      Selecciona los filtros y presiona "Generar" para ver los gastos
+                    </TableCell>
+                  </TableRow>
+                ) : filteredExpenses.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center text-gray-400 py-8">
                       No hay gastos para los filtros seleccionados
