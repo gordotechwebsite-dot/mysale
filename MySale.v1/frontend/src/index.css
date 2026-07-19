@@ -165,3 +165,16 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Normalize native date input so it matches other form fields (iOS/Safari) */
+.expense-date-input {
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: left;
+}
+.expense-date-input::-webkit-date-and-time-value {
+  text-align: left;
+}
+.expense-date-input::-webkit-calendar-picker-indicator {
+  margin-left: auto;
+}
+
