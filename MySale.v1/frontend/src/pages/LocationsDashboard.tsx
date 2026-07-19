@@ -22,8 +22,14 @@ import {
   Image,
   Loader2,
   BarChart3,
-  ChevronRight
+  ChevronRight,
+  Upload
 } from 'lucide-react';
+import api from '../api/client';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+const resolveImageUrl = (url: string) => (url.startsWith('http') ? url : `${API_URL}${url}`);
 
 const LocationsDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -33,6 +39,24 @@ const LocationsDashboard: React.FC = () => {
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileUpload = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await api.post('/api/inventory/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setImageUrl(response.data.url);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Error al subir la imagen');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -119,7 +143,7 @@ const LocationsDashboard: React.FC = () => {
               <div className="relative h-40 bg-gradient-to-br from-emerald-500 to-teal-600">
                 {location.image_url ? (
                   <img
-                    src={location.image_url}
+                    src={resolveImageUrl(location.image_url)}
                     alt={location.name}
                     className="w-full h-full object-cover"
                   />
@@ -261,7 +285,32 @@ const LocationsDashboard: React.FC = () => {
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700">URL de la imagen</label>
+              <label className="text-sm font-medium text-gray-700">Subir foto</label>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                id="location-image-upload"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(file);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => document.getElementById('location-image-upload')?.click()}
+                disabled={isUploading}
+                className="w-full mt-1 px-3 py-2 border border-dashed rounded-lg flex items-center justify-center gap-2 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {isUploading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Subiendo...</>
+                ) : (
+                  <><Upload className="w-4 h-4" /> Elegir imagen</>
+                )}
+              </button>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">o pega una URL</label>
               <input
                 type="url"
                 className="w-full mt-1 px-3 py-2 border rounded-lg"
@@ -269,14 +318,11 @@ const LocationsDashboard: React.FC = () => {
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Ingresa la URL de una imagen para personalizar este punto de venta
-              </p>
             </div>
             {imageUrl && (
               <div className="border rounded-lg overflow-hidden">
                 <img
-                  src={imageUrl}
+                  src={resolveImageUrl(imageUrl)}
                   alt="Preview"
                   className="w-full h-32 object-cover"
                   onError={(e) => {

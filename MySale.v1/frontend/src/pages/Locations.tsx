@@ -24,6 +24,10 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Loader2, Store, Warehouse, Users, DollarSign, ShoppingCart, Camera, Building2, BarChart3, ChevronRight } from 'lucide-react';
 import api from '../api/client';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+const resolveImageUrl = (url: string) => (url.startsWith('http') ? url : `${API_URL}${url}`);
+
 const Locations: React.FC = () => {
   const navigate = useNavigate();
   const [locations, setLocations] = useState<LocationDashboard[]>([]);
@@ -149,7 +153,7 @@ const Locations: React.FC = () => {
                   <div className="w-1/3 relative bg-gradient-to-br from-gray-100 to-gray-200">
                     {location.image_url ? (
                       <img 
-                        src={location.image_url} 
+                        src={resolveImageUrl(location.image_url)} 
                         alt={location.name}
                         className="w-full h-full object-cover"
                       />

@@ -756,6 +756,11 @@ LOGO_UPLOAD_DIR = "/data/uploads/logos"
 os.makedirs(LOGO_UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads/logos", StaticFiles(directory=LOGO_UPLOAD_DIR), name="logos")
 
+# Serve uploaded images (products, locations, etc.) as static files
+IMAGE_UPLOAD_DIR = "/data/uploads/images"
+os.makedirs(IMAGE_UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads/images", StaticFiles(directory=IMAGE_UPLOAD_DIR), name="images")
+
 
 @app.get("/healthz")
 async def healthz():

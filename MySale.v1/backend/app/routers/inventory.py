@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
+import os
+import uuid
 from app.database import get_db
 from app.models.user import User, RoleType
 from app.models.inventory import Group, Family, SubFamily, Product, ProductStock, StockMovement, MovementType, ProductModifier
@@ -20,6 +22,36 @@ from app.schemas.inventory import (
 from app.utils.auth import get_current_user, require_role, require_module
 
 router = APIRouter(prefix="/api/inventory", tags=["Inventario"])
+
+IMAGE_UPLOAD_DIR = "/data/uploads/images"
+
+
+@router.post("/upload-image")
+async def upload_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Upload an image (for products, locations, etc.) and return its public URL."""
+    allowed_types = ["image/png", "image/jpeg", "image/jpg", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail="Tipo de archivo no permitido. Use PNG, JPG o WEBP."
+        )
+
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="El archivo no debe superar 5MB")
+
+    os.makedirs(IMAGE_UPLOAD_DIR, exist_ok=True)
+    ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else "png"
+    filename = f"img_{uuid.uuid4().hex[:12]}.{ext}"
+    filepath = os.path.join(IMAGE_UPLOAD_DIR, filename)
+
+    with open(filepath, "wb") as f:
+        f.write(contents)
+
+    return {"url": f"/uploads/images/{filename}"}
 
 
 @router.get("/groups", response_model=List[GroupResponse])
