@@ -181,11 +181,20 @@ def run_migrations():
                 ('delivery_fee', 'FLOAT DEFAULT 0.0'),
                 ('delivery_status', 'VARCHAR(20)'),
                 ('delivered_at', 'DATETIME'),
+                ('client_uuid', 'VARCHAR(64)'),
             ]:
                 if col_name not in sale_cols:
                     db.execute(text(f"ALTER TABLE sales ADD COLUMN {col_name} {col_def}"))
                     db.commit()
                     print(f"Migration: Added {col_name} column to sales table")
+
+            # Unique index on client_uuid guarantees offline sales are never
+            # duplicated even if the sync queue retries a request.
+            db.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_sales_client_uuid "
+                "ON sales (client_uuid) WHERE client_uuid IS NOT NULL"
+            ))
+            db.commit()
         
         # Add notes column to sale_items table
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='sale_items'"))
