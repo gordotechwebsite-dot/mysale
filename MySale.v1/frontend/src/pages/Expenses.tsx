@@ -41,12 +41,22 @@ const expenseCategories = [
   { value: 'other', label: 'Otro' }
 ];
 
+const monthNames = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
+
 const Expenses: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const currentYear = new Date().getFullYear();
+  const [filterYear, setFilterYear] = useState<string>(String(currentYear));
+  const [filterMonth, setFilterMonth] = useState<string>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
 
   const [newExpense, setNewExpense] = useState({
     location_id: '',
@@ -137,7 +147,29 @@ const Expenses: React.FC = () => {
     return <Badge className={colors[category] || 'bg-gray-500'}>{labels[category] || category}</Badge>;
   };
 
-  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const getYearMonth = (dateStr: string): { year: number; month: number } => {
+    const [y, m] = dateStr.split('T')[0].split('-');
+    return { year: parseInt(y), month: parseInt(m) };
+  };
+
+  const availableYears = React.useMemo(() => {
+    const years = new Set<number>();
+    expenses.forEach(e => years.add(getYearMonth(e.expense_date).year));
+    years.add(currentYear);
+    return Array.from(years).sort((a, b) => b - a);
+  }, [expenses, currentYear]);
+
+  const filteredExpenses = React.useMemo(() => {
+    return expenses.filter(e => {
+      const { year, month } = getYearMonth(e.expense_date);
+      if (filterYear !== 'all' && year !== parseInt(filterYear)) return false;
+      if (filterMonth !== 'all' && month !== parseInt(filterMonth)) return false;
+      if (filterCategory !== 'all' && e.category !== filterCategory) return false;
+      return true;
+    });
+  }, [expenses, filterYear, filterMonth, filterCategory]);
+
+  const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
 
   if (isLoading) {
     return (
@@ -179,6 +211,50 @@ const Expenses: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent>
+          <div className="flex flex-wrap items-end gap-3 mb-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">Ano</label>
+              <Select value={filterYear} onValueChange={setFilterYear}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {availableYears.map(y => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">Mes</label>
+              <Select value={filterMonth} onValueChange={setFilterMonth}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {monthNames.map((m, i) => (
+                    <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-500">Tipo de gasto</label>
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {expenseCategories.map(c => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -193,7 +269,13 @@ const Expenses: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expenses.map((expense) => (
+                {filteredExpenses.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-gray-400 py-8">
+                      No hay gastos para los filtros seleccionados
+                    </TableCell>
+                  </TableRow>
+                ) : filteredExpenses.map((expense) => (
                   <TableRow key={expense.id}>
                     <TableCell>{formatDate(expense.expense_date)}</TableCell>
                     <TableCell>{getCategoryBadge(expense.category)}</TableCell>
