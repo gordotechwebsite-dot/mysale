@@ -6,6 +6,7 @@ import { ShiftProvider } from './context/ShiftContext';
 import { CartProvider } from './context/CartContext';
 import { Toaster } from '@/components/ui/sonner';
 import { isInstalledApp, getStoredClientId } from './lib/installed';
+import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 
 import Activation from './pages/Activation';
 import Login from './pages/Login';
@@ -112,6 +113,7 @@ function App() {
       <>
         <Activation onActivated={() => setNeedsActivation(false)} />
         <Toaster />
+        <PWAUpdatePrompt />
       </>
     );
   }
@@ -122,6 +124,7 @@ function App() {
         <AuthProvider>
           <AppRoutes />
           <Toaster />
+          <PWAUpdatePrompt />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
