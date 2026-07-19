@@ -352,6 +352,7 @@ const Expenses: React.FC = () => {
               />
               <Input
                 type="date"
+                className="expense-date-input min-w-0"
                 value={newExpense.expense_date}
                 onChange={(e) => setNewExpense({ ...newExpense, expense_date: e.target.value })}
               />
