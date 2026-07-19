@@ -8,7 +8,7 @@ export type OfflineSalePayload = {
   notes?: string;
   location_id?: number;
   client_uuid: string;
-  client_created_at: string;
+  client_created_at?: string;
 };
 
 export interface PendingSale {

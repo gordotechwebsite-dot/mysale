@@ -24,7 +24,27 @@ const genUuid = (): string => {
   return `off-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 };
 
-const buildPayload = (input: SubmitSaleInput, clientUuid: string, createdAt: string): OfflineSalePayload => ({
+/**
+ * Official Colombia wall-clock time as a naive datetime string
+ * (YYYY-MM-DDTHH:mm:ss), independent of the device timezone. Matches the
+ * backend's now_colombia() convention so offline sales keep the right hour.
+ */
+const nowColombiaNaive = (): string => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Bogota',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date());
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '00';
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}`;
+};
+
+const buildPayload = (input: SubmitSaleInput, clientUuid: string): OfflineSalePayload => ({
   payment_method: input.payment_method,
   items: input.lines.map((line) => ({
     product_id: line.product.id,
@@ -36,7 +56,6 @@ const buildPayload = (input: SubmitSaleInput, clientUuid: string, createdAt: str
   notes: input.notes,
   location_id: input.location_id,
   client_uuid: clientUuid,
-  client_created_at: createdAt,
 });
 
 /**
@@ -124,11 +143,11 @@ export const getPendingSales = async (): Promise<PendingSale[]> => {
  */
 export const submitSale = async (input: SubmitSaleInput): Promise<SubmitSaleResult> => {
   const clientUuid = genUuid();
-  const createdAt = new Date().toISOString();
-  const payload = buildPayload(input, clientUuid, createdAt);
+  const payload = buildPayload(input, clientUuid);
 
   if (navigator.onLine) {
     try {
+      // Online sales let the server stamp the time (now_colombia).
       const sale = await createSale(payload);
       return { sale, offline: false };
     } catch (error) {
@@ -139,8 +158,12 @@ export const submitSale = async (input: SubmitSaleInput): Promise<SubmitSaleResu
     }
   }
 
+  // Offline: preserve the real Colombia time of the sale so it stays correct
+  // once it syncs.
+  const createdAt = nowColombiaNaive();
+  const offlinePayload: OfflineSalePayload = { ...payload, client_created_at: createdAt };
   const receipt = buildReceipt(input, clientUuid, createdAt);
-  await savePending({ client_uuid: clientUuid, payload, receipt, createdAt: Date.now(), attempts: 0 });
+  await savePending({ client_uuid: clientUuid, payload: offlinePayload, receipt, createdAt: Date.now(), attempts: 0 });
   return { sale: receipt, offline: true };
 };
 
