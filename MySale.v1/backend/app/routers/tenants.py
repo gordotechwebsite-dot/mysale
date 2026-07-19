@@ -44,6 +44,21 @@ def generate_pos_password(length: int = 8) -> str:
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
+def generate_client_id(db: Session) -> str:
+    """Generate a unique, human-readable client ID (e.g. MYS-7F3K-9QP2).
+
+    Uses an unambiguous alphabet (no 0/O/1/I) and guarantees uniqueness.
+    """
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    while True:
+        part1 = ''.join(secrets.choice(alphabet) for _ in range(4))
+        part2 = ''.join(secrets.choice(alphabet) for _ in range(4))
+        candidate = f"MYS-{part1}-{part2}"
+        exists = db.query(Tenant).filter(Tenant.client_id == candidate).first()
+        if not exists:
+            return candidate
+
+
 @router.get("/modules", response_model=List[ModuleResponse])
 async def get_modules(
     db: Session = Depends(get_db),
@@ -142,6 +157,7 @@ async def get_tenants(
             id=tenant.id,
             name=tenant.name,
             code=tenant.code,
+            client_id=tenant.client_id,
             subdomain=tenant.subdomain,
             contact_name=tenant.contact_name,
             contact_email=tenant.contact_email,
@@ -189,6 +205,7 @@ async def get_tenant(
         id=tenant.id,
         name=tenant.name,
         code=tenant.code,
+        client_id=tenant.client_id,
         subdomain=tenant.subdomain,
         logo_url=tenant.logo_url,
         primary_color=tenant.primary_color,
@@ -233,6 +250,7 @@ async def create_tenant(
     tenant = Tenant(
         name=data.name,
         code=data.code,
+        client_id=generate_client_id(db),
         subdomain=data.subdomain if data.subdomain else None,
         logo_url=data.logo_url,
         primary_color=data.primary_color or "#10b981",
@@ -296,6 +314,7 @@ async def create_tenant(
         id=tenant.id,
         name=tenant.name,
         code=tenant.code,
+        client_id=tenant.client_id,
         subdomain=tenant.subdomain,
         logo_url=tenant.logo_url,
         primary_color=tenant.primary_color,
@@ -725,6 +744,37 @@ async def get_public_tenant_modules(
         "tenant_name": tenant.name,
         "tenant_code": tenant.code,
         "modules": modules
+    }
+
+
+@public_router.get("/activate/{client_id}")
+async def activate_client(
+    client_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Public endpoint used by the installable app to activate a device with a
+    Client ID. Returns basic tenant branding when valid, or an error when the
+    ID is invalid or the service is suspended.
+    """
+    normalized = client_id.strip().upper()
+    tenant = db.query(Tenant).filter(Tenant.client_id == normalized).first()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="ID de Cliente no válido")
+
+    if not tenant.is_active or tenant.payment_status == PaymentStatus.SUSPENDED:
+        raise HTTPException(
+            status_code=403,
+            detail="El servicio de este cliente está suspendido. Contacta al administrador."
+        )
+
+    return {
+        "client_id": tenant.client_id,
+        "tenant_code": tenant.code,
+        "name": tenant.name,
+        "logo_url": tenant.logo_url,
+        "primary_color": tenant.primary_color,
+        "pos_url": tenant.pos_url,
     }
 
 

@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ShiftProvider } from './context/ShiftContext';
 import { CartProvider } from './context/CartContext';
 import { Toaster } from '@/components/ui/sonner';
+import { isInstalledApp, getStoredClientId } from './lib/installed';
 
+import Activation from './pages/Activation';
 import Login from './pages/Login';
 import Layout from './pages/Layout';
 import Dashboard from './pages/Dashboard';
@@ -100,6 +103,19 @@ function AppRoutes() {
 }
 
 function App() {
+  const [needsActivation, setNeedsActivation] = useState<boolean>(
+    isInstalledApp() && !getStoredClientId()
+  );
+
+  if (needsActivation) {
+    return (
+      <>
+        <Activation onActivated={() => setNeedsActivation(false)} />
+        <Toaster />
+      </>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

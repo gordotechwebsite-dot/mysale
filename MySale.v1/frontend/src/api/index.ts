@@ -10,6 +10,20 @@ import type {
 
 export * from './auth';
 
+export interface ClientActivation {
+  client_id: string;
+  tenant_code: string;
+  name: string;
+  logo_url: string | null;
+  primary_color: string | null;
+  pos_url: string | null;
+}
+
+export const activateClient = async (clientId: string): Promise<ClientActivation> => {
+  const response = await api.get(`/api/public/activate/${encodeURIComponent(clientId)}`);
+  return response.data;
+};
+
 export const getUsers = async (): Promise<User[]> => {
   const response = await api.get('/api/users/');
   return response.data;
