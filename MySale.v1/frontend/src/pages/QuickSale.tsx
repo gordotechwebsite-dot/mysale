@@ -177,12 +177,18 @@ const QuickSale: React.FC = () => {
     }
   };
 
+  const resetSearch = () => {
+    setSearchTerm('');
+    setTimeout(() => searchRef.current?.focus(), 0);
+  };
+
   const handleProductClick = (product: Product) => {
     if (product.modifiers && product.modifiers.length > 0) {
       setModifierProduct(product);
       setSelectedModifiers([]);
     } else {
       addItem(product);
+      resetSearch();
     }
   };
 
@@ -194,6 +200,7 @@ const QuickSale: React.FC = () => {
     addItem(modifierProduct, 1, notes);
     setModifierProduct(null);
     setSelectedModifiers([]);
+    resetSearch();
   };
 
   const handleWeightedBarcode = async (barcode: string) => {
@@ -801,7 +808,7 @@ const QuickSale: React.FC = () => {
             ))}
           </div>
           <DialogFooter className="flex gap-2">
-            <Button variant="outline" onClick={() => { addItem(modifierProduct!); setModifierProduct(null); setSelectedModifiers([]); }}>Sin variaciones</Button>
+            <Button variant="outline" onClick={() => { addItem(modifierProduct!); setModifierProduct(null); setSelectedModifiers([]); resetSearch(); }}>Sin variaciones</Button>
             <Button className="bg-orange-500 hover:bg-orange-600" onClick={handleConfirmModifiers}>Agregar</Button>
           </DialogFooter>
         </DialogContent>

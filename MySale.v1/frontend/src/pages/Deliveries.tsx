@@ -211,12 +211,18 @@ const Deliveries: React.FC = () => {
     }
   };
 
+  const resetSearch = () => {
+    setSearchTerm('');
+    setTimeout(() => searchRef.current?.focus(), 0);
+  };
+
   const handleProductClick = (product: Product) => {
     if (product.modifiers && product.modifiers.length > 0) {
       setModifierProduct(product);
       setSelectedModifiers([]);
     } else {
       addItem(product);
+      resetSearch();
     }
   };
 
@@ -228,6 +234,7 @@ const Deliveries: React.FC = () => {
     addItem(modifierProduct, 1, notesText);
     setModifierProduct(null);
     setSelectedModifiers([]);
+    resetSearch();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -1032,7 +1039,7 @@ const Deliveries: React.FC = () => {
             ))}
           </div>
           <DialogFooter className="flex gap-2">
-            <Button variant="outline" onClick={() => { addItem(modifierProduct!); setModifierProduct(null); setSelectedModifiers([]); }}>Sin variaciones</Button>
+            <Button variant="outline" onClick={() => { addItem(modifierProduct!); setModifierProduct(null); setSelectedModifiers([]); resetSearch(); }}>Sin variaciones</Button>
             <Button className="bg-purple-600 hover:bg-purple-700" onClick={handleConfirmModifiers}>Agregar</Button>
           </DialogFooter>
         </DialogContent>

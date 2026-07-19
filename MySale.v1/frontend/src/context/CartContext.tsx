@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import type { CartItem, Product } from '../types';
+
+const CART_INACTIVITY_MS = 10 * 60 * 1000; // 10 minutos
 
 interface CartContextType {
   items: CartItem[];
@@ -20,6 +22,20 @@ const itemKey = (productId: number, notes?: string) => `${productId}::${notes ||
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
+  const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (inactivityTimer.current) {
+      clearTimeout(inactivityTimer.current);
+      inactivityTimer.current = null;
+    }
+    if (items.length > 0) {
+      inactivityTimer.current = setTimeout(() => setItems([]), CART_INACTIVITY_MS);
+    }
+    return () => {
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    };
+  }, [items]);
 
   const addItem = (product: Product, quantity: number = 1, notes?: string) => {
     setItems((prev) => {
