@@ -17,6 +17,8 @@ class SaleCreate(BaseModel):
     amount_received: Optional[float] = None
     notes: Optional[str] = None
     location_id: Optional[int] = None
+    client_uuid: Optional[str] = None
+    client_created_at: Optional[datetime] = None
 
 
 class SaleItemResponse(BaseModel):
@@ -37,6 +39,7 @@ class SaleItemResponse(BaseModel):
 class SaleResponse(BaseModel):
     id: int
     folio: str
+    client_uuid: Optional[str] = None
     location_id: int
     location_name: Optional[str] = None
     shift_id: int

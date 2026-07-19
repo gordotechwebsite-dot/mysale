@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from datetime import datetime, date, timedelta
@@ -28,6 +29,45 @@ def generate_folio(db: Session, location: Location) -> str:
     prefix = location.folio_prefix or location.code
     folio = f"{prefix}-{location.folio_counter:06d}"
     return folio
+
+
+def _serialize_sale(db: Session, sale: Sale) -> SaleResponse:
+    location = db.query(Location).filter(Location.id == sale.location_id).first()
+    cashier = db.query(User).filter(User.id == sale.cashier_id).first()
+    items = []
+    for item in sale.items:
+        product = db.query(Product).filter(Product.id == item.product_id).first()
+        items.append(SaleItemResponse(
+            id=item.id,
+            product_id=item.product_id,
+            product_name=product.name if product else None,
+            product_code=product.code if product else None,
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+            discount=item.discount,
+            subtotal=item.subtotal,
+            notes=item.notes
+        ))
+    return SaleResponse(
+        id=sale.id,
+        folio=sale.folio,
+        client_uuid=sale.client_uuid,
+        location_id=sale.location_id,
+        location_name=location.name if location else None,
+        shift_id=sale.shift_id,
+        cashier_id=sale.cashier_id,
+        cashier_name=cashier.full_name if cashier else None,
+        subtotal=sale.subtotal,
+        tax=sale.tax,
+        discount=sale.discount,
+        total=sale.total,
+        payment_method=sale.payment_method,
+        amount_received=sale.amount_received,
+        change_given=sale.change_given,
+        notes=sale.notes,
+        created_at=sale.created_at,
+        items=items
+    )
 
 
 @router.get("/", response_model=List[SaleResponse])
@@ -84,6 +124,7 @@ async def get_sales(
         result.append(SaleResponse(
             id=sale.id,
             folio=sale.folio,
+            client_uuid=sale.client_uuid,
             location_id=sale.location_id,
             location_name=location.name if location else None,
             shift_id=sale.shift_id,
@@ -141,6 +182,7 @@ async def get_sale(
     return SaleResponse(
         id=sale.id,
         folio=sale.folio,
+        client_uuid=sale.client_uuid,
         location_id=sale.location_id,
         location_name=location.name if location else None,
         shift_id=sale.shift_id,
@@ -165,6 +207,13 @@ async def create_sale(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Idempotency: if this client_uuid was already recorded, return the existing
+    # sale instead of creating a duplicate (protects offline sync retries).
+    if sale_data.client_uuid:
+        existing = db.query(Sale).filter(Sale.client_uuid == sale_data.client_uuid).first()
+        if existing:
+            return _serialize_sale(db, existing)
+
     shift = db.query(Shift).filter(
         Shift.user_id == current_user.id,
         Shift.status == ShiftStatus.OPEN
@@ -232,6 +281,7 @@ async def create_sale(
     
     sale = Sale(
         folio=folio,
+        client_uuid=sale_data.client_uuid,
         location_id=shift.location_id,
         shift_id=shift.id,
         cashier_id=current_user.id,
@@ -243,8 +293,19 @@ async def create_sale(
         change_given=change_given,
         notes=sale_data.notes
     )
+    if sale_data.client_created_at:
+        sale.created_at = sale_data.client_created_at
     db.add(sale)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        # Another concurrent request already stored this client_uuid. Roll back
+        # and return the existing sale so we never create a duplicate.
+        db.rollback()
+        existing = db.query(Sale).filter(Sale.client_uuid == sale_data.client_uuid).first()
+        if existing:
+            return _serialize_sale(db, existing)
+        raise
     
     for item_info in sale_items:
         sale_item = SaleItem(
@@ -288,6 +349,7 @@ async def create_sale(
     return SaleResponse(
         id=sale.id,
         folio=sale.folio,
+        client_uuid=sale.client_uuid,
         location_id=sale.location_id,
         location_name=location.name,
         shift_id=sale.shift_id,
@@ -343,6 +405,7 @@ async def get_sale_by_folio(
     return SaleResponse(
         id=sale.id,
         folio=sale.folio,
+        client_uuid=sale.client_uuid,
         location_id=sale.location_id,
         location_name=location.name if location else None,
         shift_id=sale.shift_id,

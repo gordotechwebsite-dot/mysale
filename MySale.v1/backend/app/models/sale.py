@@ -33,6 +33,7 @@ class Sale(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     folio = Column(String(50), unique=True, nullable=False, index=True)
+    client_uuid = Column(String(64), unique=True, nullable=True, index=True)
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
     shift_id = Column(Integer, ForeignKey("shifts.id"), nullable=False)
     cashier_id = Column(Integer, ForeignKey("users.id"), nullable=False)
