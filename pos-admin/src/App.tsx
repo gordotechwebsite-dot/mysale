@@ -243,6 +243,7 @@ interface Tenant {
   id: number
   name: string
   code: string
+  client_id: string | null
   subdomain: string | null
   logo_url: string | null
   primary_color: string
@@ -941,6 +942,17 @@ function TenantsPage({ token }: { token: string }) {
               </div>
               <div className="text-xs space-y-1">
                 <div className="flex items-center gap-1">
+                  <span className="text-gray-500">ID Cliente:</span>
+                  <span className="font-mono bg-emerald-50 text-emerald-700 px-1 rounded">{tenant.client_id || '-'}</span>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(tenant.client_id || ''); showToast('ID de Cliente copiado') }}
+                    className="text-gray-400 hover:text-gray-600"
+                    title="Copiar ID de Cliente"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                  </button>
+                </div>
+                <div className="flex items-center gap-1">
                   <span className="text-gray-500">Usuario:</span>
                   <span className="font-mono bg-gray-100 px-1 rounded">{tenant.pos_username || '-'}</span>
                 </div>
@@ -991,6 +1003,17 @@ function TenantsPage({ token }: { token: string }) {
                   </td>
                   <td className="px-4 py-4">
                     <div className="text-xs space-y-1">
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-500">ID Cliente:</span>
+                        <span className="font-mono bg-emerald-50 text-emerald-700 px-1 rounded">{tenant.client_id || '-'}</span>
+                        <button
+                          onClick={() => { navigator.clipboard.writeText(tenant.client_id || ''); showToast('ID de Cliente copiado') }}
+                          className="text-gray-400 hover:text-gray-600"
+                          title="Copiar ID de Cliente"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        </button>
+                      </div>
                       <div className="flex items-center gap-1">
                         <span className="text-gray-500">Usuario:</span>
                         <span className="font-mono bg-gray-100 px-1 rounded">{tenant.pos_username || '-'}</span>

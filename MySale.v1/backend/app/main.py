@@ -135,6 +135,36 @@ def run_migrations():
                 db.execute(text("ALTER TABLE tenants ADD COLUMN slogan TEXT"))
                 db.commit()
                 print("Migration: Added slogan column to tenants table")
+
+            if 'client_id' not in tenant_cols:
+                db.execute(text("ALTER TABLE tenants ADD COLUMN client_id VARCHAR(20)"))
+                db.commit()
+                print("Migration: Added client_id column to tenants table")
+
+            # Backfill client_id for tenants that don't have one yet
+            import secrets as _secrets
+            _alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+            rows = db.execute(text(
+                "SELECT id FROM tenants WHERE client_id IS NULL OR client_id = ''"
+            )).fetchall()
+            for row in rows:
+                existing_ids = {
+                    r[0] for r in db.execute(text(
+                        "SELECT client_id FROM tenants WHERE client_id IS NOT NULL"
+                    )).fetchall()
+                }
+                while True:
+                    p1 = ''.join(_secrets.choice(_alphabet) for _ in range(4))
+                    p2 = ''.join(_secrets.choice(_alphabet) for _ in range(4))
+                    new_id = f"MYS-{p1}-{p2}"
+                    if new_id not in existing_ids:
+                        break
+                db.execute(
+                    text("UPDATE tenants SET client_id = :cid WHERE id = :tid"),
+                    {"cid": new_id, "tid": row[0]}
+                )
+                db.commit()
+                print(f"Migration: Backfilled client_id for tenant id={row[0]} -> {new_id}")
         
         # Add delivery columns to sales table
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='sales'"))

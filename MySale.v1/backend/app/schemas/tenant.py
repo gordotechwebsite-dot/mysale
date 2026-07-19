@@ -100,6 +100,7 @@ class TenantModuleResponse(BaseModel):
 
 class TenantResponse(TenantBase):
     id: int
+    client_id: Optional[str] = None
     payment_status: str
     payment_due_date: Optional[datetime]
     is_active: bool
@@ -115,6 +116,7 @@ class TenantListResponse(BaseModel):
     id: int
     name: str
     code: str
+    client_id: Optional[str] = None
     subdomain: Optional[str] = None
     contact_name: Optional[str] = None
     contact_email: Optional[str] = None
