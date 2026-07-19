@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useShift } from '../context/ShiftContext';
 import { useCart } from '../context/CartContext';
-import { getProducts, createSale, getFamilies, getSubFamilies } from '../api';
+import { createSale } from '../api';
+import { cachedGetProducts, cachedGetFamilies, cachedGetSubFamilies } from '../offline/catalog';
 import type { Product, Family, SubFamily } from '../types';
 import { Button } from '@/components/ui/button';
 import {
@@ -162,9 +163,9 @@ const POS: React.FC = () => {
   const loadData = async () => {
     try {
       const [productsData, familiesData, subfamiliesData] = await Promise.all([
-        getProducts({ location_id: currentShift?.location_id }),
-        getFamilies(),
-        getSubFamilies()
+        cachedGetProducts(currentShift?.location_id),
+        cachedGetFamilies(),
+        cachedGetSubFamilies()
       ]);
       setProducts(productsData);
       setFamilies(familiesData);

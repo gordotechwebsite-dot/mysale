@@ -3,7 +3,8 @@ import { toast } from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
-import { getProducts, getLocations, getDeliveries, createDelivery, getFamilies, getSubFamilies } from '../api';
+import { getDeliveries, createDelivery } from '../api';
+import { cachedGetProducts, cachedGetFamilies, cachedGetSubFamilies, cachedGetLocations } from '../offline/catalog';
 import type { Product, Delivery, Family, SubFamily } from '../types';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Card } from '@/components/ui/card';
@@ -168,16 +169,14 @@ const Deliveries: React.FC = () => {
 
   const loadInitialData = async () => {
     try {
-      const [locs, deliveriesData, familiesData, subfamiliesData] = await Promise.all([
-        getLocations(),
-        getDeliveries(),
-        getFamilies(),
-        getSubFamilies()
+      const [locs, familiesData, subfamiliesData] = await Promise.all([
+        cachedGetLocations(),
+        cachedGetFamilies(),
+        cachedGetSubFamilies()
       ]);
       setFamilies(familiesData);
       setSubfamilies(subfamiliesData);
       const posLocations = locs.filter(l => l.location_type === 'pos');
-      setDeliveries(deliveriesData);
       if (!selectedLocation && posLocations.length > 0) {
         setSelectedLocation(posLocations[0].id);
       }
@@ -185,13 +184,20 @@ const Deliveries: React.FC = () => {
       console.error('Error loading data:', error);
       toast.error('Error al cargar datos');
     }
+
+    try {
+      const deliveriesData = await getDeliveries();
+      setDeliveries(deliveriesData);
+    } catch (error) {
+      console.error('Error loading deliveries:', error);
+    }
   };
 
   const loadProducts = async () => {
     if (!selectedLocation) return;
     setIsLoading(true);
     try {
-      const data = await getProducts({ location_id: selectedLocation });
+      const data = await cachedGetProducts(selectedLocation);
       setProducts(data);
     } catch (error) {
       console.error('Error loading products:', error);

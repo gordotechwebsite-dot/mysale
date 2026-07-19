@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { getProducts, getLocations, createSale, decodeWeightedBarcode, getFamilies, getSubFamilies } from '../api';
+import { createSale, decodeWeightedBarcode } from '../api';
+import { cachedGetProducts, cachedGetFamilies, cachedGetSubFamilies, cachedGetLocations } from '../offline/catalog';
 import type { Product, Family, SubFamily } from '../types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -147,7 +148,7 @@ const QuickSale: React.FC = () => {
   const loadInitialData = async () => {
     try {
       const [locs, familiesData, subfamiliesData] = await Promise.all([
-        getLocations(), getFamilies(), getSubFamilies()
+        cachedGetLocations(), cachedGetFamilies(), cachedGetSubFamilies()
       ]);
       setFamilies(familiesData);
       setSubfamilies(subfamiliesData);
@@ -167,7 +168,7 @@ const QuickSale: React.FC = () => {
     if (!selectedLocation) return;
     setIsLoading(true);
     try {
-      const data = await getProducts({ location_id: selectedLocation });
+      const data = await cachedGetProducts(selectedLocation);
       setProducts(data);
     } catch (error) {
       console.error('Error loading products:', error);

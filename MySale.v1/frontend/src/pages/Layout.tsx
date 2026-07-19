@@ -31,8 +31,10 @@ import {
   XCircle,
   Loader2,
   ChevronDown,
-  ArrowLeftRight
+  ArrowLeftRight,
+  WifiOff
 } from 'lucide-react';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 
 // Branch option type for selection
 interface BranchOption {
@@ -655,6 +657,7 @@ const Layout: React.FC = () => {
   const { user, logout, enabledModules } = useAuth();
   const { currentShift } = useShift();
   const location = useLocation();
+  const isOnline = useOnlineStatus();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [pinModalOpen, setPinModalOpen] = React.useState(false);
@@ -1039,7 +1042,14 @@ const Layout: React.FC = () => {
             </div>
           </div>
         </header>
-        
+
+        {!isOnline && (
+          <div className="bg-amber-50 border-b border-amber-200 text-amber-800 text-xs lg:text-sm px-3 lg:px-6 py-2 flex items-center gap-2">
+            <WifiOff className="w-4 h-4 shrink-0" />
+            <span>Sin conexión — trabajando con los datos guardados en este equipo.</span>
+          </div>
+        )}
+
         {/* Page content */}
         <div className="p-3 pb-0 lg:px-6 lg:pt-6 lg:pb-0 flex-1 flex flex-col min-h-0">
           <Outlet />
