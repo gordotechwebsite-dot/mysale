@@ -645,8 +645,8 @@ const QuickSale: React.FC = () => {
 
   return (
     <>
-      <MobileView />
-      <DesktopView />
+      {MobileView()}
+      {DesktopView()}
 
       {/* Payment Dialog */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
