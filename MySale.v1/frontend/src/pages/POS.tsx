@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useShift } from '../context/ShiftContext';
 import { useCart } from '../context/CartContext';
-import { createSale } from '../api';
+import { submitSale } from '../offline/sales';
 import { cachedGetProducts, cachedGetFamilies, cachedGetSubFamilies } from '../offline/catalog';
 import type { Product, Family, SubFamily } from '../types';
 import { Button } from '@/components/ui/button';
@@ -211,26 +211,25 @@ const POS: React.FC = () => {
   const handlePayment = async () => {
     if (items.length === 0) return;
     
+    if (!currentShift) return;
     setIsProcessing(true);
     try {
-      const saleData = {
+      const { sale, offline } = await submitSale({
         payment_method: paymentMethod,
-        items: items.map(item => ({
-          product_id: item.product.id,
-          quantity: item.quantity,
-          discount: item.discount,
-          notes: item.notes || undefined
-        })),
-        amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) || total : undefined
-      };
-      
-      const sale = await createSale(saleData);
+        lines: items,
+        amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) || total : undefined,
+        location_id: currentShift.location_id,
+        location_name: currentShift.location_name,
+      });
       setLastSale(sale);
       clearCart();
       setShowPayment(false);
       setMobileCartOpen(false);
       setShowReceipt(true);
       setAmountReceived('');
+      if (offline) {
+        toast.success('Venta guardada sin conexión. Se sincronizará al volver el internet.');
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Error al procesar la venta');
     } finally {

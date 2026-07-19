@@ -174,6 +174,7 @@ export interface SaleItem {
 export interface Sale {
   id: number;
   folio: string;
+  client_uuid?: string | null;
   location_id: number;
   location_name?: string;
   shift_id: number;

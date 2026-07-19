@@ -1,38 +1,6 @@
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { Product, Family, SubFamily, Location } from '../types';
 import { getProducts, getFamilies, getSubFamilies, getLocations } from '../api';
-
-interface CatalogDB extends DBSchema {
-  products: {
-    key: number;
-    value: { locationId: number; items: Product[]; updatedAt: number };
-  };
-  collections: {
-    key: string;
-    value: { name: string; items: unknown[]; updatedAt: number };
-  };
-}
-
-const DB_NAME = 'mysale-offline';
-const DB_VERSION = 1;
-
-let dbPromise: Promise<IDBPDatabase<CatalogDB>> | null = null;
-
-const getDB = (): Promise<IDBPDatabase<CatalogDB>> => {
-  if (!dbPromise) {
-    dbPromise = openDB<CatalogDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains('products')) {
-          db.createObjectStore('products', { keyPath: 'locationId' });
-        }
-        if (!db.objectStoreNames.contains('collections')) {
-          db.createObjectStore('collections', { keyPath: 'name' });
-        }
-      },
-    });
-  }
-  return dbPromise;
-};
+import { getDB } from './db';
 
 const saveProducts = async (locationId: number, items: Product[]): Promise<void> => {
   const db = await getDB();

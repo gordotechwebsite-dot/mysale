@@ -7,6 +7,7 @@ import { CartProvider } from './context/CartContext';
 import { Toaster } from '@/components/ui/sonner';
 import { isInstalledApp, getStoredClientId } from './lib/installed';
 import PWAUpdatePrompt from './components/PWAUpdatePrompt';
+import OfflineSalesIndicator from './components/OfflineSalesIndicator';
 
 import Activation from './pages/Activation';
 import Login from './pages/Login';
@@ -125,6 +126,7 @@ function App() {
           <AppRoutes />
           <Toaster />
           <PWAUpdatePrompt />
+          <OfflineSalesIndicator />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

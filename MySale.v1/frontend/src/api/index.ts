@@ -290,10 +290,12 @@ export const getSales = async (params?: {
 
 export const createSale = async (data: {
   payment_method: 'cash' | 'card' | 'transfer';
-  items: { product_id: number; quantity: number; discount?: number }[];
+  items: { product_id: number; quantity: number; discount?: number; notes?: string }[];
   amount_received?: number;
   notes?: string;
   location_id?: number;
+  client_uuid?: string;
+  client_created_at?: string;
 }): Promise<Sale> => {
   const response = await api.post('/api/sales/', data);
   return response.data;

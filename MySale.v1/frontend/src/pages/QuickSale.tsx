@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { createSale, decodeWeightedBarcode } from '../api';
+import { decodeWeightedBarcode } from '../api';
+import { submitSale } from '../offline/sales';
 import { cachedGetProducts, cachedGetFamilies, cachedGetSubFamilies, cachedGetLocations } from '../offline/catalog';
-import type { Product, Family, SubFamily } from '../types';
+import type { Product, Family, SubFamily, Location } from '../types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -91,6 +92,7 @@ const QuickSale: React.FC = () => {
   const [subfamilies, setSubfamilies] = useState<SubFamily[]>([]);
   const [selectedFamily, setSelectedFamily] = useState<number | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showPayment, setShowPayment] = useState(false);
@@ -152,6 +154,7 @@ const QuickSale: React.FC = () => {
       ]);
       setFamilies(familiesData);
       setSubfamilies(subfamiliesData);
+      setLocations(locs);
       const posLocations = locs.filter(l => l.location_type === 'pos');
       if (user?.location_id) {
         setSelectedLocation(user.location_id);
@@ -252,16 +255,13 @@ const QuickSale: React.FC = () => {
     if (items.length === 0 || !selectedLocation) return;
     setIsProcessing(true);
     try {
-      const saleData = {
+      const { sale, offline } = await submitSale({
         payment_method: paymentMethod,
-        items: items.map(item => ({
-          product_id: item.product.id, quantity: item.quantity, discount: item.discount,
-          notes: item.notes || undefined
-        })),
+        lines: items,
         amount_received: paymentMethod === 'cash' ? parseFloat(amountReceived) || total : undefined,
-        location_id: selectedLocation
-      };
-      const sale = await createSale(saleData);
+        location_id: selectedLocation,
+        location_name: locations.find(l => l.id === selectedLocation)?.name,
+      });
       setLastSale(sale);
       clearCart();
       setShowPayment(false);
@@ -269,6 +269,9 @@ const QuickSale: React.FC = () => {
       setAmountReceived('');
       setMobileStep('categories');
       setSelectedFamily(null);
+      if (offline) {
+        toast.success('Venta guardada sin conexión. Se sincronizará al volver el internet.');
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Error al procesar la venta');
     } finally {
