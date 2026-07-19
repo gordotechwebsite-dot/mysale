@@ -770,7 +770,7 @@ const Layout: React.FC = () => {
   }
 
   return (
-    <div className="h-screen flex overflow-hidden" style={{ backgroundColor: '#f6f7f9' }}>
+    <div className="h-screen h-[100dvh] flex overflow-hidden" style={{ backgroundColor: '#f6f7f9' }}>
       {/* PIN Modal */}
       <PinModal isOpen={pinModalOpen} onClose={() => setPinModalOpen(false)} />
 
@@ -787,7 +787,7 @@ const Layout: React.FC = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white transform transition-transform duration-200 ease-in-out flex flex-col h-screen ${
+        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white transform transition-transform duration-200 ease-in-out flex flex-col h-screen h-[100dvh] ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
         style={{ 
