@@ -75,7 +75,6 @@ const thermalStyles = `
   .footer-thanks { font-size: 12px; font-weight: bold; margin-bottom: 2px; }
   .footer-slogan { font-size: 10px; color: #555; font-style: italic; }
   .footer-brand { font-size: 9px; color: #999; margin-top: 6px; }
-  .items-count { font-size: 10px; color: #555; text-align: right; margin-top: 2px; }
 `;
 
 const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
@@ -140,8 +139,6 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
     };
     return labels[method] || method;
   };
-
-  const totalItems = sale.items.reduce((sum, item) => sum + item.quantity, 0);
 
   const handlePrint = () => {
     const printContent = receiptRef.current;
@@ -335,10 +332,6 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
               ))}
             </div>
 
-            {/* Items count */}
-            <div style={{ fontSize: '10px', color: '#555', textAlign: 'right', marginTop: '2px' }}>
-              {totalItems} artículo{totalItems !== 1 ? 's' : ''}
-            </div>
 
             {/* Totals */}
             <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
