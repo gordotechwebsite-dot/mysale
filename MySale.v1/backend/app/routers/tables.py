@@ -633,6 +633,12 @@ async def add_items_to_ticket(
                 detail=f"{product.name} esta agotado"
             )
         
+        if product.location_id and ticket.location_id and product.location_id != ticket.location_id:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{product.name} no pertenece a la carta de esta sede"
+            )
+        
         subtotal = item_data.quantity * item_data.unit_price - (item_data.discount or 0)
         
         item = TicketItem(

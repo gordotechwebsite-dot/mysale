@@ -61,6 +61,11 @@ def run_migrations():
                 db.commit()
                 print("Migration: Added image_url column to products table")
             
+            if 'location_id' not in product_columns:
+                db.execute(text("ALTER TABLE products ADD COLUMN location_id INTEGER REFERENCES locations(id)"))
+                db.commit()
+                print("Migration: Added location_id column to products table")
+            
             if 'is_sold_out' not in product_columns:
                 db.execute(text("ALTER TABLE products ADD COLUMN is_sold_out BOOLEAN DEFAULT 0 NOT NULL"))
                 db.commit()
@@ -620,6 +625,176 @@ def init_summer_sed_products():
         db.close()
 
 
+def init_asadero_products():
+    """Seed the Asadero sede menu. Products stay tied to that sede (carta propia)."""
+    from app.models.inventory import Group, Family, SubFamily, Product
+    from app.models.location import Location
+
+    db = SessionLocal()
+    try:
+        locations = db.query(Location).filter(Location.name.ilike("%asadero%")).all()
+        if not locations:
+            print("Sede Asadero no encontrada: se omite la carta del asadero")
+            return
+
+        products_by_category = {
+            "Bebidas Y Cervezas": {
+                "icon": "Beer",
+                "items": [
+                    ("Agua Natural O Con Gas", 4800),
+                    ("Bretaña", 5500),
+                    ("Coca Cola", 3600),
+                    ("Colombiana", 3600),
+                    ("Ginger", 5500),
+                    ("Hipinto", 3600),
+                    ("Jugo Del Dia", 6500),
+                    ("Limonada Con Hierbabuena", 4800),
+                    ("Limonada Con Hierbabuena - Jarra", 16000),
+                    ("Preparada", 4800),
+                    ("Preparada - Jarra", 16000),
+                    ("Aguardiente Amarillo O Azul Media", 54000),
+                    ("Andina", 4800),
+                    ("Cerveza De La Casa - Jarra", 12000),
+                    ("Heineken", 5500),
+                    ("Refajo", 5000),
+                    ("Refajo De La Casa - Jarra", 18000),
+                    ("Sol", 4800),
+                ],
+            },
+            "Entradas Y Complementos": {
+                "icon": "Salad",
+                "items": [
+                    ("Arepas Con Hogao", 5500),
+                    ("Chorizo", 5500),
+                    ("Chunchullo Con Papa", 25000),
+                    ("Empanadas De La Casa", 9500),
+                    ("Encurtido De La Huerta", 6500),
+                    ("Ensalada De La Casa Para Dos", 12000),
+                    ("Envueltos", 5500),
+                    ("Guacamole", 8500),
+                    ("Lengua En Vinagreta", 14000),
+                    ("Morcilla", 4500),
+                    ("Papa Salada", 6500),
+                    ("Patacones Con Suero", 6500),
+                    ("Plátano Con Bocadillo Y Queso", 14000),
+                    ("Yuca Hervida", 6500),
+                ],
+            },
+            "Sopas": {
+                "icon": "Soup",
+                "items": [
+                    ("Cuchuco De Trigo", 12000),
+                    ("Mondongo", 12000),
+                    ("Mute De Mazorca", 12000),
+                    ("Media Sopa", 9000),
+                ],
+            },
+            "Carnes": {
+                "icon": "Beef",
+                "items": [
+                    ("Cerdo Al Chuzo", 38000),
+                    ("Mixta", 38000),
+                    ("Pollo Ahumado Al Barril", 42000),
+                    ("Res A La Llanera", 38000),
+                ],
+            },
+            "Comida Típica": {
+                "icon": "Utensils",
+                "items": [
+                    ("Churrasco De Res", 42000),
+                    ("Guiso De Pata", 18000),
+                    ("Hígado Encebollado", 24000),
+                    ("Lengua En Salsa Criolla", 38000),
+                    ("Pechuga De Pollo A La Plancha", 36000),
+                    ("Sobrebarriga Criolla", 38000),
+                    ("Trucha A La Plancha", 34000),
+                ],
+            },
+            "Postres": {
+                "icon": "CakeSlice",
+                "items": [
+                    ("Arroz Con Leche", 7500),
+                    ("Cuajada Con Melao", 12500),
+                    ("Flan Con Arquipe", 12500),
+                    ("Helados De La Casa", 0),
+                ],
+            },
+            "Salsas Y Aderezos": {
+                "icon": "Droplets",
+                "items": [
+                    ("Aji De La Casa", 0),
+                    ("Chimichurri", 0),
+                    ("Guacamole", 0),
+                    ("Hogao", 0),
+                    ("Suero Costeño", 0),
+                ],
+            },
+        }
+
+        for location in locations:
+            existing = db.query(Group).filter(
+                Group.name == "Menu Asadero",
+                Group.tenant_id == location.tenant_id,
+            ).first()
+            if existing:
+                continue
+
+            group = Group(
+                name="Menu Asadero",
+                description="Carta de la sede Asadero",
+                tenant_id=location.tenant_id,
+            )
+            db.add(group)
+            db.flush()
+
+            product_counter = 0
+            for cat_name, cat_data in products_by_category.items():
+                family = Family(
+                    name=cat_name,
+                    group_id=group.id,
+                    icon=cat_data["icon"],
+                    description=f"Categoría: {cat_name}",
+                    tenant_id=location.tenant_id,
+                )
+                db.add(family)
+                db.flush()
+
+                subfamily = SubFamily(
+                    name=cat_name,
+                    family_id=family.id,
+                    description=f"Sub-categoría: {cat_name}",
+                    tenant_id=location.tenant_id,
+                )
+                db.add(subfamily)
+                db.flush()
+
+                for prod_name, price in cat_data["items"]:
+                    product_counter += 1
+                    code_prefix = cat_name[:3].upper()
+                    code = f"AS{location.id}-{code_prefix}-{product_counter:04d}"
+                    product = Product(
+                        code=code,
+                        name=prod_name,
+                        description="",
+                        subfamily_id=subfamily.id,
+                        tenant_id=location.tenant_id,
+                        location_id=location.id,
+                        sale_price=price,
+                        unit="unidad",
+                        is_active=True,
+                    )
+                    db.add(product)
+
+            db.commit()
+            print(f"Carta del Asadero creada en {location.name} ({product_counter} productos)")
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error al crear la carta del Asadero: {e}")
+    finally:
+        db.close()
+
+
 def generate_payment_reminders():
     """Generate payment reminder notifications on the 6th of each month."""
     from app.timezone import now_colombia
@@ -736,6 +911,7 @@ async def lifespan(app: FastAPI):
     init_default_data()
     init_default_modules()
     init_summer_sed_products()
+    init_asadero_products()
     # Run payment check and reminders on startup (in case server was down on the 6th)
     check_and_suspend_unpaid_tenants()
     generate_payment_reminders()

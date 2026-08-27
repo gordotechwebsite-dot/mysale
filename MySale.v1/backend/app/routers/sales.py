@@ -271,6 +271,12 @@ async def create_sale(
                 status_code=400,
                 detail=f"{product.name} esta agotado"
             )
+
+        if product.location_id and product.location_id != shift.location_id and not sale_data.client_uuid:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{product.name} no pertenece a la carta de esta sede"
+            )
         
         item_subtotal = product.sale_price * item_data.quantity
         item_discount = item_data.discount

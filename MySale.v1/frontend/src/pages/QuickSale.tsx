@@ -218,7 +218,8 @@ const QuickSale: React.FC = () => {
         const weightedProduct: Product = {
           id: result.product_id, code: result.product_code || '', barcode,
           name: `${result.product_name} (${result.weight_kg?.toFixed(3)} kg)`,
-          description: null, subfamily_id: 0, unit: 'kg', sale_price: result.total_price,
+          description: null, subfamily_id: 0, location_id: selectedLocation, location_name: null,
+          unit: 'kg', sale_price: result.total_price,
           weighted_cost: 0, min_stock: 0, max_stock: 0, is_active: true, is_sold_out: false, is_weighted: true,
           price_per_kg: result.price_per_kg || 0, plu_code: result.plu_code || null, created_at: ''
         };

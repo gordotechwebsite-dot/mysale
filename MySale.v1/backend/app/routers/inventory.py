@@ -26,6 +26,49 @@ router = APIRouter(prefix="/api/inventory", tags=["Inventario"])
 IMAGE_UPLOAD_DIR = "/data/uploads/images"
 
 
+def _serialize_product(
+    db: Session,
+    product: Product,
+    stocks: List[ProductStockResponse],
+    modifiers: List[ModifierResponse]
+) -> ProductResponse:
+    location_name = None
+    if product.location_id:
+        location = db.query(Location).filter(Location.id == product.location_id).first()
+        location_name = location.name if location else None
+    return ProductResponse(
+        id=product.id,
+        code=product.code,
+        barcode=product.barcode,
+        name=product.name,
+        description=product.description,
+        subfamily_id=product.subfamily_id,
+        location_id=product.location_id,
+        location_name=location_name,
+        unit=product.unit,
+        sale_price=product.sale_price,
+        weighted_cost=product.weighted_cost,
+        min_stock=product.min_stock,
+        max_stock=product.max_stock,
+        is_active=product.is_active,
+        is_sold_out=bool(product.is_sold_out),
+        created_at=product.created_at,
+        stocks=stocks,
+        modifiers=modifiers
+    )
+
+
+def _validate_product_location(db: Session, location_id: Optional[int], current_user: User) -> None:
+    """La sede de un producto debe pertenecer al tenant del usuario."""
+    if not location_id:
+        return
+    location = db.query(Location).filter(Location.id == location_id).first()
+    if not location:
+        raise HTTPException(status_code=404, detail="Sede no encontrada")
+    if current_user.tenant_id and location.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="La sede no pertenece a este cliente")
+
+
 @router.post("/upload-image")
 async def upload_image(
     file: UploadFile = File(...),
@@ -218,6 +261,10 @@ async def get_products(
     if subfamily_id:
         query = query.filter(Product.subfamily_id == subfamily_id)
     
+    if location_id:
+        # Carta por sede: los productos sin sede se venden en todas
+        query = query.filter((Product.location_id == location_id) | (Product.location_id == None))
+    
     if search:
         query = query.filter(
             (Product.name.ilike(f"%{search}%")) |
@@ -254,24 +301,7 @@ async def get_products(
                 ))
         
         mods = [ModifierResponse(id=m.id, name=m.name, price_adjustment=m.price_adjustment, is_active=m.is_active, display_order=m.display_order) for m in (product.modifiers or []) if m.is_active]
-        result.append(ProductResponse(
-            id=product.id,
-            code=product.code,
-            barcode=product.barcode,
-            name=product.name,
-            description=product.description,
-            subfamily_id=product.subfamily_id,
-            unit=product.unit,
-            sale_price=product.sale_price,
-            weighted_cost=product.weighted_cost,
-            min_stock=product.min_stock,
-            max_stock=product.max_stock,
-            is_active=product.is_active,
-            is_sold_out=bool(product.is_sold_out),
-            created_at=product.created_at,
-            stocks=stocks,
-            modifiers=mods
-        ))
+        result.append(_serialize_product(db, product, stocks, mods))
     
     return result
 
@@ -296,12 +326,19 @@ async def create_product(
     if not subfamily:
         raise HTTPException(status_code=404, detail="Subfamilia no encontrada")
     
-    db_product = Product(**product.model_dump())
+    _validate_product_location(db, product.location_id, current_user)
+    
+    db_product = Product(**product.model_dump(), tenant_id=current_user.tenant_id)
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
     
-    locations = db.query(Location).all()
+    stock_query = db.query(Location)
+    if db_product.location_id:
+        stock_query = stock_query.filter(Location.id == db_product.location_id)
+    elif current_user.tenant_id:
+        stock_query = stock_query.filter(Location.tenant_id == current_user.tenant_id)
+    locations = stock_query.all()
     for location in locations:
         stock = ProductStock(
             product_id=db_product.id,
@@ -311,24 +348,7 @@ async def create_product(
         db.add(stock)
     db.commit()
     
-    return ProductResponse(
-        id=db_product.id,
-        code=db_product.code,
-        barcode=db_product.barcode,
-        name=db_product.name,
-        description=db_product.description,
-        subfamily_id=db_product.subfamily_id,
-        unit=db_product.unit,
-        sale_price=db_product.sale_price,
-        weighted_cost=db_product.weighted_cost,
-        min_stock=db_product.min_stock,
-        max_stock=db_product.max_stock,
-        is_active=db_product.is_active,
-        is_sold_out=bool(db_product.is_sold_out),
-        created_at=db_product.created_at,
-        stocks=[],
-        modifiers=[]
-    )
+    return _serialize_product(db, db_product, [], [])
 
 
 @router.get("/products/{product_id}", response_model=ProductResponse)
@@ -352,24 +372,7 @@ async def get_product(
         ))
     
     mods = [ModifierResponse(id=m.id, name=m.name, price_adjustment=m.price_adjustment, is_active=m.is_active, display_order=m.display_order) for m in (product.modifiers or [])]
-    return ProductResponse(
-        id=product.id,
-        code=product.code,
-        barcode=product.barcode,
-        name=product.name,
-        description=product.description,
-        subfamily_id=product.subfamily_id,
-        unit=product.unit,
-        sale_price=product.sale_price,
-        weighted_cost=product.weighted_cost,
-        min_stock=product.min_stock,
-        max_stock=product.max_stock,
-        is_active=product.is_active,
-        is_sold_out=bool(product.is_sold_out),
-        created_at=product.created_at,
-        stocks=stocks,
-        modifiers=mods
-    )
+    return _serialize_product(db, product, stocks, mods)
 
 
 @router.put("/products/{product_id}", response_model=ProductResponse)
@@ -393,29 +396,25 @@ async def update_product(
                 detail="Solo el superusuario puede modificar los umbrales de stock"
             )
     
+    if "location_id" in update_data:
+        _validate_product_location(db, update_data["location_id"], current_user)
+    
     for field, value in update_data.items():
         setattr(product, field, value)
     
     db.commit()
     db.refresh(product)
     
-    return ProductResponse(
-        id=product.id,
-        code=product.code,
-        barcode=product.barcode,
-        name=product.name,
-        description=product.description,
-        subfamily_id=product.subfamily_id,
-        unit=product.unit,
-        sale_price=product.sale_price,
-        weighted_cost=product.weighted_cost,
-        min_stock=product.min_stock,
-        max_stock=product.max_stock,
-        is_active=product.is_active,
-        is_sold_out=bool(product.is_sold_out),
-        created_at=product.created_at,
-        stocks=[]
-    )
+    if product.location_id:
+        existing_stock = db.query(ProductStock).filter(
+            ProductStock.product_id == product.id,
+            ProductStock.location_id == product.location_id
+        ).first()
+        if not existing_stock:
+            db.add(ProductStock(product_id=product.id, location_id=product.location_id, quantity=0))
+            db.commit()
+    
+    return _serialize_product(db, product, [], [])
 
 
 @router.delete("/products/{product_id}")

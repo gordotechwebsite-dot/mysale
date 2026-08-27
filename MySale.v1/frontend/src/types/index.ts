@@ -98,6 +98,8 @@ export interface Product {
   name: string;
   description: string | null;
   subfamily_id: number;
+  location_id: number | null;
+  location_name: string | null;
   unit: string;
   sale_price: number;
   weighted_cost: number;
