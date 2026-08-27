@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, date
 from app.timezone import now_colombia
 import logging
 
@@ -504,6 +504,44 @@ async def create_ticket(
     db.refresh(ticket)
     
     return get_ticket_response(ticket, db)
+
+
+@router.get("/tickets/list", response_model=List[TicketResponse])
+async def list_tickets(
+    state: str = "open",
+    day: Optional[date] = None,
+    location_id: Optional[int] = None,
+    limit: int = 200,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Lista cuentas abiertas (state=open) o cerradas de un dia (state=closed)."""
+    if state not in ("open", "closed"):
+        raise HTTPException(status_code=400, detail="state debe ser 'open' o 'closed'")
+
+    query = db.query(Ticket)
+
+    if current_user.tenant_id:
+        query = query.filter(Ticket.tenant_id == current_user.tenant_id)
+
+    if location_id:
+        query = query.filter(Ticket.location_id == location_id)
+
+    if state == "open":
+        query = query.filter(Ticket.status.in_(["open", "to_pay"]))
+        query = query.order_by(Ticket.opened_at.asc())
+    else:
+        target_day = day or now_colombia().date()
+        query = query.filter(
+            Ticket.status == "paid",
+            Ticket.closed_at >= datetime.combine(target_day, datetime.min.time()),
+            Ticket.closed_at <= datetime.combine(target_day, datetime.max.time())
+        )
+        query = query.order_by(Ticket.closed_at.desc())
+
+    tickets = query.limit(limit).all()
+
+    return [get_ticket_response(ticket, db) for ticket in tickets]
 
 
 @router.get("/tickets/{ticket_id}", response_model=TicketResponse)

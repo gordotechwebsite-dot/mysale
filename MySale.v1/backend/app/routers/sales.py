@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
@@ -7,7 +8,7 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.models.user import User, RoleType
 from app.models.shift import Shift, ShiftStatus
-from app.models.sale import Sale, SaleItem, PaymentMethod
+from app.models.sale import Sale, SaleItem, PaymentMethod, SaleType
 from app.models.inventory import Product
 from app.models.location import Location
 from app.schemas.sale import SaleCreate, SaleResponse, SaleItemResponse
@@ -74,6 +75,7 @@ def _serialize_sale(db: Session, sale: Sale) -> SaleResponse:
 async def get_sales(
     location_id: Optional[int] = None,
     cashier_id: Optional[int] = None,
+    sale_type: Optional[str] = None,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
     skip: int = 0,
@@ -94,6 +96,14 @@ async def get_sales(
         query = query.filter(Sale.location_id == location_id)
     if cashier_id:
         query = query.filter(Sale.cashier_id == cashier_id)
+    if sale_type == SaleType.REGULAR.value:
+        # Las ventas antiguas quedaron sin tipo, cuentan como venta directa
+        query = query.filter(or_(Sale.sale_type == SaleType.REGULAR, Sale.sale_type.is_(None)))
+    elif sale_type:
+        try:
+            query = query.filter(Sale.sale_type == SaleType(sale_type))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="sale_type invalido")
     if start_date:
         query = query.filter(Sale.created_at >= datetime.combine(start_date, datetime.min.time()))
     if end_date:
