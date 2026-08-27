@@ -88,6 +88,16 @@ def run_migrations():
                 db.commit()
                 print("Migration: Added is_sold_out column to products table")
         
+        # Las mesas creadas sin tenant quedaban invisibles: se toma el tenant de su zona
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='tables'"))
+        if result.fetchone():
+            db.execute(text(
+                "UPDATE tables SET tenant_id = ("
+                "SELECT zones.tenant_id FROM zones WHERE zones.id = tables.zone_id"
+                ") WHERE tenant_id IS NULL"
+            ))
+            db.commit()
+
         # Check if users table needs new columns
         result = db.execute(text("PRAGMA table_info(users)"))
         user_columns = [row[1] for row in result.fetchall()]

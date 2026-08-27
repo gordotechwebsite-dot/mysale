@@ -298,7 +298,14 @@ async def create_table(
     valid_shapes = ["square", "pair", "round", "rectangle"]
     shape = data.shape if data.shape and data.shape in valid_shapes else "square"
     
+    zone = db.query(Zone).filter(Zone.id == data.zone_id).first()
+    if not zone:
+        raise HTTPException(status_code=404, detail="Zona no encontrada")
+    if current_user.tenant_id and zone.tenant_id and zone.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="No tienes acceso a esta zona")
+
     table = Table(
+        tenant_id=zone.tenant_id or current_user.tenant_id,
         name=data.name,
         zone_id=data.zone_id,
         capacity=data.capacity or 4,
