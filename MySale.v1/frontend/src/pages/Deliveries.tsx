@@ -93,7 +93,8 @@ const Deliveries: React.FC = () => {
   const searchRef = useRef<HTMLInputElement>(null);
   const paymentInputRef = useRef<HTMLInputElement>(null);
 
-  const sessionLocationId = currentShift?.location_id || user?.location_id || null;
+  const fixedLocationId = user?.location_id && user.location_id > 0 ? user.location_id : null;
+  const sessionLocationId = currentShift?.location_id || fixedLocationId;
 
   const [products, setProducts] = useState<Product[]>([]);
   const [families, setFamilies] = useState<Family[]>([]);

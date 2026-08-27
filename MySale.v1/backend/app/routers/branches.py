@@ -15,6 +15,7 @@ from app.schemas.branch import (
     BranchOption
 )
 from app.utils.auth import get_current_user, require_role, verify_pin
+from app.utils.branch_location import get_fixed_branch_for_user, sync_branches_from_locations
 
 router = APIRouter(prefix="/api/branches", tags=["Sedes"])
 
@@ -623,20 +624,12 @@ async def clock_with_pin(
     else:
         # Clock in - requires branch_id
         if not request.branch_id:
-            # Check if user has a default branch assigned
-            branch = None
-            if authenticated_user.default_branch_id and authenticated_user.default_branch_id > 0:
-                branch = db.query(Branch).filter(
-                    Branch.id == authenticated_user.default_branch_id,
-                    Branch.is_active == True
-                ).first()
+            # Fixed branch, either assigned directly or through the assigned location
+            branch = get_fixed_branch_for_user(db, authenticated_user)
             
             if not branch:
                 # User is rotative (no fixed branch) - get all available branches for tenant
-                available_branches = db.query(Branch).filter(
-                    Branch.tenant_id == authenticated_user.tenant_id,
-                    Branch.is_active == True
-                ).all()
+                available_branches = sync_branches_from_locations(db, authenticated_user.tenant_id)
                 
                 if not available_branches:
                     raise HTTPException(

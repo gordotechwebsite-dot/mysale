@@ -156,7 +156,7 @@ const QuickSale: React.FC = () => {
       setSubfamilies(subfamiliesData);
       setLocations(locs);
       const posLocations = locs.filter(l => l.location_type === 'pos');
-      if (user?.location_id) {
+      if (user?.location_id && user.location_id > 0) {
         setSelectedLocation(user.location_id);
       } else if (posLocations.length > 0) {
         setSelectedLocation(posLocations[0].id);
