@@ -63,6 +63,7 @@ const Inventory: React.FC = () => {
   const [selectedGroup, setSelectedGroup] = useState<string>('');
   const [selectedFamily, setSelectedFamily] = useState<string>('');
   const [selectedSubFamily, setSelectedSubFamily] = useState<string>('');
+  const [productLocation, setProductLocation] = useState<string>('');
   const [productPage, setProductPage] = useState(1);
   const productsPerPage = 20;
 
@@ -74,14 +75,14 @@ const Inventory: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showEditProduct, setShowEditProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [editProductData, setEditProductData] = useState({ name: '', sale_price: '', code: '', barcode: '', min_stock: '', max_stock: '' });
+  const [editProductData, setEditProductData] = useState({ name: '', sale_price: '', code: '', barcode: '', min_stock: '', max_stock: '', location_id: '' });
 
   const [newGroup, setNewGroup] = useState({ name: '', description: '' });
   const [newFamily, setNewFamily] = useState({ name: '', group_id: '', description: '' });
   const [newSubFamily, setNewSubFamily] = useState({ name: '', family_id: '', description: '' });
   const [newProduct, setNewProduct] = useState({
     code: '', barcode: '', name: '', description: '',
-    subfamily_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100'
+    subfamily_id: '', location_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100'
   });
   const [purchase, setPurchase] = useState({
     product_id: 0, location_id: '', quantity: '', unit_cost: ''
@@ -130,7 +131,7 @@ const Inventory: React.FC = () => {
 
   useEffect(() => {
     loadProducts();
-  }, [selectedSubFamily, searchTerm]);
+  }, [selectedSubFamily, searchTerm, productLocation]);
 
   const loadData = async () => {
     try {
@@ -164,6 +165,7 @@ const Inventory: React.FC = () => {
       const params: any = {};
       if (selectedSubFamily) params.subfamily_id = parseInt(selectedSubFamily);
       if (searchTerm) params.search = searchTerm;
+      if (productLocation) params.location_id = parseInt(productLocation);
       const data = await getProducts(params);
       setProducts(data);
       setProductPage(1);
@@ -221,6 +223,7 @@ const Inventory: React.FC = () => {
       await createProduct({
         ...newProduct,
         subfamily_id: parseInt(newProduct.subfamily_id),
+        location_id: newProduct.location_id ? parseInt(newProduct.location_id) : undefined,
         sale_price: parseFloat(newProduct.sale_price),
         min_stock: parseInt(newProduct.min_stock),
         max_stock: parseInt(newProduct.max_stock)
@@ -229,7 +232,7 @@ const Inventory: React.FC = () => {
       setShowAddProduct(false);
       setNewProduct({
         code: '', barcode: '', name: '', description: '',
-        subfamily_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100'
+        subfamily_id: '', location_id: '', unit: 'unidad', sale_price: '', min_stock: '0', max_stock: '100'
       });
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Error al crear producto');
@@ -272,7 +275,8 @@ const Inventory: React.FC = () => {
       code: product.code,
       barcode: product.barcode || '',
       min_stock: product.min_stock.toString(),
-      max_stock: product.max_stock.toString()
+      max_stock: product.max_stock.toString(),
+      location_id: product.location_id ? product.location_id.toString() : ''
     });
     setShowEditProduct(true);
   };
@@ -287,7 +291,8 @@ const Inventory: React.FC = () => {
         code: editProductData.code,
         barcode: editProductData.barcode || undefined,
         min_stock: parseInt(editProductData.min_stock),
-        max_stock: parseInt(editProductData.max_stock)
+        max_stock: parseInt(editProductData.max_stock),
+        location_id: editProductData.location_id ? parseInt(editProductData.location_id) : null
       });
       await loadProducts();
       setShowEditProduct(false);
@@ -685,6 +690,17 @@ const Inventory: React.FC = () => {
                                     ))}
                                   </SelectContent>
                                 </Select>
+                                <Select value={productLocation || "all"} onValueChange={(v) => setProductLocation(v === "all" ? "" : v)}>
+                                  <SelectTrigger className="w-full sm:w-40">
+                                    <SelectValue placeholder="Sede" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todas las sedes</SelectItem>
+                                    {locations.map(l => (
+                                      <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
               </div>
 
               {/* Mobile card layout */}
@@ -698,6 +714,7 @@ const Inventory: React.FC = () => {
                           {product.is_sold_out && <Badge variant="destructive" className="ml-2 text-[10px]">AGOTADO</Badge>}
                         </p>
                         <p className="text-xs text-gray-500 font-mono">{product.code}</p>
+                        {product.location_name && <p className="text-xs text-gray-500">{product.location_name}</p>}
                       </div>
                       <p className="text-sm font-bold text-emerald-600">{formatCurrency(product.sale_price)}</p>
                     </div>
@@ -744,6 +761,7 @@ const Inventory: React.FC = () => {
                     <TableRow>
                       <TableHead>Codigo</TableHead>
                       <TableHead>Nombre</TableHead>
+                      <TableHead>Sede</TableHead>
                       <TableHead>Precio Venta</TableHead>
                       <TableHead>Costo Prom.</TableHead>
                       <TableHead>Stock Min/Max</TableHead>
@@ -758,6 +776,7 @@ const Inventory: React.FC = () => {
                           {product.name}
                           {product.is_sold_out && <Badge variant="destructive" className="ml-2 text-[10px]">AGOTADO</Badge>}
                         </TableCell>
+                        <TableCell className="text-sm text-gray-600">{product.location_name || 'Todas'}</TableCell>
                         <TableCell>{formatCurrency(product.sale_price)}</TableCell>
                         <TableCell>{formatCurrency(product.weighted_cost)}</TableCell>
                         <TableCell>{product.min_stock} / {product.max_stock}</TableCell>
@@ -1445,6 +1464,17 @@ const Inventory: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={newProduct.location_id || 'all'} onValueChange={(v) => setNewProduct({ ...newProduct, location_id: v === 'all' ? '' : v })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sede de la carta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las sedes</SelectItem>
+                {locations.map(l => (
+                  <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <div className="grid grid-cols-2 gap-4">
               <Input
                 type="number"
@@ -1558,6 +1588,17 @@ const Inventory: React.FC = () => {
               value={editProductData.sale_price}
               onChange={(e) => setEditProductData({ ...editProductData, sale_price: e.target.value })}
             />
+            <Select value={editProductData.location_id || 'all'} onValueChange={(v) => setEditProductData({ ...editProductData, location_id: v === 'all' ? '' : v })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sede de la carta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las sedes</SelectItem>
+                {locations.map(l => (
+                  <SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <div className="grid grid-cols-2 gap-4">
               <Input
                 type="number"

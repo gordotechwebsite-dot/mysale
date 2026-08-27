@@ -153,6 +153,7 @@ export const createProduct = async (data: {
   name: string;
   description?: string;
   subfamily_id: number;
+  location_id?: number;
   unit?: string;
   sale_price: number;
   min_stock?: number;
