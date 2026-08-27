@@ -59,6 +59,7 @@ import {
   ChevronRight,
   Users,
   Package,
+  ShoppingCart,
   Sun,
   Beef,
   Drumstick,
@@ -130,6 +131,7 @@ export default function TableManagement() {
   const [showViewReservationDialog, setShowViewReservationDialog] = useState(false);
   const [showPeopleDialog, setShowPeopleDialog] = useState(false);
   const [showViewOrderDialog, setShowViewOrderDialog] = useState(false);
+  const [showCartPanel, setShowCartPanel] = useState(false);
   const [reservationName, setReservationName] = useState('');
   const [reservationTime, setReservationTime] = useState('');
   const [reservationPhone, setReservationPhone] = useState('');
@@ -847,6 +849,9 @@ export default function TableManagement() {
   });
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.product.sale_price * item.quantity), 0);
+  const orderItemCount =
+    (currentTicket?.items.reduce((sum, item) => sum + item.quantity, 0) || 0) +
+    cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const addToCartWithQuantity = (product: Product) => {
     if (product.is_sold_out) {
@@ -965,80 +970,6 @@ export default function TableManagement() {
             {/* Items table + Product grid */}
             <div className="flex-1 flex flex-col lg:flex-row gap-2 overflow-hidden min-h-0">
             <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-              {/* Current order items - compact table */}
-              <div className="bg-white rounded-lg mb-2 overflow-auto border border-gray-200 shadow-sm" style={{ maxHeight: '35%' }}>
-                <table className="w-full text-xs lg:text-sm">
-                  <thead className="bg-gray-100 sticky top-0 z-10">
-                    <tr>
-                      <th className="px-3 py-2 text-left font-bold text-gray-700">PRODUCTO</th>
-                      <th className="px-2 py-2 text-center font-bold text-gray-700 w-16">CANT</th>
-                      <th className="hidden lg:table-cell px-2 py-2 text-right font-bold text-gray-700 w-24">PRECIO</th>
-                      <th className="px-2 py-2 text-right font-bold text-gray-700 w-20 lg:w-24">TOTAL</th>
-                      <th className="px-2 py-2 w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {currentTicket.items.map(item => (
-                      <tr key={item.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 text-gray-900">
-                          {item.product_name}
-                          {item.comanda_id && <span className="ml-1 text-xs text-emerald-600">(Enviado)</span>}
-                        </td>
-                        <td className="px-2 py-2 text-center text-gray-700">{item.quantity}</td>
-                        <td className="hidden lg:table-cell px-2 py-2 text-right text-gray-700">${item.unit_price.toLocaleString()}</td>
-                        <td className="px-2 py-2 text-right font-bold text-gray-900">${item.subtotal.toLocaleString()}</td>
-                        <td className="px-2 py-2">
-                          {!item.comanda_id && (
-                            <button onClick={() => handleRemoveItem(item.id)} className="text-red-400 hover:text-red-300">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                    {cart.map(item => (
-                      <tr key={`cart-${item.product.id}`} className="bg-amber-50 hover:bg-amber-100">
-                        <td className="px-3 py-2 text-amber-700">{item.product.name} <span className="text-xs">(nuevo)</span></td>
-                        <td className="px-2 py-2 text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <button onClick={() => updateCartQuantity(item.product.id, -1)} className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center hover:bg-gray-300">
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="w-6 text-center text-gray-900">{item.quantity}</span>
-                            <button onClick={() => updateCartQuantity(item.product.id, 1)} className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center hover:bg-gray-300">
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </td>
-                        <td className="hidden lg:table-cell px-2 py-2 text-right text-amber-700">${item.product.sale_price.toLocaleString()}</td>
-                        <td className="px-2 py-2 text-right font-bold text-amber-700">${(item.product.sale_price * item.quantity).toLocaleString()}</td>
-                        <td className="px-2 py-2">
-                          <button onClick={() => removeFromCart(item.product.id)} className="text-red-400 hover:text-red-300">
-                            <X className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {currentTicket.items.length === 0 && cart.length === 0 && (
-                      <tr>
-                        <td colSpan={4} className="p-4 text-center text-gray-400">
-                          Sin productos en la cuenta
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                  {(currentTicket.items.length > 0 || cart.length > 0) && (
-                    <tfoot className="bg-gray-100">
-                      <tr>
-                        <td colSpan={2} className="px-3 py-2 text-right font-bold text-gray-800">TOTAL:</td>
-                        <td className="px-2 py-2 text-right font-bold text-emerald-600 text-lg">${(currentTicket.total + cartTotal).toLocaleString()}</td>
-                        <td></td>
-                      </tr>
-                    </tfoot>
-                  )}
-                </table>
-              </div>
-
               {/* Product search */}
               <div className="relative mb-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -1058,7 +989,7 @@ export default function TableManagement() {
 
               {/* Product grid - responsive cards */}
               <div className="flex-1 overflow-auto bg-white rounded-lg p-2 border border-gray-200 shadow-sm">
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 pb-20">
                   {filteredProducts
                     .filter(p => !selectedFamily || subFamilies.some(sf => sf.family_id === selectedFamily && sf.id === p.subfamily_id))
                     .map(product => (
@@ -1088,15 +1019,6 @@ export default function TableManagement() {
             {/* Right: Action buttons */}
             <div className="w-full lg:w-48 flex flex-col gap-2 flex-shrink-0">
               <div className="flex-1 grid grid-cols-2 gap-1.5 lg:flex lg:flex-col">
-                {cart.length > 0 && (
-                  <Button
-                    className="bg-amber-500 hover:bg-amber-600 h-10 text-sm"
-                    onClick={handleAddItemsToTicket}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Agregar ({cart.length})
-                  </Button>
-                )}
                 <Button
                   variant="outline"
                   className="h-10 text-sm"
@@ -1140,8 +1062,105 @@ export default function TableManagement() {
               </div>
             </div>
             </div>
+
+            {/* Floating cart button */}
+            <button
+              onClick={() => setShowCartPanel(true)}
+              className="fixed bottom-4 right-4 z-40 flex items-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-2xl shadow-lg"
+            >
+              <ShoppingCart size={20} />
+              {orderItemCount > 0 ? (
+                <>
+                  <span className="text-sm">${(currentTicket.total + cartTotal).toLocaleString()}</span>
+                  <span className="w-6 h-6 flex items-center justify-center text-xs rounded-full bg-white/20">{orderItemCount}</span>
+                </>
+              ) : (
+                <span className="text-sm">Carrito</span>
+              )}
+            </button>
           </div>
         )}
+
+        {/* Cart panel with the order detail */}
+        <Dialog open={showCartPanel} onOpenChange={setShowCartPanel}>
+          <DialogContent className="bg-white text-gray-900 border-gray-200 max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-emerald-600" />
+                Pedido - {selectedTable.name}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="max-h-[55vh] overflow-y-auto divide-y divide-gray-100">
+              {currentTicket?.items.map(item => (
+                <div key={item.id} className="flex items-center gap-2 py-2.5">
+                  <span className="font-bold text-gray-900 w-8 shrink-0">{item.quantity}x</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{item.product_name}</p>
+                    {item.comanda_id && <p className="text-xs text-emerald-600">Enviado a cocina</p>}
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900">${item.subtotal.toLocaleString()}</span>
+                  {!item.comanda_id && (
+                    <button onClick={() => handleRemoveItem(item.id)} className="text-red-400 hover:text-red-600">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              {cart.map(item => (
+                <div key={`cart-${item.product.id}`} className="flex items-center gap-2 py-2.5 bg-amber-50">
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => updateCartQuantity(item.product.id, -1)} className="w-7 h-7 bg-gray-200 rounded flex items-center justify-center hover:bg-gray-300">
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="w-6 text-center text-gray-900">{item.quantity}</span>
+                    <button onClick={() => updateCartQuantity(item.product.id, 1)} className="w-7 h-7 bg-gray-200 rounded flex items-center justify-center hover:bg-gray-300">
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-amber-800">{item.product.name}</p>
+                    <p className="text-xs text-amber-600">Sin agregar</p>
+                  </div>
+                  <span className="text-sm font-semibold text-amber-800">${(item.product.sale_price * item.quantity).toLocaleString()}</span>
+                  <button onClick={() => removeFromCart(item.product.id)} className="text-red-400 hover:text-red-600">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+
+              {orderItemCount === 0 && (
+                <p className="py-10 text-center text-gray-400">Sin productos en la cuenta</p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between border-t border-gray-200 pt-3">
+              <span className="font-semibold text-gray-700">Total</span>
+              <span className="text-xl font-bold text-emerald-600">
+                ${((currentTicket?.total || 0) + cartTotal).toLocaleString()}
+              </span>
+            </div>
+
+            <DialogFooter>
+              {cart.length > 0 && (
+                <Button
+                  className="bg-amber-500 hover:bg-amber-600 w-full"
+                  onClick={async () => {
+                    await handleAddItemsToTicket();
+                    setShowCartPanel(false);
+                  }}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Agregar a la cuenta ({cart.length})
+                </Button>
+              )}
+              <Button variant="outline" className="w-full" onClick={() => setShowCartPanel(false)}>
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
           <DialogContent className="bg-white text-gray-900 border-gray-200" onKeyDown={(e) => {
