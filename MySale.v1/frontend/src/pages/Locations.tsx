@@ -42,6 +42,7 @@ const Locations: React.FC = () => {
     location_type: 'pos' as 'pos' | 'warehouse',
     address: '',
     daily_base_cash: '100000',
+    has_own_menu: false,
     folio_prefix: ''
   });
 
@@ -88,17 +89,29 @@ const Locations: React.FC = () => {
         location_type: newLocation.location_type,
         address: newLocation.address || undefined,
         daily_base_cash: parseFloat(newLocation.daily_base_cash),
+        has_own_menu: newLocation.has_own_menu,
         folio_prefix: newLocation.folio_prefix || undefined
       });
       await loadLocations();
       setShowAddLocation(false);
       setNewLocation({
-        name: '', code: '', location_type: 'pos', address: '', daily_base_cash: '100000', folio_prefix: ''
+        name: '', code: '', location_type: 'pos', address: '', daily_base_cash: '100000',
+        has_own_menu: false, folio_prefix: ''
       });
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Error al crear ubicacion');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleToggleOwnMenu = async (locationId: number, hasOwnMenu: boolean) => {
+    try {
+      await updateLocation(locationId, { has_own_menu: hasOwnMenu });
+      await loadLocations();
+      toast.success(hasOwnMenu ? 'La sede ahora usa carta propia' : 'La sede ahora ve la carta general');
+    } catch {
+      toast.error('Error al cambiar la carta de la sede');
     }
   };
 
@@ -210,9 +223,14 @@ const Locations: React.FC = () => {
                           <h3 className="text-lg font-bold text-gray-800">{location.name}</h3>
                           <p className="text-sm text-gray-500 font-mono">{location.code}</p>
                         </div>
-                        <Badge variant="outline" className="text-xs">
-                          {location.location_type === 'pos' ? 'POS' : 'Almacen'}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge variant="outline" className="text-xs">
+                            {location.location_type === 'pos' ? 'POS' : 'Almacen'}
+                          </Badge>
+                          {location.has_own_menu && (
+                            <Badge className="bg-amber-500 text-white text-xs">Carta propia</Badge>
+                          )}
+                        </div>
                       </div>
                       {location.address && (
                         <p className="text-sm text-gray-500 truncate">{location.address}</p>
@@ -264,7 +282,18 @@ const Locations: React.FC = () => {
                 </div>
 
                 {/* Enlace Ver Rendimiento */}
-                <div className="px-4 pb-3 pt-1 border-t border-gray-100">
+                <div className="px-4 pb-3 pt-1 border-t border-gray-100 space-y-2">
+                  {location.location_type === 'pos' && (
+                    <label className="flex items-center gap-2 text-xs text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={location.has_own_menu}
+                        onChange={(e) => handleToggleOwnMenu(location.id, e.target.checked)}
+                        className="accent-[#00a86b]"
+                      />
+                      Carta propia (solo muestra los productos de esta sede)
+                    </label>
+                  )}
                   <button
                     onClick={() => navigate(`/location/${location.id}`)}
                     className="w-full flex items-center justify-center gap-2 text-sm text-[#00a86b] hover:text-[#008f5b] font-medium py-1.5 rounded-lg hover:bg-green-50 transition-colors"
@@ -319,6 +348,15 @@ const Locations: React.FC = () => {
               value={newLocation.daily_base_cash}
               onChange={(e) => setNewLocation({ ...newLocation, daily_base_cash: e.target.value })}
             />
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={newLocation.has_own_menu}
+                onChange={(e) => setNewLocation({ ...newLocation, has_own_menu: e.target.checked })}
+                className="accent-[#00a86b]"
+              />
+              Carta propia (solo muestra los productos de esta sede)
+            </label>
             <Input
               placeholder="Prefijo de folio (ej: SS, GA)"
               value={newLocation.folio_prefix}

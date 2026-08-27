@@ -13,6 +13,7 @@ from app.models.inventory import Product
 from app.models.location import Location
 from app.schemas.sale import SaleCreate, SaleResponse, SaleItemResponse
 from app.utils.auth import get_current_user, require_role
+from app.utils.menu import product_belongs_to_location
 
 router = APIRouter(prefix="/api/sales", tags=["Ventas"])
 
@@ -272,7 +273,7 @@ async def create_sale(
                 detail=f"{product.name} esta agotado"
             )
 
-        if product.location_id and product.location_id != shift.location_id and not sale_data.client_uuid:
+        if not sale_data.client_uuid and not product_belongs_to_location(db, product.location_id, shift.location_id):
             raise HTTPException(
                 status_code=400,
                 detail=f"{product.name} no pertenece a la carta de esta sede"

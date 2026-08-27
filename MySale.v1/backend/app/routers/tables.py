@@ -25,6 +25,7 @@ from app.schemas.table import (
     SplitTicketRequest, AddItemsRequest
 )
 from app.utils.auth import get_current_user, require_role
+from app.utils.menu import product_belongs_to_location
 
 router = APIRouter(prefix="/api/tables", tags=["tables"])
 
@@ -656,7 +657,7 @@ async def add_items_to_ticket(
                 detail=f"{product.name} esta agotado"
             )
         
-        if product.location_id and ticket.location_id and product.location_id != ticket.location_id:
+        if not product_belongs_to_location(db, product.location_id, ticket.location_id):
             raise HTTPException(
                 status_code=400,
                 detail=f"{product.name} no pertenece a la carta de esta sede"

@@ -45,6 +45,7 @@ export interface Location {
   address: string | null;
   is_active: boolean;
   daily_base_cash: number;
+  has_own_menu: boolean;
   folio_prefix: string | null;
   folio_counter: number;
 }
