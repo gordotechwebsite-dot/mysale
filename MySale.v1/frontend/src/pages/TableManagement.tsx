@@ -1334,6 +1334,31 @@ export default function TableManagement() {
 
       {/* Mobile: lista de mesas */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2 lg:hidden">
+        {isSuperuser && selectedZone && (
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingTable(null);
+                setTableName('');
+                setTableCapacity(4);
+                setTableShape('square');
+                setShowTableDialog(true);
+              }}
+              className="flex-1 bg-gray-900 hover:bg-gray-800 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Nueva Mesa
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => handleDeleteZone(selectedZone)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
         {currentZone && currentZone.tables.length > 0 ? (
           currentZone.tables.map(table => {
             const overlay = statusOverlay[table.status] || statusOverlay.free;
