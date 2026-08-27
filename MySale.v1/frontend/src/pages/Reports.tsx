@@ -5,6 +5,7 @@ import { getSalesReport, getInventoryReport, exportSalesExcel, exportInventoryEx
 import type { Delivery, CashClose } from '../types';
 import type { Location } from '../types';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -104,6 +105,8 @@ const Reports: React.FC = () => {
   const [purchasesReport, setPurchasesReport] = useState<any>(null);
   const [deliveriesData, setDeliveriesData] = useState<Delivery[]>([]);
   const [deliveryStatusFilter, setDeliveryStatusFilter] = useState<string>('all');
+  const { user } = useAuth();
+  const isOwner = user?.role?.role_type === 'superuser';
   const [cashCloses, setCashCloses] = useState<CashClose[]>([]);
   const [showCashCloseForm, setShowCashCloseForm] = useState(false);
   const [cashCloseForm, setCashCloseForm] = useState({
@@ -1764,10 +1767,12 @@ const Reports: React.FC = () => {
                 onGenerate={loadCashCloses}
                 extraButtons={
                   <>
-                    <Button variant="outline" onClick={() => setShowCashCloseForm(!showCashCloseForm)}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Nuevo Cierre
-                    </Button>
+                    {!isOwner && (
+                      <Button variant="outline" onClick={() => setShowCashCloseForm(!showCashCloseForm)}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Nuevo Cierre
+                      </Button>
+                    )}
                     <Button variant="outline" onClick={handleExportCashClosesExcel} disabled={cashCloses.length === 0}>
                       <Download className="w-4 h-4 mr-2" />
                       Exportar Excel
@@ -1780,7 +1785,7 @@ const Reports: React.FC = () => {
                 }
               />
 
-              {showCashCloseForm && (
+              {showCashCloseForm && !isOwner && (
                 <Card className="mb-6 border-2 border-blue-200">
                   <CardContent className="pt-4">
                     <h3 className="font-semibold mb-3">Registrar Cierre de Caja</h3>
@@ -1923,9 +1928,11 @@ const Reports: React.FC = () => {
                             </TableCell>
                             <TableCell className="text-xs text-gray-500 max-w-[150px] truncate">{c.notes || '-'}</TableCell>
                             <TableCell>
-                              <Button variant="ghost" size="sm" onClick={() => handleDeleteCashClose(c.id)}>
-                                <Trash2 className="w-4 h-4 text-red-400" />
-                              </Button>
+                              {!isOwner && (
+                                <Button variant="ghost" size="sm" onClick={() => handleDeleteCashClose(c.id)}>
+                                  <Trash2 className="w-4 h-4 text-red-400" />
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}

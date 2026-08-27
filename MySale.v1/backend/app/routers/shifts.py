@@ -13,6 +13,14 @@ from app.utils.auth import get_current_user, require_role
 router = APIRouter(prefix="/api/shifts", tags=["Turnos"])
 
 
+def _deny_superuser_cash_ops(current_user: User) -> None:
+    if current_user.role.role_type == RoleType.SUPERUSER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El perfil de dueño no puede abrir ni cerrar caja"
+        )
+
+
 def _get_tenant_location_ids(db: Session, current_user: User) -> list:
     if not current_user.tenant_id:
         return []
@@ -111,6 +119,8 @@ async def open_shift(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    _deny_superuser_cash_ops(current_user)
+
     existing_shift = db.query(Shift).filter(
         Shift.user_id == current_user.id,
         Shift.status == ShiftStatus.OPEN
@@ -164,6 +174,8 @@ async def close_shift(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    _deny_superuser_cash_ops(current_user)
+
     shift = db.query(Shift).filter(
         Shift.user_id == current_user.id,
         Shift.status == ShiftStatus.OPEN
@@ -208,7 +220,7 @@ async def close_shift_by_admin(
     shift_id: int,
     shift_close: ShiftClose,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(RoleType.SUPERUSER))
+    current_user: User = Depends(require_role(RoleType.ADMIN))
 ):
     shift = db.query(Shift).filter(Shift.id == shift_id).first()
     
