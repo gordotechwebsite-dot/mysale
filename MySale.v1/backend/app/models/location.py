@@ -23,6 +23,7 @@ class Location(Base):
     image_url = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
     daily_base_cash = Column(Integer, default=100000)
+    has_own_menu = Column(Boolean, default=False, nullable=False)
     folio_prefix = Column(String(10), nullable=True)
     folio_counter = Column(Integer, default=0)
     created_at = Column(DateTime, default=now_colombia)

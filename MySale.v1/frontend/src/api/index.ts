@@ -79,6 +79,7 @@ export const createLocation = async (data: {
   location_type: 'pos' | 'warehouse';
   address?: string;
   daily_base_cash?: number;
+  has_own_menu?: boolean;
   folio_prefix?: string;
 }): Promise<Location> => {
   const response = await api.post('/api/locations/', data);
@@ -541,6 +542,7 @@ export interface LocationDashboard {
   address: string | null;
   image_url: string | null;
   is_active: boolean;
+  has_own_menu: boolean;
   today_sales: number;
   today_transactions: number;
   active_workers: {
@@ -614,6 +616,7 @@ export const updateLocation = async (id: number, data: {
   image_url?: string;
   is_active?: boolean;
   daily_base_cash?: number;
+  has_own_menu?: boolean;
   folio_prefix?: string;
 }): Promise<Location> => {
   const response = await api.put(`/api/locations/${id}`, data);
