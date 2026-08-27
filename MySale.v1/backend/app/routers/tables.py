@@ -589,6 +589,12 @@ async def add_items_to_ticket(
         if not product:
             continue
         
+        if product.is_sold_out:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{product.name} esta agotado"
+            )
+        
         subtotal = item_data.quantity * item_data.unit_price - (item_data.discount or 0)
         
         item = TicketItem(

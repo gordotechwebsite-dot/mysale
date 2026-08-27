@@ -51,6 +51,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 const Inventory: React.FC = () => {
   const { user } = useAuth();
   const isSuperuser = user?.role?.role_type === 'superuser';
+  const canMarkSoldOut = isSuperuser || user?.role?.role_type === 'admin';
   const [groups, setGroups] = useState<Group[]>([]);
   const [families, setFamilies] = useState<Family[]>([]);
   const [subFamilies, setSubFamilies] = useState<SubFamily[]>([]);
@@ -295,6 +296,16 @@ const Inventory: React.FC = () => {
       toast.error(error.response?.data?.detail || 'Error al editar producto');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleToggleSoldOut = async (product: Product) => {
+    try {
+      await updateProduct(product.id, { is_sold_out: !product.is_sold_out });
+      await loadProducts();
+      toast.success(product.is_sold_out ? `${product.name} disponible` : `${product.name} marcado como agotado`);
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'Error al cambiar la disponibilidad');
     }
   };
 
@@ -682,7 +693,10 @@ const Inventory: React.FC = () => {
                   <div key={product.id} className="border rounded-lg p-3 space-y-2">
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="font-medium text-sm">{product.name}</p>
+                        <p className="font-medium text-sm">
+                          {product.name}
+                          {product.is_sold_out && <Badge variant="destructive" className="ml-2 text-[10px]">AGOTADO</Badge>}
+                        </p>
                         <p className="text-xs text-gray-500 font-mono">{product.code}</p>
                       </div>
                       <p className="text-sm font-bold text-emerald-600">{formatCurrency(product.sale_price)}</p>
@@ -695,6 +709,16 @@ const Inventory: React.FC = () => {
                       <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => openPurchaseDialog(product)}>
                         <ShoppingBag className="w-3 h-3 mr-1" /> Compra
                       </Button>
+                      {canMarkSoldOut && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={`h-8 text-xs ${product.is_sold_out ? 'text-emerald-600 hover:bg-emerald-50' : 'text-red-600 hover:bg-red-50'}`}
+                          onClick={() => handleToggleSoldOut(product)}
+                        >
+                          {product.is_sold_out ? 'Disponible' : 'Agotado'}
+                        </Button>
+                      )}
                       {isSuperuser && (
                         <>
                           <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => openModifiers(product)}>
@@ -730,7 +754,10 @@ const Inventory: React.FC = () => {
                     {products.slice((productPage - 1) * productsPerPage, productPage * productsPerPage).map((product) => (
                       <TableRow key={product.id}>
                         <TableCell className="font-mono">{product.code}</TableCell>
-                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell className="font-medium">
+                          {product.name}
+                          {product.is_sold_out && <Badge variant="destructive" className="ml-2 text-[10px]">AGOTADO</Badge>}
+                        </TableCell>
                         <TableCell>{formatCurrency(product.sale_price)}</TableCell>
                         <TableCell>{formatCurrency(product.weighted_cost)}</TableCell>
                         <TableCell>{product.min_stock} / {product.max_stock}</TableCell>
@@ -744,6 +771,17 @@ const Inventory: React.FC = () => {
                               <ShoppingBag className="w-4 h-4 mr-1" />
                               Compra
                             </Button>
+                            {canMarkSoldOut && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className={product.is_sold_out ? 'text-emerald-600 hover:bg-emerald-50' : 'text-red-600 hover:bg-red-50'}
+                                onClick={() => handleToggleSoldOut(product)}
+                                title={product.is_sold_out ? 'Marcar como disponible' : 'Marcar como agotado'}
+                              >
+                                {product.is_sold_out ? 'Disponible' : 'Agotado'}
+                              </Button>
+                            )}
                             {isSuperuser && (
                               <>
                                 <Button

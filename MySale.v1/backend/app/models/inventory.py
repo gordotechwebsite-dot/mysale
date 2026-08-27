@@ -66,6 +66,7 @@ class Product(Base):
     min_stock = Column(Integer, default=0)
     max_stock = Column(Integer, default=1000)
     is_active = Column(Boolean, default=True)
+    is_sold_out = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=now_colombia)
     updated_at = Column(DateTime, default=now_colombia, onupdate=now_colombia)
 

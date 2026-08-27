@@ -267,6 +267,7 @@ async def get_products(
             min_stock=product.min_stock,
             max_stock=product.max_stock,
             is_active=product.is_active,
+            is_sold_out=bool(product.is_sold_out),
             created_at=product.created_at,
             stocks=stocks,
             modifiers=mods
@@ -323,6 +324,7 @@ async def create_product(
         min_stock=db_product.min_stock,
         max_stock=db_product.max_stock,
         is_active=db_product.is_active,
+        is_sold_out=bool(db_product.is_sold_out),
         created_at=db_product.created_at,
         stocks=[],
         modifiers=[]
@@ -363,6 +365,7 @@ async def get_product(
         min_stock=product.min_stock,
         max_stock=product.max_stock,
         is_active=product.is_active,
+        is_sold_out=bool(product.is_sold_out),
         created_at=product.created_at,
         stocks=stocks,
         modifiers=mods
@@ -409,6 +412,7 @@ async def update_product(
         min_stock=product.min_stock,
         max_stock=product.max_stock,
         is_active=product.is_active,
+        is_sold_out=bool(product.is_sold_out),
         created_at=product.created_at,
         stocks=[]
     )

@@ -255,6 +255,13 @@ async def create_sale(
                 detail=f"Producto {item_data.product_id} no encontrado"
             )
         
+        # Las ventas offline ya ocurrieron fisicamente: no se rechazan al sincronizar
+        if product.is_sold_out and not sale_data.client_uuid:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{product.name} esta agotado"
+            )
+        
         item_subtotal = product.sale_price * item_data.quantity
         item_discount = item_data.discount
         
