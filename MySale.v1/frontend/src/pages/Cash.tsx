@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useShift } from '../context/ShiftContext';
+import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,8 @@ interface CashCount {
 
 const Cash: React.FC = () => {
     const { currentShift } = useShift();
+    const { user } = useAuth();
+    const isOwner = user?.role?.role_type === 'superuser';
     const [cashCounts, setCashCounts] = useState<CashCount[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showCountDialog, setShowCountDialog] = useState(false);
@@ -153,14 +156,16 @@ const Cash: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">Caja - Arqueos y Cortes</h1>
-        <Button
-          onClick={() => setShowCountDialog(true)}
-          disabled={!currentShift}
-          className="bg-emerald-600 hover:bg-emerald-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nuevo Arqueo
-        </Button>
+        {!isOwner && (
+          <Button
+            onClick={() => setShowCountDialog(true)}
+            disabled={!currentShift}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nuevo Arqueo
+          </Button>
+        )}
       </div>
 
       {!currentShift && (

@@ -58,6 +58,7 @@ const Dashboard: React.FC = () => {
   const [cashCount, setCashCount] = useState<Record<number, number>>({});
 
   const isAdmin = user?.role?.role_type === 'superuser' || user?.role?.role_type === 'admin';
+  const isOwner = user?.role?.role_type === 'superuser';
 
   useEffect(() => {
     loadData();
@@ -147,7 +148,7 @@ const Dashboard: React.FC = () => {
           <p className="text-sm mt-1" style={{ color: '#9ca3af' }}>Resumen de hoy</p>
         </div>
         <div className="flex gap-3">
-          {currentShift ? (
+          {isOwner ? null : currentShift ? (
             <>
               <button
                 onClick={() => navigate('/pos')}
