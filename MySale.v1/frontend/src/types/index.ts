@@ -104,6 +104,7 @@ export interface Product {
   min_stock: number;
   max_stock: number;
   is_active: boolean;
+  is_sold_out: boolean;
   is_weighted: boolean;
   price_per_kg: number | null;
   plu_code: string | null;

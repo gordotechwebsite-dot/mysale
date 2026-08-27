@@ -179,6 +179,10 @@ const POS: React.FC = () => {
   };
 
   const handleProductClick = (product: Product) => {
+    if (product.is_sold_out) {
+      toast.error(`${product.name} esta agotado`);
+      return;
+    }
     if (product.modifiers && product.modifiers.length > 0) {
       setModifierProduct(product);
       setSelectedModifiers([]);
@@ -494,13 +498,16 @@ const POS: React.FC = () => {
                 <button
                   key={product.id}
                   onClick={() => handleProductClick(product)}
-                  className="bg-white p-2.5 lg:p-4 text-left transition-all duration-200 active:scale-95"
+                  disabled={product.is_sold_out}
+                  className="bg-white p-2.5 lg:p-4 text-left transition-all duration-200 active:scale-95 disabled:cursor-not-allowed"
                   style={{ 
                     borderRadius: '10px',
                     border: '1px solid #e5e7eb',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    opacity: product.is_sold_out ? 0.5 : 1
                   }}
                   onMouseEnter={(e) => {
+                    if (product.is_sold_out) return;
                     (e.currentTarget as HTMLElement).style.borderColor = '#00a86b';
                     (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(0, 168, 107, 0.15)';
                   }}
@@ -511,9 +518,13 @@ const POS: React.FC = () => {
                 >
                   <p className="font-semibold text-xs lg:text-sm truncate" style={{ color: '#111827' }}>{product.name}</p>
                   <p className="text-[10px] lg:text-xs" style={{ color: '#6b7280' }}>{product.code}</p>
-                  <p className="text-sm lg:text-lg font-bold mt-1 lg:mt-2" style={{ color: '#00a86b' }}>
-                    {formatCurrency(product.sale_price)}
-                  </p>
+                  {product.is_sold_out ? (
+                    <p className="text-xs lg:text-sm font-bold mt-1 lg:mt-2" style={{ color: '#ef4444' }}>AGOTADO</p>
+                  ) : (
+                    <p className="text-sm lg:text-lg font-bold mt-1 lg:mt-2" style={{ color: '#00a86b' }}>
+                      {formatCurrency(product.sale_price)}
+                    </p>
+                  )}
                 </button>
               ))}
             </div>

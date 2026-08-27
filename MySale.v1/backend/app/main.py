@@ -60,6 +60,11 @@ def run_migrations():
                 db.execute(text("ALTER TABLE products ADD COLUMN image_url VARCHAR(500)"))
                 db.commit()
                 print("Migration: Added image_url column to products table")
+            
+            if 'is_sold_out' not in product_columns:
+                db.execute(text("ALTER TABLE products ADD COLUMN is_sold_out BOOLEAN DEFAULT 0 NOT NULL"))
+                db.commit()
+                print("Migration: Added is_sold_out column to products table")
         
         # Check if users table needs new columns
         result = db.execute(text("PRAGMA table_info(users)"))

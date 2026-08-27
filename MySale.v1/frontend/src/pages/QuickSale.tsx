@@ -187,6 +187,10 @@ const QuickSale: React.FC = () => {
   };
 
   const handleProductClick = (product: Product) => {
+    if (product.is_sold_out) {
+      toast.error(`${product.name} esta agotado`);
+      return;
+    }
     if (product.modifiers && product.modifiers.length > 0) {
       setModifierProduct(product);
       setSelectedModifiers([]);
@@ -215,7 +219,7 @@ const QuickSale: React.FC = () => {
           id: result.product_id, code: result.product_code || '', barcode,
           name: `${result.product_name} (${result.weight_kg?.toFixed(3)} kg)`,
           description: null, subfamily_id: 0, unit: 'kg', sale_price: result.total_price,
-          weighted_cost: 0, min_stock: 0, max_stock: 0, is_active: true, is_weighted: true,
+          weighted_cost: 0, min_stock: 0, max_stock: 0, is_active: true, is_sold_out: false, is_weighted: true,
           price_per_kg: result.price_per_kg || 0, plu_code: result.plu_code || null, created_at: ''
         };
         addItem(weightedProduct);
@@ -505,14 +509,19 @@ const QuickSale: React.FC = () => {
                 <button
                   key={product.id}
                   onClick={() => handleProductClick(product)}
-                  className="bg-white flex flex-col items-center p-3 active:scale-[0.97] transition-transform"
+                  disabled={product.is_sold_out}
+                  className="bg-white flex flex-col items-center p-3 active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ borderRadius: '12px', border: '1.5px solid #e5e7eb' }}
                 >
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-1.5" style={{ backgroundColor: '#fff7ed' }}>
                     <Package className="w-4 h-4 text-orange-400" />
                   </div>
                   <p className="text-xs font-semibold text-gray-800 text-center leading-tight line-clamp-2">{product.name}</p>
-                  <p className="text-xs font-bold text-orange-600 mt-1">{formatCurrency(product.sale_price)}</p>
+                  {product.is_sold_out ? (
+                    <p className="text-xs font-bold text-red-600 mt-1">AGOTADO</p>
+                  ) : (
+                    <p className="text-xs font-bold text-orange-600 mt-1">{formatCurrency(product.sale_price)}</p>
+                  )}
                 </button>
               ))}
             </div>
@@ -622,11 +631,16 @@ const QuickSale: React.FC = () => {
                   <button
                     key={product.id}
                     onClick={() => handleProductClick(product)}
-                    className="bg-white px-5 py-4 rounded-xl shadow-sm hover:shadow-lg hover:bg-orange-50 transition-all text-left border border-gray-100 hover:border-orange-400 active:scale-[0.98] flex items-center justify-between gap-3"
+                    disabled={product.is_sold_out}
+                    className="bg-white px-5 py-4 rounded-xl shadow-sm hover:shadow-lg hover:bg-orange-50 transition-all text-left border border-gray-100 hover:border-orange-400 active:scale-[0.98] flex items-center justify-between gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-gray-800 text-base leading-snug line-clamp-2">{product.name}</p>
-                      <p className="text-lg font-bold text-orange-600 mt-1">{formatCurrency(product.sale_price)}</p>
+                      {product.is_sold_out ? (
+                        <p className="text-lg font-bold text-red-600 mt-1">AGOTADO</p>
+                      ) : (
+                        <p className="text-lg font-bold text-orange-600 mt-1">{formatCurrency(product.sale_price)}</p>
+                      )}
                     </div>
                     {(product as any).image_url ? (
                       <img

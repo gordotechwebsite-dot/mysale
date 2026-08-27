@@ -821,6 +821,10 @@ export default function TableManagement() {
   const cartTotal = cart.reduce((sum, item) => sum + (item.product.sale_price * item.quantity), 0);
 
   const addToCartWithQuantity = (product: Product) => {
+    if (product.is_sold_out) {
+      toast.error(`${product.name} esta agotado`);
+      return;
+    }
     const existing = cart.find(item => item.product.id === product.id);
     if (existing) {
       setCart(cart.map(item =>
@@ -1031,10 +1035,15 @@ export default function TableManagement() {
                       <button
                         key={product.id}
                         onClick={() => addToCartWithQuantity(product)}
-                        className="flex flex-col items-center justify-center p-3 bg-gray-50 hover:bg-emerald-50 rounded-lg text-center transition-colors border border-gray-200 hover:border-emerald-400 min-h-[72px]"
+                        disabled={product.is_sold_out}
+                        className="flex flex-col items-center justify-center p-3 bg-gray-50 hover:bg-emerald-50 rounded-lg text-center transition-colors border border-gray-200 hover:border-emerald-400 min-h-[72px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-50"
                       >
                         <div className="font-medium text-gray-800 text-xs leading-tight line-clamp-2 mb-1">{product.name}</div>
-                        <div className="text-emerald-600 font-bold text-sm">${product.sale_price.toLocaleString()}</div>
+                        {product.is_sold_out ? (
+                          <div className="text-red-600 font-bold text-xs">AGOTADO</div>
+                        ) : (
+                          <div className="text-emerald-600 font-bold text-sm">${product.sale_price.toLocaleString()}</div>
+                        )}
                       </button>
                     ))}
                   {filteredProducts.filter(p => !selectedFamily || subFamilies.some(sf => sf.family_id === selectedFamily && sf.id === p.subfamily_id)).length === 0 && (
@@ -1924,10 +1933,15 @@ export default function TableManagement() {
                         <button
                           key={product.id}
                           onClick={() => addToCartWithQuantity(product)}
-                          className="p-2 bg-gray-50 hover:bg-emerald-50 rounded-lg text-center transition-colors border border-gray-200 hover:border-emerald-400"
+                          disabled={product.is_sold_out}
+                          className="p-2 bg-gray-50 hover:bg-emerald-50 rounded-lg text-center transition-colors border border-gray-200 hover:border-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-50"
                         >
                           <div className="font-medium text-xs truncate">{product.name}</div>
-                          <div className="text-emerald-600 font-bold text-sm">${product.sale_price.toLocaleString()}</div>
+                          {product.is_sold_out ? (
+                            <div className="text-red-600 font-bold text-xs">AGOTADO</div>
+                          ) : (
+                            <div className="text-emerald-600 font-bold text-sm">${product.sale_price.toLocaleString()}</div>
+                          )}
                         </button>
                       ))}
                   </div>

@@ -100,6 +100,7 @@ class ProductUpdate(BaseModel):
     min_stock: Optional[int] = None
     max_stock: Optional[int] = None
     is_active: Optional[bool] = None
+    is_sold_out: Optional[bool] = None
 
 
 class ProductStockResponse(BaseModel):
@@ -146,6 +147,7 @@ class ProductResponse(BaseModel):
     min_stock: int
     max_stock: int
     is_active: bool
+    is_sold_out: bool = False
     created_at: datetime
     stocks: Optional[List[ProductStockResponse]] = None
     modifiers: Optional[List[ModifierResponse]] = None
