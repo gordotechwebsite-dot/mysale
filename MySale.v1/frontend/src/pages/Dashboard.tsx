@@ -71,7 +71,15 @@ const Dashboard: React.FC = () => {
         getLocations()
       ]);
       setData(dashboardData);
-      setLocations(locationsData.filter(l => l.location_type === 'pos'));
+      const posLocations = locationsData.filter(l => l.location_type === 'pos');
+      const fixedLocationId = user?.location_id && user.location_id > 0 ? user.location_id : null;
+      const visibleLocations = fixedLocationId
+        ? posLocations.filter(l => l.id === fixedLocationId)
+        : posLocations;
+      setLocations(visibleLocations);
+      if (visibleLocations.length === 1) {
+        setSelectedLocation(visibleLocations[0].id.toString());
+      }
     } catch (error) {
       console.error('Error loading dashboard:', error);
       toast.error('Error al cargar el dashboard');

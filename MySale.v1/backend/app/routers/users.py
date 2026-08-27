@@ -22,6 +22,8 @@ from app.schemas.user import (
     RoleCreate, RoleResponse, UserModuleResponse
 )
 from app.utils.auth import get_password_hash, get_current_user, require_role, get_pin_hash
+from app.models.location import Location
+from app.utils.branch_location import get_branch_for_location
 
 router = APIRouter(prefix="/api/users", tags=["Usuarios"])
 
@@ -55,6 +57,22 @@ def _build_user_response(user: User, db: Session) -> UserResponse:
         created_at=user.created_at,
         modules=modules
     )
+
+
+def _sync_default_branch(db: Session, user: User):
+    """Keep the clock in/out branch aligned with the location assigned to the user."""
+    if not user.location_id or user.location_id <= 0:
+        user.default_branch_id = None
+        return
+
+    location = db.query(Location).filter(
+        Location.id == user.location_id,
+        Location.tenant_id == user.tenant_id
+    ).first()
+    if not location:
+        return
+
+    user.default_branch_id = get_branch_for_location(db, user.tenant_id, location).id
 
 
 def _sync_user_modules(db: Session, user_id: int, module_ids: List[int]):
@@ -231,6 +249,8 @@ async def create_user(
     db.add(db_user)
     db.flush()
     
+    _sync_default_branch(db, db_user)
+    
     # Assign modules if specified; if not, leave empty (user sees all tenant modules)
     if user.module_ids:
         _sync_user_modules(db, db_user.id, user.module_ids)
@@ -293,6 +313,9 @@ async def update_user(
     
     for field, value in update_data.items():
         setattr(user, field, value)
+    
+    if "location_id" in update_data:
+        _sync_default_branch(db, user)
     
     # Sync modules if provided
     if module_ids is not None:

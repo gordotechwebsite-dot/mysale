@@ -293,9 +293,13 @@ export default function TableManagement() {
     try {
       const data = await getLocations();
       const posLocations = data.filter(l => l.location_type === 'pos');
-      setLocations(posLocations);
-      if (posLocations.length > 0) {
-        setSelectedLocation(posLocations[0].id);
+      const fixedLocationId = user?.location_id && user.location_id > 0 ? user.location_id : null;
+      const visibleLocations = fixedLocationId
+        ? posLocations.filter(l => l.id === fixedLocationId)
+        : posLocations;
+      setLocations(visibleLocations);
+      if (visibleLocations.length > 0) {
+        setSelectedLocation(visibleLocations[0].id);
       } else {
         setLoading(false);
       }
