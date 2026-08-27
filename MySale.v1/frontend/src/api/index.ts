@@ -281,8 +281,10 @@ export const getShifts = async (params?: {
 export const getSales = async (params?: {
   location_id?: number;
   cashier_id?: number;
+  sale_type?: 'regular' | 'delivery' | 'table';
   start_date?: string;
   end_date?: string;
+  limit?: number;
 }): Promise<Sale[]> => {
   const response = await api.get('/api/sales/', { params });
   return response.data;
@@ -785,6 +787,15 @@ export const createTicket = async (data: {
 
 export const getTicket = async (ticketId: number): Promise<Ticket> => {
   const response = await api.get(`/api/tables/tickets/${ticketId}`);
+  return response.data;
+};
+
+export const getTickets = async (params?: {
+  state?: 'open' | 'closed';
+  day?: string;
+  location_id?: number;
+}): Promise<Ticket[]> => {
+  const response = await api.get('/api/tables/tickets/list', { params });
   return response.data;
 };
 
@@ -1367,6 +1378,7 @@ export const getDeliveries = async (params?: {
   delivery_status?: string;
   start_date?: string;
   end_date?: string;
+  limit?: number;
 }): Promise<Delivery[]> => {
   const response = await api.get('/api/deliveries/', { params });
   return response.data;

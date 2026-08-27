@@ -1,17 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useShift } from '../context/ShiftContext';
-import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -21,128 +12,94 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Banknote, Plus, Calculator, Loader2, AlertCircle } from 'lucide-react';
+import { Banknote, RefreshCw, Loader2, Receipt, Bike, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
-import api from '../api/client';
-
-interface CashCount {
-  id: number;
-  shift_id: number;
-  count_type: 'opening' | 'closing' | 'partial';
-  counted_amount: number;
-  expected_amount: number;
-  difference: number;
-  notes: string | null;
-  created_at: string;
-  user_name: string;
-}
+import { getTickets, getSales, getDeliveries } from '../api';
+import type { Ticket, Sale, Delivery } from '../types';
 
 const Cash: React.FC = () => {
-    const { currentShift } = useShift();
-    const { user } = useAuth();
-    const isOwner = user?.role?.role_type === 'superuser';
-    const [cashCounts, setCashCounts] = useState<CashCount[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [showCountDialog, setShowCountDialog] = useState(false);
-    const [countType, setCountType] = useState<'opening' | 'closing' | 'partial'>('partial');
-    const [countedAmount, setCountedAmount] = useState('');
-    const [notes, setNotes] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
+  const { currentShift } = useShift();
+  const [openTickets, setOpenTickets] = useState<Ticket[]>([]);
+  const [closedTickets, setClosedTickets] = useState<Ticket[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadCashCounts();
-  }, [currentShift]);
+  const today = new Date().toLocaleDateString('en-CA');
 
-  const loadCashCounts = async () => {
+  const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await api.get('/api/cash/counts');
-      setCashCounts(response.data);
-    } catch (error) {
-      console.error('Error loading cash counts:', error);
+      const [open, closed, daySales, dayDeliveries] = await Promise.all([
+        getTickets({ state: 'open' }),
+        getTickets({ state: 'closed', day: today }),
+        getSales({ sale_type: 'regular', start_date: today, end_date: today, limit: 500 }),
+        getDeliveries({ start_date: today, end_date: today, limit: 500 }),
+      ]);
+      setOpenTickets(open);
+      setClosedTickets(closed);
+      setSales(daySales);
+      setDeliveries(dayDeliveries);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'Error al cargar los movimientos de caja');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [today]);
 
-  const handleSubmitCount = async () => {
-    if (!currentShift) {
-      toast.error('Debes tener un turno abierto para hacer arqueo');
-      return;
-    }
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-    if (!countedAmount || parseFloat(countedAmount) < 0) {
-      toast.error('Ingresa un monto valido');
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      await api.post('/api/cash/counts', {
-        shift_id: currentShift.id,
-        count_type: countType,
-        counted_amount: parseFloat(countedAmount.replace(/\./g, '')),
-        notes: notes || null
-      });
-      toast.success('Arqueo registrado exitosamente');
-      setShowCountDialog(false);
-      setCountedAmount('');
-      setNotes('');
-      loadCashCounts();
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Error al registrar arqueo');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-CO', {
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
-      minimumFractionDigits: 0
+      minimumFractionDigits: 0,
     }).format(value);
+
+  const formatTime = (dateStr: string) =>
+    new Date(dateStr).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+
+  const getElapsed = (openedAt: string) => {
+    const minutes = Math.max(0, Math.floor((Date.now() - new Date(openedAt).getTime()) / 60000));
+    const hours = Math.floor(minutes / 60);
+    return hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m`;
   };
 
-  const formatDateTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('es-CO', {
-      dateStyle: 'short',
-      timeStyle: 'short'
-    });
-  };
-
-  const getCountTypeBadge = (type: string) => {
-    switch (type) {
-      case 'opening':
-        return <Badge className="bg-green-500">Apertura</Badge>;
-      case 'closing':
-        return <Badge className="bg-red-500">Cierre</Badge>;
-      case 'partial':
-        return <Badge className="bg-blue-500">Parcial</Badge>;
+  const paymentLabel = (method: string) => {
+    switch (method) {
+      case 'cash':
+        return 'Efectivo';
+      case 'card':
+        return 'Tarjeta';
+      case 'transfer':
+        return 'Transferencia';
       default:
-        return <Badge>{type}</Badge>;
+        return method;
     }
   };
 
-  const getDifferenceBadge = (difference: number) => {
-    if (difference === 0) {
-      return <Badge className="bg-green-500">Cuadrado</Badge>;
-    } else if (difference > 0) {
-      return <Badge className="bg-blue-500">Sobrante: {formatCurrency(difference)}</Badge>;
-    } else {
-      return <Badge className="bg-red-500">Faltante: {formatCurrency(Math.abs(difference))}</Badge>;
+  const deliveryStatusBadge = (status?: string) => {
+    switch (status) {
+      case 'delivered':
+        return <Badge className="bg-emerald-500">Entregado</Badge>;
+      case 'in_transit':
+        return <Badge className="bg-blue-500">En camino</Badge>;
+      case 'preparing':
+        return <Badge className="bg-amber-500">Preparando</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-red-500">Cancelado</Badge>;
+      default:
+        return <Badge className="bg-gray-500">Pendiente</Badge>;
     }
   };
 
-  const handleAmountChange = (value: string) => {
-    const numericValue = value.replace(/\D/g, '');
-    if (numericValue) {
-      const formatted = parseInt(numericValue).toLocaleString('es-CO');
-      setCountedAmount(formatted);
-    } else {
-      setCountedAmount('');
-    }
-  };
+  const openTotal = openTickets.reduce((sum, t) => sum + t.total, 0);
+  const closedTotal = closedTickets.reduce((sum, t) => sum + t.total, 0);
+  const salesTotal = sales.reduce((sum, s) => sum + s.total, 0);
+  const deliveriesTotal = deliveries.reduce((sum, d) => sum + d.grand_total, 0);
 
   if (isLoading) {
     return (
@@ -154,186 +111,260 @@ const Cash: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">Caja - Arqueos y Cortes</h1>
-        {!isOwner && (
-          <Button
-            onClick={() => setShowCountDialog(true)}
-            disabled={!currentShift}
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nuevo Arqueo
-          </Button>
-        )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Caja - Movimientos del Día</h1>
+          {currentShift && (
+            <p className="text-sm text-gray-500">
+              Turno activo en {currentShift.location_name} · Efectivo esperado:{' '}
+              {formatCurrency(currentShift.total_cash_sales + currentShift.initial_cash)}
+            </p>
+          )}
+        </div>
+        <Button variant="outline" onClick={loadData}>
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Actualizar
+        </Button>
       </div>
 
-      {!currentShift && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3 text-yellow-800">
-              <AlertCircle className="w-5 h-5" />
-              <p>Debes abrir un turno para poder realizar arqueos de caja.</p>
-            </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-500">Cuentas Abiertas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-amber-600">{openTickets.length}</p>
+            <p className="text-sm text-gray-500">{formatCurrency(openTotal)}</p>
           </CardContent>
         </Card>
-      )}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-500">Cuentas Cerradas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-emerald-600">{closedTickets.length}</p>
+            <p className="text-sm text-gray-500">{formatCurrency(closedTotal)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-500">Ventas Directas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-600">{sales.length}</p>
+            <p className="text-sm text-gray-500">{formatCurrency(salesTotal)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-500">Domicilios</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-purple-600">{deliveries.length}</p>
+            <p className="text-sm text-gray-500">{formatCurrency(deliveriesTotal)}</p>
+          </CardContent>
+        </Card>
+      </div>
 
-      {currentShift && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Tabs defaultValue="open">
+        <TabsList className="w-full overflow-x-auto">
+          <TabsTrigger value="open">Abiertas ({openTickets.length})</TabsTrigger>
+          <TabsTrigger value="closed">Cerradas ({closedTickets.length})</TabsTrigger>
+          <TabsTrigger value="sales">Ventas ({sales.length})</TabsTrigger>
+          <TabsTrigger value="deliveries">Domicilios ({deliveries.length})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="open">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-500">Turno Actual</CardTitle>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Banknote className="w-5 h-5" />
+                Cuentas Abiertas
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-lg font-semibold">{currentShift.location_name}</p>
-              <p className="text-sm text-gray-500">Desde: {formatDateTime(currentShift.start_time)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-500">Ventas del Turno</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-emerald-600">{formatCurrency(currentShift.total_sales)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-500">Efectivo en Caja</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-blue-600">{formatCurrency(currentShift.total_cash_sales + currentShift.initial_cash)}</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Banknote className="w-5 h-5" />
-            Historial de Arqueos
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {cashCounts.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Calculator className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No hay arqueos registrados</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Usuario</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Contado</TableHead>
-                    <TableHead>Esperado</TableHead>
-                    <TableHead>Diferencia</TableHead>
-                    <TableHead>Notas</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {cashCounts.map((count) => (
-                    <TableRow key={count.id}>
-                      <TableCell>{formatDateTime(count.created_at)}</TableCell>
-                      <TableCell className="font-medium">{count.user_name}</TableCell>
-                      <TableCell>{getCountTypeBadge(count.count_type)}</TableCell>
-                      <TableCell className="font-semibold">{formatCurrency(count.counted_amount)}</TableCell>
-                      <TableCell>{formatCurrency(count.expected_amount)}</TableCell>
-                      <TableCell>{getDifferenceBadge(count.difference)}</TableCell>
-                      <TableCell className="max-w-xs truncate">{count.notes || '-'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Dialog open={showCountDialog} onOpenChange={setShowCountDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nuevo Arqueo de Caja</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Tipo de Arqueo</Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={countType === 'opening' ? 'default' : 'outline'}
-                  onClick={() => setCountType('opening')}
-                  className={countType === 'opening' ? 'bg-green-600' : ''}
-                >
-                  Apertura
-                </Button>
-                <Button
-                  type="button"
-                  variant={countType === 'partial' ? 'default' : 'outline'}
-                  onClick={() => setCountType('partial')}
-                  className={countType === 'partial' ? 'bg-blue-600' : ''}
-                >
-                  Parcial
-                </Button>
-                <Button
-                  type="button"
-                  variant={countType === 'closing' ? 'default' : 'outline'}
-                  onClick={() => setCountType('closing')}
-                  className={countType === 'closing' ? 'bg-red-600' : ''}
-                >
-                  Cierre
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="counted">Monto Contado (COP)</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                <Input
-                  id="counted"
-                  value={countedAmount}
-                  onChange={(e) => handleAmountChange(e.target.value)}
-                  placeholder="0"
-                  className="pl-8 text-lg"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notas (opcional)</Label>
-              <Input
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Observaciones del arqueo..."
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCountDialog(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSubmitCount}
-              disabled={isSubmitting || !countedAmount}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Guardando...
-                </>
+              {openTickets.length === 0 ? (
+                <p className="py-8 text-center text-gray-500">No hay cuentas abiertas</p>
               ) : (
-                'Registrar Arqueo'
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Mesa</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Mesero</TableHead>
+                        <TableHead>Abierta</TableHead>
+                        <TableHead>Tiempo</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {openTickets.map(ticket => (
+                        <TableRow key={ticket.id}>
+                          <TableCell className="font-medium">
+                            {ticket.table_name || `Cuenta #${ticket.id}`}
+                            {ticket.status === 'to_pay' && (
+                              <Badge className="ml-2 bg-amber-500">Por cobrar</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>{ticket.customer_name || '-'}</TableCell>
+                          <TableCell>{ticket.waiter_name || '-'}</TableCell>
+                          <TableCell>{formatTime(ticket.opened_at)}</TableCell>
+                          <TableCell>{getElapsed(ticket.opened_at)}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatCurrency(ticket.total)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="closed">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Receipt className="w-5 h-5" />
+                Cuentas Cerradas Hoy
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {closedTickets.length === 0 ? (
+                <p className="py-8 text-center text-gray-500">No hay cuentas cerradas hoy</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Mesa</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Mesero</TableHead>
+                        <TableHead>Cerrada</TableHead>
+                        <TableHead>Productos</TableHead>
+                        <TableHead className="text-right">Propina</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {closedTickets.map(ticket => (
+                        <TableRow key={ticket.id}>
+                          <TableCell className="font-medium">
+                            {ticket.table_name || `Cuenta #${ticket.id}`}
+                          </TableCell>
+                          <TableCell>{ticket.customer_name || '-'}</TableCell>
+                          <TableCell>{ticket.waiter_name || '-'}</TableCell>
+                          <TableCell>{ticket.closed_at ? formatTime(ticket.closed_at) : '-'}</TableCell>
+                          <TableCell>{ticket.items.length}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(ticket.tip || 0)}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatCurrency(ticket.total)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sales">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5" />
+                Ventas del Día
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {sales.length === 0 ? (
+                <p className="py-8 text-center text-gray-500">No hay ventas registradas hoy</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Folio</TableHead>
+                        <TableHead>Hora</TableHead>
+                        <TableHead>Cajero</TableHead>
+                        <TableHead>Pago</TableHead>
+                        <TableHead>Productos</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sales.map(sale => (
+                        <TableRow key={sale.id}>
+                          <TableCell className="font-medium">{sale.folio}</TableCell>
+                          <TableCell>{formatTime(sale.created_at)}</TableCell>
+                          <TableCell>{sale.cashier_name || '-'}</TableCell>
+                          <TableCell>{paymentLabel(sale.payment_method)}</TableCell>
+                          <TableCell>{sale.items.length}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatCurrency(sale.total)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="deliveries">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bike className="w-5 h-5" />
+                Domicilios del Día
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {deliveries.length === 0 ? (
+                <p className="py-8 text-center text-gray-500">No hay domicilios hoy</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Folio</TableHead>
+                        <TableHead>Hora</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Domiciliario</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead className="text-right">Domicilio</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {deliveries.map(delivery => (
+                        <TableRow key={delivery.id}>
+                          <TableCell className="font-medium">{delivery.folio}</TableCell>
+                          <TableCell>{formatTime(delivery.created_at)}</TableCell>
+                          <TableCell>{delivery.customer_name || '-'}</TableCell>
+                          <TableCell>{delivery.delivery_person || '-'}</TableCell>
+                          <TableCell>{deliveryStatusBadge(delivery.delivery_status)}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(delivery.delivery_fee)}</TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatCurrency(delivery.grand_total)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
