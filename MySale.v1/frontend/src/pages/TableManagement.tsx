@@ -153,7 +153,6 @@ export default function TableManagement() {
   const [families, setFamilies] = useState<Family[]>([]);
   const [subFamilies, setSubFamilies] = useState<SubFamily[]>([]);
   const [selectedFamily, setSelectedFamily] = useState<number | null>(null);
-  const [quantityInput, setQuantityInput] = useState('');
 
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentAmount, setPaymentAmount] = useState(0);
@@ -821,29 +820,17 @@ export default function TableManagement() {
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.product.sale_price * item.quantity), 0);
 
-  const handleNumpadClick = (value: string) => {
-    if (value === 'C') {
-      setQuantityInput('');
-    } else if (value === '<') {
-      setQuantityInput(prev => prev.slice(0, -1));
-    } else {
-      setQuantityInput(prev => prev + value);
-    }
-  };
-
   const addToCartWithQuantity = (product: Product) => {
-    const qty = parseInt(quantityInput) || 1;
     const existing = cart.find(item => item.product.id === product.id);
     if (existing) {
       setCart(cart.map(item =>
         item.product.id === product.id
-          ? { ...item, quantity: item.quantity + qty }
+          ? { ...item, quantity: item.quantity + 1 }
           : item
       ));
     } else {
-      setCart([...cart, { product, quantity: qty, notes: '' }]);
+      setCart([...cart, { product, quantity: 1, notes: '' }]);
     }
-    setQuantityInput('');
   };
 
   const allTables = zones.flatMap(z => z.tables.map(t => ({ ...t, zone_name: z.name })));
@@ -1059,29 +1046,8 @@ export default function TableManagement() {
               </div>
             </div>
 
-            {/* Right: Numpad + Action buttons */}
+            {/* Right: Action buttons */}
             <div className="w-48 flex flex-col gap-2 flex-shrink-0">
-              <div className="bg-white rounded-lg p-2 border border-gray-200 shadow-sm">
-                <div className="text-center text-xl font-bold mb-2 h-10 bg-gray-100 rounded flex items-center justify-center text-gray-900">
-                  {quantityInput || '1'}
-                </div>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {['7', '8', '9', '4', '5', '6', '1', '2', '3', 'C', '0', '<'].map(key => (
-                    <button
-                      key={key}
-                      onClick={() => handleNumpadClick(key)}
-                      className={`p-3 rounded font-bold text-lg transition-colors ${
-                        key === 'C' ? 'bg-red-600 hover:bg-red-500 text-white' :
-                        key === '<' ? 'bg-amber-600 hover:bg-amber-500 text-white' :
-                        'bg-gray-100 hover:bg-gray-200 text-gray-900'
-                      }`}
-                    >
-                      {key}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <div className="flex-1 flex flex-col gap-1.5">
                 {cart.length > 0 && (
                   <Button
@@ -1969,27 +1935,6 @@ export default function TableManagement() {
               </div>
 
               <div className="w-44 flex flex-col gap-2">
-                <div className="bg-white rounded-lg p-2 border border-gray-200">
-                  <div className="text-center text-lg font-bold mb-2 h-8 bg-gray-100 rounded flex items-center justify-center text-gray-900">
-                    {quantityInput || '1'}
-                  </div>
-                  <div className="grid grid-cols-3 gap-1">
-                    {['7', '8', '9', '4', '5', '6', '1', '2', '3', 'C', '0', '<'].map(key => (
-                      <button
-                        key={key}
-                        onClick={() => handleNumpadClick(key)}
-                        className={`p-3 rounded font-bold text-lg transition-colors ${
-                          key === 'C' ? 'bg-red-600 hover:bg-red-500' :
-                          key === '<' ? 'bg-amber-600 hover:bg-amber-500' :
-                          'bg-gray-100 hover:bg-gray-200 text-gray-900'
-                        }`}
-                      >
-                        {key}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 <div className="flex-1 flex flex-col gap-1">
                   {cart.length > 0 && (
                     <Button
