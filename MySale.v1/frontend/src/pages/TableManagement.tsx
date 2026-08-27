@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -129,6 +129,7 @@ export default function TableManagement() {
   const [showReserveDialog, setShowReserveDialog] = useState(false);
   const [showViewReservationDialog, setShowViewReservationDialog] = useState(false);
   const [showPeopleDialog, setShowPeopleDialog] = useState(false);
+  const [showViewOrderDialog, setShowViewOrderDialog] = useState(false);
   const [reservationName, setReservationName] = useState('');
   const [reservationTime, setReservationTime] = useState('');
   const [reservationPhone, setReservationPhone] = useState('');
@@ -146,7 +147,7 @@ export default function TableManagement() {
   const [tableShape, setTableShape] = useState<'square' | 'pair' | 'rectangle'>('square');
 
   const [customerName, setCustomerName] = useState('');
-  const [numPeople, setNumPeople] = useState(1);
+  const [numPeople, setNumPeople] = useState('');
   const [ticketNotes, setTicketNotes] = useState('');
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -337,9 +338,6 @@ export default function TableManagement() {
       setProducts(productsData);
       setFamilies(familiesData);
       setSubFamilies(subFamiliesData);
-      if (familiesData.length > 0 && !selectedFamily) {
-        setSelectedFamily(familiesData[0].id);
-      }
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       toast.error(err.response?.data?.detail || 'Error al cargar productos');
@@ -524,7 +522,7 @@ export default function TableManagement() {
         if (!selectedTable) return;
         if (isTableFree(selectedTable.status)) {
           setCustomerName('');
-          setNumPeople(1);
+          setNumPeople('');
           setTicketNotes('');
         }
         setCart([]);
@@ -575,6 +573,13 @@ export default function TableManagement() {
       case 'num_people':
         setShowPeopleDialog(true);
         break;
+      case 'view_order':
+        if (currentTicket) {
+          setShowViewOrderDialog(true);
+        } else {
+          toast.error('La mesa no tiene pedido');
+        }
+        break;
       case 'exit':
         setSelectedTable(null);
         setCurrentTicket(null);
@@ -587,7 +592,7 @@ export default function TableManagement() {
       setShowPeopleDialog(false);
       return;
     }
-    toast.success(`Número de personas actualizado a ${numPeople}`);
+    toast.success(`Número de personas actualizado a ${parseInt(numPeople) || 1}`);
     setShowPeopleDialog(false);
   };
 
@@ -637,7 +642,7 @@ export default function TableManagement() {
         table_id: selectedTable.id,
         location_id: selectedLocation,
         customer_name: customerName || undefined,
-        num_people: numPeople,
+        num_people: parseInt(numPeople) || 1,
         notes: ticketNotes || undefined
       });
       setCurrentTicket(ticket);
@@ -815,6 +820,23 @@ export default function TableManagement() {
     }
   };
 
+  // Solo las categorias que tienen productos de la sede seleccionada
+  const visibleFamilies = useMemo(() => {
+    return families.filter(family => {
+      const familySubIds = subFamilies
+        .filter(sf => sf.family_id === family.id)
+        .map(sf => sf.id);
+      return products.some(p => familySubIds.includes(p.subfamily_id));
+    });
+  }, [families, subFamilies, products]);
+
+  useEffect(() => {
+    if (visibleFamilies.length === 0) return;
+    if (!selectedFamily || !visibleFamilies.some(f => f.id === selectedFamily)) {
+      setSelectedFamily(visibleFamilies[0].id);
+    }
+  }, [visibleFamilies, selectedFamily]);
+
   const currentZone = zones.find(z => z.id === selectedZone);
   const filteredProducts = products.filter(p => {
     const query = productSearchQuery || productSearch;
@@ -890,8 +912,9 @@ export default function TableManagement() {
                 <Input
                   type="number"
                   value={numPeople}
-                  onChange={(e) => setNumPeople(parseInt(e.target.value) || 1)}
+                  onChange={(e) => setNumPeople(e.target.value)}
                   min={1}
+                  placeholder="Ej: 4"
                   className="bg-gray-50 border-gray-300 text-gray-900 text-lg h-12"
                 />
               </div>
@@ -917,9 +940,9 @@ export default function TableManagement() {
         ) : (
           <div className="flex-1 flex flex-col gap-2 p-2 overflow-hidden">
             {/* Categories */}
-            {families.length > 0 && (
+            {visibleFamilies.length > 0 && (
               <div className="grid grid-cols-4 lg:grid-cols-6 gap-2">
-                {families.map(family => {
+                {visibleFamilies.map(family => {
                   const CategoryIcon = getCategoryIcon(family.name);
                   return (
                     <button
@@ -1054,7 +1077,7 @@ export default function TableManagement() {
                       </button>
                     ))}
                   {filteredProducts.filter(p => !selectedFamily || subFamilies.some(sf => sf.family_id === selectedFamily && sf.id === p.subfamily_id)).length === 0 && (
-                    <div className="col-span-full p-8 text-center text-gray-400">
+                    <div className="hidden lg:block col-span-full p-8 text-center text-gray-400">
                       No se encontraron productos
                     </div>
                   )}
@@ -1885,8 +1908,9 @@ export default function TableManagement() {
                 <Input
                   type="number"
                   value={numPeople}
-                  onChange={(e) => setNumPeople(parseInt(e.target.value) || 1)}
+                  onChange={(e) => setNumPeople(e.target.value)}
                   min={1}
+                  placeholder="Ej: 4"
                   className="bg-gray-50 border-gray-300"
                 />
               </div>
@@ -1910,9 +1934,9 @@ export default function TableManagement() {
             </div>
           ) : (
             <div className="flex-1 flex flex-col gap-2 overflow-hidden">
-              {families.length > 0 && (
+              {visibleFamilies.length > 0 && (
                 <div className="grid grid-cols-6 gap-2">
-                  {families.map(family => {
+                  {visibleFamilies.map(family => {
                     const CategoryIcon = getCategoryIcon(family.name);
                     return (
                       <button
@@ -2220,10 +2244,10 @@ export default function TableManagement() {
               ELIMINAR PEDIDO
             </button>
             <button
-              onClick={() => handleMenuAction('num_people')}
+              onClick={() => handleMenuAction(currentTicket ? 'view_order' : 'num_people')}
               className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
             >
-              NUMERO DE PERSONAS
+              {currentTicket ? 'VER' : 'NUMERO DE PERSONAS'}
             </button>
             <button
               onClick={() => handleMenuAction('exit')}
@@ -2232,6 +2256,47 @@ export default function TableManagement() {
               SALIR
             </button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showViewOrderDialog} onOpenChange={setShowViewOrderDialog}>
+        <DialogContent className="bg-white text-gray-900 border-gray-200 rounded-xl shadow-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-gray-900">Pedido - {selectedTable?.name}</DialogTitle>
+            <p className="text-sm text-gray-500 mt-1">
+              {currentTicket?.num_people ? `${currentTicket.num_people} personas · ` : ''}
+              {currentTicket?.customer_name || 'Sin nombre'}
+            </p>
+          </DialogHeader>
+          <div className="max-h-[55vh] overflow-y-auto divide-y divide-gray-100">
+            {currentTicket && currentTicket.items.length > 0 ? (
+              currentTicket.items.map(item => (
+                <div key={item.id} className="flex items-start gap-3 py-2.5">
+                  <span className="font-bold text-gray-900 w-8 shrink-0">{item.quantity}x</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{item.product_name}</p>
+                    {item.notes && <p className="text-xs text-gray-500">{item.notes}</p>}
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900 shrink-0">
+                    ${item.subtotal.toLocaleString('es-CO')}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="py-8 text-center text-gray-400">Todavía no han pedido nada</p>
+            )}
+          </div>
+          <div className="flex items-center justify-between border-t border-gray-200 pt-3">
+            <span className="font-semibold text-gray-700">Total</span>
+            <span className="text-xl font-bold text-gray-900">
+              ${(currentTicket?.total || 0).toLocaleString('es-CO')}
+            </span>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowViewOrderDialog(false)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -2346,8 +2411,9 @@ export default function TableManagement() {
               <Input
                 type="number"
                 value={numPeople}
-                onChange={(e) => setNumPeople(parseInt(e.target.value) || 1)}
+                onChange={(e) => setNumPeople(e.target.value)}
                 min={1}
+                placeholder="Ej: 4"
                 className="bg-gray-50 border-gray-300"
               />
             </div>
