@@ -1324,7 +1324,6 @@ export default function TableManagement() {
     <div className="h-full flex flex-col bg-gray-50">
       <div className="flex flex-col gap-3 px-3 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-6 lg:py-4 bg-white border-b border-gray-200">
         <div className="flex items-center gap-3 lg:gap-4">
-          <h1 className="text-lg lg:text-xl font-bold text-gray-900">Gestión de Mesas</h1>
           <Select
             value={selectedLocation?.toString() || ''}
             onValueChange={(v) => setSelectedLocation(parseInt(v))}
