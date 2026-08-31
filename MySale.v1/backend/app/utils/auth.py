@@ -13,7 +13,22 @@ import os
 
 logger = logging.getLogger("mysale.auth")
 
-SECRET_KEY = os.getenv("SECRET_KEY", "mysale-v1-secret-key-change-in-production")
+DEV_SECRET_KEY = "mysale-development-only-secret-key"
+
+
+def _load_secret_key() -> str:
+    secret = os.getenv("SECRET_KEY")
+    if secret:
+        return secret
+    if os.getenv("MYSALE_ENV", "development").lower() == "production":
+        raise RuntimeError(
+            "SECRET_KEY no esta configurado. Define el secreto antes de arrancar en produccion."
+        )
+    logger.warning("SECRET_KEY no definido: usando la clave de desarrollo (no apta para produccion)")
+    return DEV_SECRET_KEY
+
+
+SECRET_KEY = _load_secret_key()
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 480
 

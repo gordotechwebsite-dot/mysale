@@ -46,7 +46,6 @@ class User(Base):
     photo_url = Column(String(500), nullable=True)
     hashed_password = Column(String(255), nullable=False)
     pin_hash = Column(String(255), nullable=True)
-    pin = Column(String(10), nullable=True)
     fingerprint_hash = Column(String(255), nullable=True)
     role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
     location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)

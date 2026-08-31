@@ -124,6 +124,7 @@ const Users: React.FC = () => {
   const handleViewUser = (user: User) => {
     setSelectedUser(user);
     setResetPinResult(null);
+    setShowPin(false);
     setEditingModules(false);
     setDetailModuleIds(user.modules ? user.modules.map(m => m.module_id) : []);
     setShowUserDetail(true);
@@ -155,9 +156,9 @@ const Users: React.FC = () => {
     try {
       const result = await resetUserPin(selectedUser.id);
       setResetPinResult(result.pin);
-      // Update local state so PIN persists when reopening modal
-      setSelectedUser({ ...selectedUser, pin: result.pin });
-      setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, pin: result.pin } : u));
+      setShowPin(true);
+      setSelectedUser({ ...selectedUser, has_pin: true });
+      setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, has_pin: true } : u));
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Error al resetear PIN');
     } finally {
@@ -491,19 +492,28 @@ const Users: React.FC = () => {
                         <div>
                           <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">PIN de Asistencia</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <button 
-                              onClick={() => setShowPin(!showPin)} 
-                              className="font-mono font-bold text-2xl text-blue-700 tracking-wider hover:text-blue-500 transition-colors cursor-pointer"
-                              title={showPin ? 'Clic para ocultar' : 'Clic para revelar'}
-                            >
-                              {!(resetPinResult || selectedUser.pin) ? 'Sin PIN' : showPin ? (resetPinResult || selectedUser.pin) : '******'}
-                            </button>
-                            {(resetPinResult || selectedUser.pin) && showPin && (
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => copyToClipboard(resetPinResult || selectedUser.pin || '', 'detail-pin')}>
-                                {copiedField === 'detail-pin' ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
-                              </Button>
+                            {resetPinResult ? (
+                              <>
+                                <button
+                                  onClick={() => setShowPin(!showPin)}
+                                  className="font-mono font-bold text-2xl text-blue-700 tracking-wider hover:text-blue-500 transition-colors cursor-pointer"
+                                  title={showPin ? 'Clic para ocultar' : 'Clic para revelar'}
+                                >
+                                  {showPin ? resetPinResult : '******'}
+                                </button>
+                                {showPin && (
+                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => copyToClipboard(resetPinResult, 'detail-pin')}>
+                                    {copiedField === 'detail-pin' ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
+                                  </Button>
+                                )}
+                              </>
+                            ) : (
+                              <span className="font-semibold text-gray-500">{selectedUser.has_pin ? 'PIN configurado' : 'Sin PIN'}</span>
                             )}
                           </div>
+                          <p className="text-[11px] text-gray-400 mt-1">
+                            {resetPinResult ? 'Copialo ahora: no se puede volver a consultar' : 'Por seguridad el PIN no se puede consultar; genera uno nuevo si se le olvido'}
+                          </p>
                         </div>
                       </div>
                       <Button 

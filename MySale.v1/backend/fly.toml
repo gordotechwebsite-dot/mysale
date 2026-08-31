@@ -5,6 +5,7 @@ primary_region = "iad"
 
 [env]
   DATABASE_URL = "sqlite:////data/mysale.db"
+  MYSALE_ENV = "production"
 
 [mounts]
   source = "mysale_data"

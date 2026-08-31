@@ -13,7 +13,7 @@ export interface User {
   phone: string | null;
   cedula: string | null;
   photo_url: string | null;
-  pin: string | null;
+  has_pin: boolean;
   role_id: number;
   role?: Role;
   location_id: number | null;

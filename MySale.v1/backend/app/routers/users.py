@@ -1,3 +1,4 @@
+import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -47,7 +48,7 @@ def _build_user_response(user: User, db: Session) -> UserResponse:
         phone=user.phone,
         cedula=user.cedula,
         photo_url=user.photo_url,
-        pin=user.pin,
+        has_pin=bool(user.pin_hash),
         role_id=user.role_id,
         role=user.role,
         location_id=user.location_id,
@@ -241,7 +242,6 @@ async def create_user(
         photo_url=user.photo_url,
         hashed_password=hashed_password,
         pin_hash=pin_hash,
-        pin=user.pin,
         role_id=user.role_id,
         location_id=user.location_id,
         tenant_id=current_user.tenant_id  # Assign same tenant as creator
@@ -305,11 +305,10 @@ async def update_user(
     if "password" in update_data:
         user.hashed_password = get_password_hash(update_data.pop("password"))
     
-    # Hash pin if provided
-    if "pin" in update_data:
-        pin_val = update_data.get("pin")
-        if pin_val:
-            user.pin_hash = get_pin_hash(pin_val)
+    # Hash pin if provided (never stored in plain text)
+    pin_val = update_data.pop("pin", None)
+    if pin_val:
+        user.pin_hash = get_pin_hash(pin_val)
     
     for field, value in update_data.items():
         setattr(user, field, value)
@@ -442,10 +441,8 @@ async def reset_user_pin(
             detail="Usuario no encontrado"
         )
     
-    import random
-    new_pin = str(random.randint(100000, 999999))
+    new_pin = f"{secrets.randbelow(900000) + 100000}"
     user.pin_hash = get_pin_hash(new_pin)
-    user.pin = new_pin
     db.commit()
     
     return {"pin": new_pin, "message": "PIN actualizado exitosamente"}
