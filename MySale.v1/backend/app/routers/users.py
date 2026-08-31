@@ -25,7 +25,7 @@ from app.schemas.user import (
 from app.utils.auth import get_password_hash, get_current_user, require_role, get_pin_hash
 from app.models.location import Location
 from app.utils.branch_location import get_branch_for_location
-from app.utils.location_scope import require_own_location
+from app.utils.location_scope import ROTATING_LOCATION_ID, fixed_location_id, require_own_location
 
 router = APIRouter(prefix="/api/users", tags=["Usuarios"])
 
@@ -84,6 +84,15 @@ def _validate_assigned_location(
 ) -> None:
     """La sede que se asigna a un usuario debe ser del negocio y de la sede del creador."""
     if not location_id:
+        return
+
+    if location_id == ROTATING_LOCATION_ID:
+        # Rotativo: solo lo puede asignar quien no esta amarrado a una sede
+        if fixed_location_id(current_user):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo puedes asignar la sede que tienes asignada"
+            )
         return
 
     require_own_location(current_user, location_id)
@@ -228,8 +237,9 @@ async def get_users(
         query = query.filter(User.tenant_id == current_user.tenant_id)
 
     # Un usuario con sede fija solo ve el personal de su sede
-    if current_user.location_id:
-        query = query.filter(User.location_id == current_user.location_id)
+    own_location_id = fixed_location_id(current_user)
+    if own_location_id:
+        query = query.filter(User.location_id == own_location_id)
     
     users = query.offset(skip).limit(limit).all()
     return [_build_user_response(u, db) for u in users]
@@ -274,7 +284,7 @@ async def create_user(
         hashed_password=hashed_password,
         pin_hash=pin_hash,
         role_id=user.role_id,
-        location_id=user.location_id or current_user.location_id,
+        location_id=user.location_id or fixed_location_id(current_user),
         tenant_id=current_user.tenant_id  # Assign same tenant as creator
     )
     db.add(db_user)

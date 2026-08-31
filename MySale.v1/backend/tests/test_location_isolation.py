@@ -155,12 +155,34 @@ def context(client, admin_headers):
     )
     assert login.status_code == 200, f"cashier login failed: {login.json()}"
 
+    rotating = client.post(
+        "/api/users/",
+        json={
+            "username": "cajero_rotativo",
+            "full_name": "Cajero Rotativo",
+            "password": "cajero123",
+            "role_id": cashier_role["id"],
+            "location_id": -1,
+        },
+        headers=admin_headers,
+    )
+    assert rotating.status_code == 200, f"create rotating cashier failed: {rotating.json()}"
+
+    rotating_login = client.post(
+        "/api/auth/login",
+        data={"username": "cajero_rotativo", "password": "cajero123"}
+    )
+    assert rotating_login.status_code == 200, f"rotating login failed: {rotating_login.json()}"
+
     return {
         "location_a": location_a,
         "location_b": location_b,
         "product_a": product_a.json()["id"],
         "product_b": product_b.json()["id"],
         "cashier_headers": {"Authorization": f"Bearer {login.json()['access_token']}"},
+        "rotating_headers": {
+            "Authorization": f"Bearer {rotating_login.json()['access_token']}"
+        },
     }
 
 
@@ -211,6 +233,27 @@ class TestFixedLocationIsolation:
         users = client.get("/api/users/", headers=headers)
         assert users.status_code == 200
         assert all(u["location_id"] == context["location_a"] for u in users.json())
+
+
+class TestRotatingLocation:
+    def test_rotating_user_can_choose_any_location(self, client, context):
+        headers = context["rotating_headers"]
+
+        locations = client.get("/api/locations/", headers=headers)
+        assert locations.status_code == 200
+        ids = [loc["id"] for loc in locations.json()]
+        assert context["location_a"] in ids
+        assert context["location_b"] in ids
+
+        assert client.get(
+            f"/api/sales/?location_id={context['location_b']}",
+            headers=headers,
+        ).status_code == 200
+
+        assert client.get(
+            f"/api/shifts/?location_id={context['location_a']}",
+            headers=headers,
+        ).status_code == 200
 
 
 class TestAdminWithoutFixedLocation:

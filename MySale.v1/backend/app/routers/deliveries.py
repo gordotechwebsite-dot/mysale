@@ -11,7 +11,7 @@ from app.models.inventory import Product
 from app.models.location import Location
 from app.schemas.delivery import DeliveryCreate, DeliveryResponse, DeliveryItemResponse, DeliveryUpdateStatus
 from app.utils.auth import get_current_user
-from app.utils.location_scope import require_own_location
+from app.utils.location_scope import fixed_location_id, require_own_location
 from app.utils.stock import register_sale_stock_exit
 
 router = APIRouter(prefix="/api/deliveries", tags=["Domicilios"])
@@ -95,8 +95,9 @@ async def get_deliveries(
         if tenant_loc_ids:
             query = query.filter(Sale.location_id.in_(tenant_loc_ids))
 
-    if current_user.location_id:
-        query = query.filter(Sale.location_id == current_user.location_id)
+    own_location_id = fixed_location_id(current_user)
+    if own_location_id:
+        query = query.filter(Sale.location_id == own_location_id)
     
     if delivery_status:
         query = query.filter(Sale.delivery_status == delivery_status)

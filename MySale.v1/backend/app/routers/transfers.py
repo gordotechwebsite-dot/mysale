@@ -10,7 +10,7 @@ from app.models.inventory import Product, ProductStock, StockMovement, MovementT
 from app.models.location import Location
 from app.schemas.transfer import TransferCreate, TransferResponse, TransferItemResponse, TransferReceive
 from app.utils.auth import get_current_user, require_role
-from app.utils.location_scope import require_own_location
+from app.utils.location_scope import fixed_location_id, require_own_location
 
 router = APIRouter(prefix="/api/transfers", tags=["Transferencias"])
 
@@ -44,10 +44,11 @@ async def get_transfers(
             )
 
     # Un usuario con sede fija solo ve traspasos donde participa su sede
-    if current_user.location_id:
+    own_location_id = fixed_location_id(current_user)
+    if own_location_id:
         query = query.filter(
-            (Transfer.from_location_id == current_user.location_id) |
-            (Transfer.to_location_id == current_user.location_id)
+            (Transfer.from_location_id == own_location_id) |
+            (Transfer.to_location_id == own_location_id)
         )
     
     if from_location_id:

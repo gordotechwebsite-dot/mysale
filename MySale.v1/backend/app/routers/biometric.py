@@ -12,6 +12,7 @@ from app.database import get_db
 from app.models import User, Fingerprint, BiometricLog, AttendanceRecord, BiometricEventType, Location
 from app.routers.auth import get_current_user, log_audit
 from app.schemas.user import UserResponse, RoleResponse
+from app.utils.location_scope import fixed_location_id
 
 router = APIRouter(prefix="/api/biometric", tags=["biometric"])
 
@@ -374,7 +375,7 @@ async def clock_in_out(
         log = BiometricLog(
             user_id=matched_user.id,
             tenant_id=matched_user.tenant_id,
-            location_id=matched_user.location_id or request.location_id,
+            location_id=fixed_location_id(matched_user) or request.location_id,
             event_type=BiometricEventType.CLOCK_OUT,
             success=True,
             match_score=match_score,
@@ -404,7 +405,7 @@ async def clock_in_out(
         log = BiometricLog(
             user_id=matched_user.id,
             tenant_id=matched_user.tenant_id,
-            location_id=matched_user.location_id or request.location_id,
+            location_id=fixed_location_id(matched_user) or request.location_id,
             event_type=BiometricEventType.CLOCK_IN,
             success=True,
             match_score=match_score,
@@ -416,7 +417,7 @@ async def clock_in_out(
         attendance = AttendanceRecord(
             user_id=matched_user.id,
             tenant_id=matched_user.tenant_id,
-            location_id=matched_user.location_id or request.location_id,
+            location_id=fixed_location_id(matched_user) or request.location_id,
             clock_in=now,
             clock_in_biometric_log_id=log.id
         )

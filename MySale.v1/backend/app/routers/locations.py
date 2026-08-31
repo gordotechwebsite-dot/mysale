@@ -14,7 +14,7 @@ from app.models.inventory import Product
 from app.models.cash import CashRegister
 from app.schemas.location import LocationCreate, LocationUpdate, LocationResponse, LocationDashboardResponse
 from app.utils.auth import get_current_user, require_role
-from app.utils.location_scope import require_own_location
+from app.utils.location_scope import fixed_location_id, require_own_location
 
 router = APIRouter(prefix="/api/locations", tags=["Ubicaciones"])
 
@@ -39,8 +39,9 @@ async def get_locations(
     query = filter_by_tenant(query, Location, current_user.tenant_id, user_role=role_type)
 
     # Un usuario con sede fija solo conoce su sede
-    if current_user.location_id:
-        query = query.filter(Location.id == current_user.location_id)
+    own_location_id = fixed_location_id(current_user)
+    if own_location_id:
+        query = query.filter(Location.id == own_location_id)
 
     return query.all()
 
@@ -57,8 +58,9 @@ async def get_locations_dashboard(
     role_type = current_user.role.role_type if current_user.role else None
     query = filter_by_tenant(query, Location, current_user.tenant_id, user_role=role_type)
 
-    if current_user.location_id:
-        query = query.filter(Location.id == current_user.location_id)
+    own_location_id = fixed_location_id(current_user)
+    if own_location_id:
+        query = query.filter(Location.id == own_location_id)
 
     locations = query.all()
     

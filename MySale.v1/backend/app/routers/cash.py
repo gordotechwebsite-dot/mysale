@@ -8,7 +8,7 @@ from app.models.cash import CashCut, CashDenomination, CashClose
 from app.models.location import Location
 from app.schemas.cash import CashCutCreate, CashCutResponse, CashDenominationResponse, CashCloseCreate, CashCloseResponse
 from app.utils.auth import get_current_user
-from app.utils.location_scope import require_own_location, scoped_location_id
+from app.utils.location_scope import fixed_location_id, require_own_location, scoped_location_id
 from datetime import datetime, timedelta
 from app.timezone import now_colombia
 
@@ -41,9 +41,10 @@ async def get_cash_cuts(
         ]
         query = query.filter(CashCut.shift_id.in_(tenant_shift_ids))
 
-    if current_user.location_id:
+    own_location_id = fixed_location_id(current_user)
+    if own_location_id:
         own_shift_ids = [
-            s.id for s in db.query(Shift.id).filter(Shift.location_id == current_user.location_id).all()
+            s.id for s in db.query(Shift.id).filter(Shift.location_id == own_location_id).all()
         ]
         query = query.filter(CashCut.shift_id.in_(own_shift_ids))
     
