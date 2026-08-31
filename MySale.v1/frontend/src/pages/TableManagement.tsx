@@ -132,6 +132,7 @@ export default function TableManagement() {
   const [showReserveDialog, setShowReserveDialog] = useState(false);
   const [showViewReservationDialog, setShowViewReservationDialog] = useState(false);
   const [showPeopleDialog, setShowPeopleDialog] = useState(false);
+  const [showOpenTableDialog, setShowOpenTableDialog] = useState(false);
   const [showViewOrderDialog, setShowViewOrderDialog] = useState(false);
   const [showCartPanel, setShowCartPanel] = useState(false);
   const [reservationName, setReservationName] = useState('');
@@ -595,6 +596,12 @@ export default function TableManagement() {
           toast.error('No hay pedido activo');
         }
         break;
+      case 'open_table':
+        setCustomerName('');
+        setNumPeople('');
+        setCart([]);
+        setShowOpenTableDialog(true);
+        break;
       case 'num_people':
         setShowPeopleDialog(true);
         break;
@@ -659,8 +666,8 @@ export default function TableManagement() {
     }
   };
 
-  const handleOpenTicket = async () => {
-    if (!selectedTable || !selectedLocation || openingTicket) return;
+  const handleOpenTicket = async (): Promise<Ticket | null> => {
+    if (!selectedTable || !selectedLocation || openingTicket) return null;
     setOpeningTicket(true);
     try {
       const ticket = await createTicket({
@@ -670,8 +677,9 @@ export default function TableManagement() {
         num_people: parseInt(numPeople) || 1
       });
       setCurrentTicket(ticket);
-      toast.success('Cuenta abierta');
+      toast.success('Mesa abierta');
       loadZones();
+      return ticket;
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       // If table already has a ticket, fetch it instead of just showing error
@@ -681,15 +689,23 @@ export default function TableManagement() {
           setCurrentTicket(existingTicket);
           toast.success('Cuenta cargada');
           loadZones();
-          return;
+          return existingTicket;
         } catch {
           // fallback to error
         }
       }
       toast.error(err.response?.data?.detail || 'Error al abrir cuenta');
+      return null;
     } finally {
       setOpeningTicket(false);
     }
+  };
+
+  const handleOpenTableWithPeople = async () => {
+    const ticket = await handleOpenTicket();
+    if (!ticket) return;
+    setShowOpenTableDialog(false);
+    setOrderMode(true);
   };
 
   const removeFromCart = (productId: number) => {
@@ -2240,18 +2256,29 @@ export default function TableManagement() {
       <Dialog open={showTableMenu} onOpenChange={setShowTableMenu}>
         <DialogContent className="bg-white text-gray-800 border-0 max-w-xs p-0 overflow-hidden [&>button]:hidden gap-0 rounded-lg shadow-xl">
           <div className="flex flex-col">
-            <button
-              onClick={() => handleMenuAction('load_order')}
-              className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center rounded-t-lg"
-            >
-              CARGAR PEDIDO
-            </button>
-            <button
-              onClick={() => handleMenuAction('close_order')}
-              className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
-            >
-              CERRAR PEDIDO
-            </button>
+            {!currentTicket ? (
+              <button
+                onClick={() => handleMenuAction('open_table')}
+                className="px-4 py-3 hover:bg-emerald-50 border-b border-gray-200 font-bold text-emerald-600 text-center rounded-t-lg"
+              >
+                ABRIR MESA
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => handleMenuAction('load_order')}
+                  className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center rounded-t-lg"
+                >
+                  CARGAR PEDIDO
+                </button>
+                <button
+                  onClick={() => handleMenuAction('close_order')}
+                  className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
+                >
+                  CERRAR PEDIDO
+                </button>
+              </>
+            )}
             {isAdmin && (
               <button
                 onClick={() => handleMenuAction('reserve')}
@@ -2261,7 +2288,7 @@ export default function TableManagement() {
                 {selectedTable?.status === 'reserved' ? 'VER RESERVA' : 'RESERVAR'}
               </button>
             )}
-            {isAdmin && (
+            {isAdmin && currentTicket && (
               <button
                 onClick={() => handleMenuAction('change_table')}
                 className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
@@ -2269,18 +2296,22 @@ export default function TableManagement() {
                 CAMBIAR DE MESA
               </button>
             )}
-            <button
-              onClick={() => handleMenuAction('delete_order')}
-              className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
-            >
-              ELIMINAR PEDIDO
-            </button>
-            <button
-              onClick={() => handleMenuAction(currentTicket ? 'view_order' : 'num_people')}
-              className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
-            >
-              {currentTicket ? 'VER' : 'NUMERO DE PERSONAS'}
-            </button>
+            {currentTicket && (
+              <>
+                <button
+                  onClick={() => handleMenuAction('delete_order')}
+                  className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
+                >
+                  ELIMINAR PEDIDO
+                </button>
+                <button
+                  onClick={() => handleMenuAction('view_order')}
+                  className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
+                >
+                  VER
+                </button>
+              </>
+            )}
             <button
               onClick={() => handleMenuAction('exit')}
               className="px-4 py-3 hover:bg-gray-100 font-semibold text-gray-700 text-center"
@@ -2427,6 +2458,38 @@ export default function TableManagement() {
               onClick={handleCancelReservation}
             >
               Cancelar Reserva
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showOpenTableDialog} onOpenChange={setShowOpenTableDialog}>
+        <DialogContent className="bg-white text-gray-900 border-gray-200 max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Abrir {selectedTable?.name}</DialogTitle>
+          </DialogHeader>
+          <div>
+            <Label>Número de Personas</Label>
+            <Input
+              type="number"
+              value={numPeople}
+              onChange={(e) => setNumPeople(e.target.value)}
+              min={1}
+              placeholder="Ej: 4"
+              autoFocus
+              className="bg-gray-50 border-gray-300 text-lg h-12"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowOpenTableDialog(false)}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-emerald-500 hover:bg-emerald-600"
+              onClick={handleOpenTableWithPeople}
+              disabled={openingTicket}
+            >
+              {openingTicket ? 'Abriendo...' : 'ABRIR MESA'}
             </Button>
           </DialogFooter>
         </DialogContent>
