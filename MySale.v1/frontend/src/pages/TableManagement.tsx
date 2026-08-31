@@ -57,7 +57,6 @@ import {
   Send,
   RotateCw,
   Move,
-  Search,
   ChevronRight,
   Users,
   Package,
@@ -159,7 +158,6 @@ export default function TableManagement() {
   const [numPeople, setNumPeople] = useState('');
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [productSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [families, setFamilies] = useState<Family[]>([]);
   const [subFamilies, setSubFamilies] = useState<SubFamily[]>([]);
@@ -175,7 +173,6 @@ export default function TableManagement() {
   const [paidTicketData, setPaidTicketData] = useState<{ ticket: Ticket; method: string; amount: number; tip: number } | null>(null);
   const [showPrecheckTicket, setShowPrecheckTicket] = useState(false);
   const [precheckTicketData, setPrecheckTicketData] = useState<Ticket | null>(null);
-  const [productSearchQuery, setProductSearchQuery] = useState('');
 
   // Real-time clock for table timers
   const [now, setNow] = useState(Date.now());
@@ -890,13 +887,7 @@ export default function TableManagement() {
   }, [visibleFamilies, selectedFamily]);
 
   const currentZone = zones.find(z => z.id === selectedZone);
-  const filteredProducts = products.filter(p => {
-    const query = productSearchQuery || productSearch;
-    const matchesSearch = query === '' ||
-      p.name.toLowerCase().includes(query.toLowerCase()) ||
-      p.code.toLowerCase().includes(query.toLowerCase());
-    return matchesSearch;
-  });
+  const filteredProducts = products;
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.product.sale_price * item.quantity), 0);
   const orderItemCount =
@@ -1011,23 +1002,6 @@ export default function TableManagement() {
             {/* Items table + Product grid */}
             <div className="flex-1 flex flex-col lg:flex-row gap-2 overflow-hidden min-h-0">
             <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-              {/* Product search */}
-              <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar producto..."
-                  value={productSearchQuery}
-                  onChange={(e) => setProductSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
-                {productSearchQuery && (
-                  <button onClick={() => setProductSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-
               {/* Product grid - responsive cards */}
               <div className="flex-1 overflow-auto bg-white rounded-lg p-2 border border-gray-200 shadow-sm">
                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 pb-20">
