@@ -327,11 +327,27 @@ async def update_table(
     table_id: int,
     data: TableUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("superuser"))
+    current_user: User = Depends(require_role("superuser", "admin"))
 ):
     table = db.query(Table).filter(Table.id == table_id).first()
     if not table:
         raise HTTPException(status_code=404, detail="Table not found")
+
+    if data.status == "reserved":
+        if current_user.role.role_type != "admin":
+            raise HTTPException(
+                status_code=403,
+                detail="Solo el administrador puede reservar mesas"
+            )
+        open_ticket = db.query(Ticket).filter(
+            Ticket.table_id == table.id,
+            Ticket.status.in_(["open", "to_pay"])
+        ).first()
+        if open_ticket:
+            raise HTTPException(
+                status_code=400,
+                detail="No se puede reservar una mesa con cuenta abierta"
+            )
     
     if data.name is not None:
         table.name = data.name
@@ -840,7 +856,7 @@ async def move_ticket(
     ticket_id: int,
     data: MoveTicketRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("admin"))
 ):
     ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
     if not ticket:

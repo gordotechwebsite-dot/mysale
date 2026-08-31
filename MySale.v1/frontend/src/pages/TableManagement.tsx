@@ -112,6 +112,7 @@ interface CartItem {
 export default function TableManagement() {
   const { user } = useAuth();
   const isSuperuser = user?.role?.role_type === 'superuser';
+  const isAdmin = user?.role?.role_type === 'admin';
 
   const [zones, setZones] = useState<ZoneWithTables[]>([]);
   const [selectedZone, setSelectedZone] = useState<number | null>(null);
@@ -536,6 +537,14 @@ export default function TableManagement() {
         }
         break;
       case 'reserve':
+        if (!isAdmin) {
+          toast.error('Solo el administrador puede reservar mesas');
+          return;
+        }
+        if (currentTicket && selectedTable?.status !== 'reserved') {
+          toast.error('La mesa tiene una cuenta abierta');
+          return;
+        }
         if (selectedTable?.status === 'reserved') {
           setShowViewReservationDialog(true);
         } else {
@@ -546,6 +555,10 @@ export default function TableManagement() {
         }
         break;
       case 'change_table':
+        if (!isAdmin) {
+          toast.error('Solo el administrador puede cambiar de mesa');
+          return;
+        }
         console.log('[MOVE] change_table action, currentTicket:', currentTicket?.id, 'selectedTable:', selectedTable?.name);
         if (currentTicket) {
           moveTicketIdRef.current = currentTicket.id;
@@ -1028,22 +1041,24 @@ export default function TableManagement() {
                   <Send className="w-4 h-4 mr-1" />
                   Enviar Cocina
                 </Button>
-                <Button
-                  variant="outline"
-                  className="h-10 text-sm"
-                  onClick={() => {
-                    if (currentTicket) {
-                      moveTicketIdRef.current = currentTicket.id;
-                      moveSourceTableRef.current = selectedTable?.name || '';
-                      setMoveMode(true);
-                      setOrderMode(false);
-                      toast('Toque la mesa destino para mover la cuenta', { icon: '\ud83d\udc46', duration: 5000 });
-                    }
-                  }}
-                >
-                  <ArrowRightLeft className="w-4 h-4 mr-1" />
-                  Mover
-                </Button>
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    className="h-10 text-sm"
+                    onClick={() => {
+                      if (currentTicket) {
+                        moveTicketIdRef.current = currentTicket.id;
+                        moveSourceTableRef.current = selectedTable?.name || '';
+                        setMoveMode(true);
+                        setOrderMode(false);
+                        toast('Toque la mesa destino para mover la cuenta', { icon: '\ud83d\udc46', duration: 5000 });
+                      }
+                    }}
+                  >
+                    <ArrowRightLeft className="w-4 h-4 mr-1" />
+                    Mover
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   className="h-10 text-sm"
@@ -2105,23 +2120,25 @@ export default function TableManagement() {
                     <Send className="w-3 h-3 mr-1" />
                     Enviar
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-xs"
-                    onClick={() => {
-                      if (currentTicket) {
-                        moveTicketIdRef.current = currentTicket.id;
-                        moveSourceTableRef.current = selectedTable?.name || '';
-                        setMoveMode(true);
-                        setShowTicketDialog(false);
-                        toast('Toque la mesa destino para mover la cuenta', { icon: '\ud83d\udc46', duration: 5000 });
-                      }
-                    }}
-                  >
-                    <ArrowRightLeft className="w-3 h-3 mr-1" />
-                    Mover
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs"
+                      onClick={() => {
+                        if (currentTicket) {
+                          moveTicketIdRef.current = currentTicket.id;
+                          moveSourceTableRef.current = selectedTable?.name || '';
+                          setMoveMode(true);
+                          setShowTicketDialog(false);
+                          toast('Toque la mesa destino para mover la cuenta', { icon: '\ud83d\udc46', duration: 5000 });
+                        }
+                      }}
+                    >
+                      <ArrowRightLeft className="w-3 h-3 mr-1" />
+                      Mover
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
@@ -2244,18 +2261,23 @@ export default function TableManagement() {
             >
               CERRAR PEDIDO
             </button>
-            <button
-              onClick={() => handleMenuAction('reserve')}
-              className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
-            >
-              {selectedTable?.status === 'reserved' ? 'VER RESERVA' : 'RESERVAR'}
-            </button>
-            <button
-              onClick={() => handleMenuAction('change_table')}
-              className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
-            >
-              CAMBIAR DE MESA
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => handleMenuAction('reserve')}
+                disabled={!!currentTicket && selectedTable?.status !== 'reserved'}
+                className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              >
+                {selectedTable?.status === 'reserved' ? 'VER RESERVA' : 'RESERVAR'}
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => handleMenuAction('change_table')}
+                className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
+              >
+                CAMBIAR DE MESA
+              </button>
+            )}
             <button
               onClick={() => handleMenuAction('delete_order')}
               className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
