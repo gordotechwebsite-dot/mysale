@@ -1058,11 +1058,10 @@ export default function TableManagement() {
                 <Button
                   variant="outline"
                   className="h-10 text-sm"
-                  onClick={handleSendToKitchen}
-                  disabled={currentTicket.items.filter(i => !i.comanda_id).length === 0}
+                  onClick={handlePrecheck}
                 >
-                  <Send className="w-4 h-4 mr-1" />
-                  Enviar Cocina
+                  <Receipt className="w-4 h-4 mr-1" />
+                  Precuenta
                 </Button>
                 {isAdmin && (
                   <Button
@@ -1083,18 +1082,9 @@ export default function TableManagement() {
                   </Button>
                 )}
                 <Button
-                  variant="outline"
-                  className="h-10 text-sm"
-                  onClick={handlePrecheck}
-                >
-                  <Receipt className="w-4 h-4 mr-1" />
-                  Precuenta
-                </Button>
-                <Button
                   className="bg-emerald-500 hover:bg-emerald-600 h-10 text-sm"
                   onClick={handleOpenPayment}
                 >
-                  <CreditCard className="w-4 h-4 mr-1" />
                   Cobrar
                 </Button>
               </div>
