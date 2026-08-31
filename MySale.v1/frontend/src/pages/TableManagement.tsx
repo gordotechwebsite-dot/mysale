@@ -117,6 +117,7 @@ export default function TableManagement() {
   const isSuperuser = user?.role?.role_type === 'superuser';
   const isAdmin = user?.role?.role_type === 'admin';
   const canDeleteOrder = isAdmin || isSuperuser;
+  const canCharge = isAdmin || isSuperuser;
 
   const [zones, setZones] = useState<ZoneWithTables[]>([]);
   const [selectedZone, setSelectedZone] = useState<number | null>(null);
@@ -719,6 +720,10 @@ export default function TableManagement() {
     setCart(cart.filter(item => item.product.id !== productId));
   };
 
+  const updateCartNotes = (productId: number, notes: string) => {
+    setCart(cart.map(item => item.product.id === productId ? { ...item, notes } : item));
+  };
+
   const updateCartQuantity = (productId: number, delta: number) => {
     setCart(cart.map(item => {
       if (item.product.id === productId) {
@@ -1081,12 +1086,14 @@ export default function TableManagement() {
                     Mover
                   </Button>
                 )}
-                <Button
-                  className="bg-emerald-500 hover:bg-emerald-600 h-10 text-sm"
-                  onClick={handleOpenPayment}
-                >
-                  Cobrar
-                </Button>
+                {canCharge && (
+                  <Button
+                    className="bg-emerald-500 hover:bg-emerald-600 h-10 text-sm"
+                    onClick={handleOpenPayment}
+                  >
+                    Cobrar
+                  </Button>
+                )}
               </div>
             </div>
             </div>
@@ -1125,6 +1132,7 @@ export default function TableManagement() {
                   <span className="font-bold text-gray-900 w-8 shrink-0">{item.quantity}x</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">{item.product_name}</p>
+                    {item.notes && <p className="text-xs text-gray-500">{item.notes}</p>}
                     {item.comanda_id && <p className="text-xs text-emerald-600">Enviado a cocina</p>}
                   </div>
                   <span className="text-sm font-semibold text-gray-900">${item.subtotal.toLocaleString()}</span>
@@ -1137,24 +1145,29 @@ export default function TableManagement() {
               ))}
 
               {cart.map(item => (
-                <div key={`cart-${item.product.id}`} className="flex items-center gap-2 py-2.5 bg-amber-50">
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button onClick={() => updateCartQuantity(item.product.id, -1)} className="w-7 h-7 bg-gray-200 rounded flex items-center justify-center hover:bg-gray-300">
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="w-6 text-center text-gray-900">{item.quantity}</span>
-                    <button onClick={() => updateCartQuantity(item.product.id, 1)} className="w-7 h-7 bg-gray-200 rounded flex items-center justify-center hover:bg-gray-300">
-                      <Plus className="w-3 h-3" />
+                <div key={`cart-${item.product.id}`} className="py-2.5 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => updateCartQuantity(item.product.id, -1)} className="w-7 h-7 bg-gray-200 rounded flex items-center justify-center hover:bg-gray-300">
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="w-6 text-center text-gray-900">{item.quantity}</span>
+                      <button onClick={() => updateCartQuantity(item.product.id, 1)} className="w-7 h-7 bg-gray-200 rounded flex items-center justify-center hover:bg-gray-300">
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <p className="flex-1 min-w-0 text-sm font-medium text-gray-900">{item.product.name}</p>
+                    <span className="text-sm font-semibold text-gray-900">${(item.product.sale_price * item.quantity).toLocaleString()}</span>
+                    <button onClick={() => removeFromCart(item.product.id)} className="text-red-400 hover:text-red-600">
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-amber-800">{item.product.name}</p>
-                    <p className="text-xs text-amber-600">Sin agregar</p>
-                  </div>
-                  <span className="text-sm font-semibold text-amber-800">${(item.product.sale_price * item.quantity).toLocaleString()}</span>
-                  <button onClick={() => removeFromCart(item.product.id)} className="text-red-400 hover:text-red-600">
-                    <X className="w-4 h-4" />
-                  </button>
+                  <Input
+                    value={item.notes || ''}
+                    onChange={(e) => updateCartNotes(item.product.id, e.target.value)}
+                    placeholder="Nota (ej: sin azucar)"
+                    className="h-8 bg-gray-50 border-gray-200 text-sm"
+                  />
                 </div>
               ))}
 
@@ -2152,14 +2165,16 @@ export default function TableManagement() {
                     <Receipt className="w-3 h-3 mr-1" />
                     Precuenta
                   </Button>
-                  <Button
-                    size="sm"
-                    className="bg-emerald-500 hover:bg-emerald-600 text-xs"
-                    onClick={handleOpenPayment}
-                  >
-                    <CreditCard className="w-3 h-3 mr-1" />
-                    Cobrar
-                  </Button>
+                  {canCharge && (
+                    <Button
+                      size="sm"
+                      className="bg-emerald-500 hover:bg-emerald-600 text-xs"
+                      onClick={handleOpenPayment}
+                    >
+                      <CreditCard className="w-3 h-3 mr-1" />
+                      Cobrar
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -2268,12 +2283,14 @@ export default function TableManagement() {
                 >
                   CARGAR PEDIDO
                 </button>
-                <button
-                  onClick={() => handleMenuAction('close_order')}
-                  className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
-                >
-                  CERRAR PEDIDO
-                </button>
+                {canCharge && (
+                  <button
+                    onClick={() => handleMenuAction('close_order')}
+                    className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
+                  >
+                    CERRAR PEDIDO
+                  </button>
+                )}
               </>
             )}
             {isAdmin && (
