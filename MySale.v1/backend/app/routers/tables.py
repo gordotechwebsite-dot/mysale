@@ -1160,7 +1160,7 @@ async def pay_ticket(
     ticket_id: int,
     data: PayTicketRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("superuser", "admin"))
 ):
     ticket = get_scoped_ticket(ticket_id, db, current_user)
 
