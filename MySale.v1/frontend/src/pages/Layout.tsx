@@ -773,7 +773,7 @@ const Layout: React.FC = () => {
   }
 
   return (
-    <div className="h-screen h-[100dvh] flex overflow-hidden" style={{ backgroundColor: '#f6f7f9' }}>
+    <div className="h-[100dvh] max-h-[100dvh] flex overflow-hidden" style={{ backgroundColor: '#f6f7f9' }}>
       {/* PIN Modal */}
       <PinModal isOpen={pinModalOpen} onClose={() => setPinModalOpen(false)} />
 
@@ -790,7 +790,7 @@ const Layout: React.FC = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white transform transition-transform duration-200 ease-in-out flex flex-col h-screen h-[100dvh] ${
+        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white transform transition-transform duration-200 ease-in-out flex flex-col h-[100dvh] max-h-[100dvh] ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
         style={{ 
@@ -918,7 +918,13 @@ const Layout: React.FC = () => {
         </nav>
 
         {/* Logout button inside sidebar */}
-        <div className="flex-shrink-0 p-4" style={{ borderTop: '1px solid #e5e7eb' }}>
+        <div
+          className="flex-shrink-0 p-4"
+          style={{
+            borderTop: '1px solid #e5e7eb',
+            paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))'
+          }}
+        >
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-2.5 transition-all duration-200"
