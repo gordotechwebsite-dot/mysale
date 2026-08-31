@@ -22,15 +22,16 @@ from app.schemas.reports import (
     PurchasesReportResponse, PurchaseDetail
 )
 from app.utils.auth import get_current_user, require_role
-from app.utils.location_scope import scoped_location_id
+from app.utils.location_scope import fixed_location_id, scoped_location_id
 
 router = APIRouter(prefix="/api/reports", tags=["Reportes"])
 
 
 def _get_tenant_location_ids(db: Session, current_user: User) -> list:
     """Sedes que el usuario puede reportar: su sede fija, o las de su negocio."""
-    if current_user.location_id:
-        return [current_user.location_id]
+    own_location_id = fixed_location_id(current_user)
+    if own_location_id:
+        return [own_location_id]
     if not current_user.tenant_id:
         return []
     locs = db.query(Location.id).filter(Location.tenant_id == current_user.tenant_id).all()

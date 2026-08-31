@@ -601,6 +601,9 @@ const moduleRoutes: Record<string, string> = {
   transfers: '/transfers',
 };
 
+// Paginas que no muestran el titulo del modulo en el encabezado
+const pathsWithoutHeaderTitle = ['/tables'];
+
 // Sidebar ordering by usage groups: Ventas > Operaciones > Administracion
 const moduleSortOrder: Record<string, number> = {
   dashboard: 1,
@@ -958,7 +961,9 @@ const Layout: React.FC = () => {
         >
           <div className="lg:hidden w-10" />
           <h2 className="text-sm lg:text-lg font-semibold truncate" style={{ color: '#111827' }}>
-            {menuItems.find(item => item.path === location.pathname)?.label || 'MySale'}
+            {pathsWithoutHeaderTitle.includes(location.pathname)
+              ? ''
+              : menuItems.find(item => item.path === location.pathname)?.label || 'MySale'}
           </h2>
           <div className="flex items-center gap-3">
             <ColombiaClockDisplay onClick={() => setPinModalOpen(true)} />

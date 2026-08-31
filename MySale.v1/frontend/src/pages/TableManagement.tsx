@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { canSelectLocation, getFixedLocationId } from '../lib/locationScope';
 import { toast } from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import {
@@ -112,6 +113,7 @@ interface CartItem {
 
 export default function TableManagement() {
   const { user } = useAuth();
+  const canChooseLocation = canSelectLocation(user);
   const isSuperuser = user?.role?.role_type === 'superuser';
   const isAdmin = user?.role?.role_type === 'admin';
   const canDeleteOrder = isAdmin || isSuperuser;
@@ -299,7 +301,7 @@ export default function TableManagement() {
     try {
       const data = await getLocations();
       const posLocations = data.filter(l => l.location_type === 'pos');
-      const fixedLocationId = user?.location_id && user.location_id > 0 ? user.location_id : null;
+      const fixedLocationId = getFixedLocationId(user);
       const visibleLocations = fixedLocationId
         ? posLocations.filter(l => l.id === fixedLocationId)
         : posLocations;
@@ -1323,23 +1325,25 @@ export default function TableManagement() {
   return (
     <div className="h-full flex flex-col bg-gray-50">
       <div className="flex flex-col gap-3 px-3 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-6 lg:py-4 bg-white border-b border-gray-200">
-        <div className="flex items-center gap-3 lg:gap-4">
-          <Select
-            value={selectedLocation?.toString() || ''}
-            onValueChange={(v) => setSelectedLocation(parseInt(v))}
-          >
-            <SelectTrigger className="flex-1 lg:w-52 bg-gray-50 border-gray-300 text-gray-900">
-              <SelectValue placeholder="Seleccionar ubicación" />
-            </SelectTrigger>
-            <SelectContent>
-              {locations.map(loc => (
-                <SelectItem key={loc.id} value={loc.id.toString()}>
-                  {loc.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {canChooseLocation && (
+          <div className="flex items-center gap-3 lg:gap-4">
+            <Select
+              value={selectedLocation?.toString() || ''}
+              onValueChange={(v) => setSelectedLocation(parseInt(v))}
+            >
+              <SelectTrigger className="flex-1 lg:w-52 bg-gray-50 border-gray-300 text-gray-900">
+                <SelectValue placeholder="Seleccionar ubicación" />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map(loc => (
+                  <SelectItem key={loc.id} value={loc.id.toString()}>
+                    {loc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           {isSuperuser && (
             <>
