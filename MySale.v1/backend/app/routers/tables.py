@@ -13,6 +13,9 @@ from app.models.table import (
     Zone, Table, Ticket, TicketItem, Comanda, TicketPayment
 )
 from app.models.inventory import Product
+from app.models.location import Location
+from app.models.sale import PaymentMethod, Sale, SaleItem, SaleType
+from app.models.shift import Shift, ShiftStatus
 from app.models.user import User
 from app.schemas.table import (
     ZoneCreate, ZoneUpdate, ZoneResponse, ZoneWithTablesResponse,
@@ -25,7 +28,9 @@ from app.schemas.table import (
     SplitTicketRequest, AddItemsRequest
 )
 from app.utils.auth import get_current_user, require_role
+from app.utils.folio import generate_folio
 from app.utils.menu import product_belongs_to_location
+from app.utils.stock import register_sale_stock_exit
 
 router = APIRouter(prefix="/api/tables", tags=["tables"])
 
@@ -470,6 +475,7 @@ def get_ticket_response(ticket: Ticket, db: Session) -> TicketResponse:
         num_people=ticket.num_people,
         notes=ticket.notes,
         status=ticket.status or "open",
+        sale_id=ticket.sale_id,
         subtotal=ticket.subtotal,
         tax=ticket.tax,
         tip=ticket.tip,
@@ -1024,6 +1030,112 @@ async def split_ticket(
     return get_ticket_response(new_ticket, db)
 
 
+def _resolve_payment_method(raw_method: str) -> PaymentMethod:
+    try:
+        return PaymentMethod(raw_method.lower())
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Forma de pago invalida: {raw_method}")
+
+
+def _register_ticket_sale(
+    ticket: Ticket,
+    data: PayTicketRequest,
+    db: Session,
+    current_user: User
+) -> Sale:
+    """Convierte la cuenta de mesa cobrada en una venta con turno, caja e inventario."""
+    shift = db.query(Shift).filter(
+        Shift.user_id == current_user.id,
+        Shift.status == ShiftStatus.OPEN
+    ).first()
+
+    location_id = ticket.location_id or (shift.location_id if shift else None)
+    if not location_id:
+        raise HTTPException(status_code=400, detail="La cuenta no tiene sede asignada")
+
+    location = db.query(Location).filter(Location.id == location_id).first()
+    if not location:
+        raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
+
+    if not shift:
+        shift = Shift(
+            user_id=current_user.id,
+            location_id=location.id,
+            initial_cash=0.0,
+            notes="Turno auto-creado al cobrar una cuenta de mesa"
+        )
+        db.add(shift)
+        db.flush()
+
+    items = db.query(TicketItem).filter(
+        TicketItem.ticket_id == ticket.id,
+        or_(TicketItem.status.is_(None), TicketItem.status != "cancelled")
+    ).all()
+
+    payment_method = _resolve_payment_method(
+        max(data.payments, key=lambda p: p.amount).payment_method
+    )
+    total_paid = sum(p.amount for p in data.payments)
+    change_given = total_paid - ticket.total if payment_method == PaymentMethod.CASH else None
+
+    table = db.query(Table).filter(Table.id == ticket.table_id).first()
+    table_label = f"Mesa {table.name}" if table else "Mesa"
+
+    sale = Sale(
+        folio=generate_folio(location, "MESA"),
+        location_id=location.id,
+        shift_id=shift.id,
+        cashier_id=current_user.id,
+        subtotal=ticket.subtotal or 0.0,
+        tax=ticket.tax or 0.0,
+        discount=ticket.discount or 0.0,
+        total=ticket.total or 0.0,
+        payment_method=payment_method,
+        amount_received=total_paid,
+        change_given=change_given,
+        notes=f"{table_label} - cuenta #{ticket.id}",
+        sale_type=SaleType.TABLE
+    )
+    db.add(sale)
+    db.flush()
+
+    for item in items:
+        product = db.query(Product).filter(Product.id == item.product_id).first()
+        db.add(SaleItem(
+            sale_id=sale.id,
+            product_id=item.product_id,
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+            cost_at_sale=product.weighted_cost if product else 0.0,
+            discount=item.discount or 0.0,
+            subtotal=item.subtotal,
+            notes=item.notes
+        ))
+        if product:
+            register_sale_stock_exit(
+                db,
+                product=product,
+                location_id=location.id,
+                quantity=item.quantity,
+                reference_id=sale.id,
+                reference_type="sale",
+                created_by_id=current_user.id,
+                notes=f"{table_label} - venta {sale.folio}"
+            )
+
+    shift.total_sales += sale.total
+    for payment_data in data.payments:
+        method = _resolve_payment_method(payment_data.payment_method)
+        if method == PaymentMethod.CASH:
+            shift.total_cash_sales += payment_data.amount
+        elif method == PaymentMethod.CARD:
+            shift.total_card_sales += payment_data.amount
+        else:
+            shift.total_transfer_sales += payment_data.amount
+
+    return sale
+
+
 @router.post("/tickets/{ticket_id}/pay", response_model=TicketResponse)
 async def pay_ticket(
     ticket_id: int,
@@ -1035,8 +1147,18 @@ async def pay_ticket(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
     
+    if current_user.tenant_id and ticket.tenant_id and ticket.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="La cuenta pertenece a otro negocio")
+    
+    if current_user.location_id and ticket.location_id and ticket.location_id != current_user.location_id:
+        raise HTTPException(status_code=403, detail="La cuenta pertenece a otra sede")
+    
     if ticket.status == "paid":
-        raise HTTPException(status_code=400, detail="Ticket already paid")
+        # Reintento del cobro: la cuenta ya quedo pagada y con su venta
+        return get_ticket_response(ticket, db)
+    
+    if not data.payments:
+        raise HTTPException(status_code=400, detail="Debes registrar al menos una forma de pago")
     
     if data.tip:
         ticket.tip = data.tip
@@ -1051,9 +1173,13 @@ async def pay_ticket(
             ticket_id=ticket_id,
             payment_method=payment_data.payment_method,
             amount=payment_data.amount,
-            reference=payment_data.reference
+            reference=payment_data.reference,
+            created_by_id=current_user.id
         )
         db.add(payment)
+    
+    sale = _register_ticket_sale(ticket, data, db, current_user)
+    ticket.sale_id = sale.id
     
     ticket.status = "paid"
     ticket.closed_at = now_colombia()

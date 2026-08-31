@@ -160,6 +160,7 @@ class TicketResponse(BaseModel):
     num_people: int
     notes: Optional[str] = None
     status: str
+    sale_id: Optional[int] = None
     subtotal: float
     tax: float
     tip: float
