@@ -257,13 +257,22 @@ async def get_products(
     query = db.query(Product).filter(Product.is_active == True)
     if current_user.tenant_id:
         query = query.filter((Product.tenant_id == current_user.tenant_id) | (Product.tenant_id == None))
-    
+
+    # Un usuario con sede fija siempre ve la carta de su sede
+    if current_user.location_id:
+        location_id = current_user.location_id
+
     if subfamily_id:
         query = query.filter(Product.subfamily_id == subfamily_id)
     
     if location_id:
-        # Carta por sede: los productos sin sede se venden en todas
-        query = query.filter((Product.location_id == location_id) | (Product.location_id == None))
+        # Carta por sede: una sede con carta propia solo muestra sus productos,
+        # el resto tambien muestra los productos sin sede asignada
+        location = db.query(Location).filter(Location.id == location_id).first()
+        if location and location.has_own_menu:
+            query = query.filter(Product.location_id == location_id)
+        else:
+            query = query.filter((Product.location_id == location_id) | (Product.location_id == None))
     
     if search:
         query = query.filter(

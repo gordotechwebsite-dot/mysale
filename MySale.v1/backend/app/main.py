@@ -30,6 +30,23 @@ def run_migrations():
             db.commit()
             print("Migration: Added image_url column to locations table")
         
+        if 'has_own_menu' not in columns:
+            db.execute(text("ALTER TABLE locations ADD COLUMN has_own_menu BOOLEAN DEFAULT 0 NOT NULL"))
+            db.commit()
+            # A location that already has its own products keeps only its own menu
+            has_products = db.execute(text(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='products'"
+            )).fetchone()
+            if has_products:
+                product_columns = [row[1] for row in db.execute(text("PRAGMA table_info(products)")).fetchall()]
+                if 'location_id' in product_columns:
+                    db.execute(text(
+                        "UPDATE locations SET has_own_menu = 1 WHERE id IN "
+                        "(SELECT DISTINCT location_id FROM products WHERE location_id IS NOT NULL)"
+                    ))
+                    db.commit()
+            print("Migration: Added has_own_menu column to locations table")
+        
         # Check if products table exists and fix subfamily_id constraint
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='products'"))
         if result.fetchone():
@@ -795,6 +812,7 @@ def init_asadero_products():
                     )
                     db.add(product)
 
+            location.has_own_menu = True
             db.commit()
             print(f"Carta del Asadero creada en {location.name} ({product_counter} productos)")
 
