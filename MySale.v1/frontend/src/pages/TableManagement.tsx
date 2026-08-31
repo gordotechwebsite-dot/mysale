@@ -151,7 +151,6 @@ export default function TableManagement() {
 
   const [customerName, setCustomerName] = useState('');
   const [numPeople, setNumPeople] = useState('');
-  const [ticketNotes, setTicketNotes] = useState('');
 
   const [products, setProducts] = useState<Product[]>([]);
   const [productSearch] = useState('');
@@ -526,7 +525,6 @@ export default function TableManagement() {
         if (isTableFree(selectedTable.status)) {
           setCustomerName('');
           setNumPeople('');
-          setTicketNotes('');
         }
         setCart([]);
         setOrderMode(true);
@@ -657,8 +655,7 @@ export default function TableManagement() {
         table_id: selectedTable.id,
         location_id: selectedLocation,
         customer_name: customerName || undefined,
-        num_people: parseInt(numPeople) || 1,
-        notes: ticketNotes || undefined
+        num_people: parseInt(numPeople) || 1
       });
       setCurrentTicket(ticket);
       toast.success('Cuenta abierta');
@@ -933,15 +930,6 @@ export default function TableManagement() {
                   onChange={(e) => setNumPeople(e.target.value)}
                   min={1}
                   placeholder="Ej: 4"
-                  className="bg-gray-50 border-gray-300 text-gray-900 text-lg h-12"
-                />
-              </div>
-              <div>
-                <Label className="text-gray-700">Notas</Label>
-                <Input
-                  value={ticketNotes}
-                  onChange={(e) => setTicketNotes(e.target.value)}
-                  placeholder="Notas adicionales"
                   className="bg-gray-50 border-gray-300 text-gray-900 text-lg h-12"
                 />
               </div>
@@ -1945,15 +1933,6 @@ export default function TableManagement() {
                   onChange={(e) => setNumPeople(e.target.value)}
                   min={1}
                   placeholder="Ej: 4"
-                  className="bg-gray-50 border-gray-300"
-                />
-              </div>
-              <div>
-                <Label>Notas</Label>
-                <Input
-                  value={ticketNotes}
-                  onChange={(e) => setTicketNotes(e.target.value)}
-                  placeholder="Notas adicionales"
                   className="bg-gray-50 border-gray-300"
                 />
               </div>
