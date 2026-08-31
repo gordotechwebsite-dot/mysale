@@ -29,6 +29,7 @@ from app.schemas.table import (
 )
 from app.utils.auth import get_current_user, require_role
 from app.utils.folio import generate_folio
+from app.utils.location_scope import require_own_location, scoped_location_id
 from app.utils.menu import product_belongs_to_location
 from app.utils.stock import register_sale_stock_exit
 
@@ -40,6 +41,25 @@ def filter_by_tenant(query, model, tenant_id):
     if tenant_id:
         return query.filter(model.tenant_id == tenant_id)
     return query
+
+
+def table_location_id(table: Table, db: Session) -> Optional[int]:
+    """Sede a la que pertenece la mesa, a traves de su zona."""
+    zone = db.query(Zone).filter(Zone.id == table.zone_id).first()
+    return zone.location_id if zone else None
+
+
+def get_scoped_ticket(ticket_id: int, db: Session, current_user: User) -> Ticket:
+    """Cuenta del usuario: valida que sea de su negocio y de su sede."""
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    if current_user.tenant_id and ticket.tenant_id and ticket.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="No tienes acceso a este ticket")
+
+    require_own_location(current_user, ticket.location_id)
+    return ticket
 
 
 def get_table_response(table: Table, db: Session) -> TableResponse:
@@ -105,6 +125,7 @@ async def get_zones(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    location_id = scoped_location_id(current_user, location_id)
     query = db.query(Zone).filter(Zone.is_active == True)
     query = filter_by_tenant(query, Zone, current_user.tenant_id)
     if location_id:
@@ -128,6 +149,7 @@ async def get_zones_with_tables(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    location_id = scoped_location_id(current_user, location_id)
     query = db.query(Zone).filter(Zone.is_active == True)
     query = filter_by_tenant(query, Zone, current_user.tenant_id)
     if location_id:
@@ -282,6 +304,7 @@ async def get_tables(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    location_id = scoped_location_id(current_user, location_id)
     query = db.query(Table).filter(Table.is_active == True)
     # Tenant isolation
     query = filter_by_tenant(query, Table, current_user.tenant_id)
@@ -518,7 +541,10 @@ async def create_ticket(
     table = db.query(Table).filter(Table.id == data.table_id).first()
     if not table:
         raise HTTPException(status_code=404, detail="Table not found")
-    
+
+    require_own_location(current_user, table_location_id(table, db))
+    location_id = scoped_location_id(current_user, data.location_id)
+
     existing_ticket = db.query(Ticket).filter(
         Ticket.table_id == data.table_id,
         Ticket.status.in_(["open", "to_pay"])
@@ -528,7 +554,7 @@ async def create_ticket(
     
     ticket = Ticket(
         table_id=data.table_id,
-        location_id=data.location_id,
+        location_id=location_id,
         waiter_id=current_user.id,
         customer_name=data.customer_name,
         num_people=data.num_people or 1,
@@ -556,6 +582,8 @@ async def list_tickets(
     """Lista cuentas abiertas (state=open) o cerradas de un dia (state=closed)."""
     if state not in ("open", "closed"):
         raise HTTPException(status_code=400, detail="state debe ser 'open' o 'closed'")
+
+    location_id = scoped_location_id(current_user, location_id)
 
     query = db.query(Ticket)
 
@@ -588,14 +616,8 @@ async def get_ticket(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    
-    # Tenant isolation
-    if current_user.tenant_id and ticket.tenant_id and ticket.tenant_id != current_user.tenant_id:
-        raise HTTPException(status_code=403, detail="No tienes acceso a este ticket")
-    
+    ticket = get_scoped_ticket(ticket_id, db, current_user)
+
     return get_ticket_response(ticket, db)
 
 
@@ -611,7 +633,9 @@ async def get_table_ticket(
     ).first()
     if not ticket:
         raise HTTPException(status_code=404, detail="No open ticket for this table")
-    
+
+    require_own_location(current_user, ticket.location_id)
+
     return get_ticket_response(ticket, db)
 
 
@@ -622,10 +646,8 @@ async def update_ticket(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    
+    ticket = get_scoped_ticket(ticket_id, db, current_user)
+
     if data.customer_name is not None:
         ticket.customer_name = data.customer_name
     if data.num_people is not None:
@@ -650,15 +672,10 @@ async def update_ticket(
 async def cancel_ticket(
     ticket_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("superuser", "admin"))
 ):
     """Elimina (anula) una cuenta abierta y libera la mesa."""
-    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-
-    if current_user.tenant_id and ticket.tenant_id and ticket.tenant_id != current_user.tenant_id:
-        raise HTTPException(status_code=403, detail="No tienes acceso a este ticket")
+    ticket = get_scoped_ticket(ticket_id, db, current_user)
 
     if ticket.status == "paid":
         raise HTTPException(status_code=400, detail="No se puede eliminar una cuenta ya pagada")
@@ -686,10 +703,8 @@ async def add_items_to_ticket(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    
+    ticket = get_scoped_ticket(ticket_id, db, current_user)
+
     if ticket.status not in ["open", "to_pay"]:
         raise HTTPException(status_code=400, detail="Cannot add items to closed ticket")
     
@@ -738,6 +753,8 @@ async def remove_item_from_ticket(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    ticket = get_scoped_ticket(ticket_id, db, current_user)
+
     item = db.query(TicketItem).filter(
         TicketItem.id == item_id,
         TicketItem.ticket_id == ticket_id
@@ -750,9 +767,7 @@ async def remove_item_from_ticket(
     else:
         db.delete(item)
     
-    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
-    if ticket:
-        recalculate_ticket_totals(ticket, db)
+    recalculate_ticket_totals(ticket, db)
     
     db.commit()
     return {"message": "Item removed successfully"}
@@ -765,10 +780,8 @@ async def create_comanda(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    
+    get_scoped_ticket(ticket_id, db, current_user)
+
     valid_areas = ["kitchen", "bar", "grill", "desserts"]
     area = data.area if data.area and data.area in valid_areas else "kitchen"
     
@@ -833,6 +846,8 @@ async def get_ticket_comandas(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    get_scoped_ticket(ticket_id, db, current_user)
+
     comandas = db.query(Comanda).filter(Comanda.ticket_id == ticket_id).order_by(Comanda.created_at.desc()).all()
     
     result = []
@@ -884,6 +899,8 @@ async def update_comanda_status(
     comanda = db.query(Comanda).filter(Comanda.id == comanda_id).first()
     if not comanda:
         raise HTTPException(status_code=404, detail="Comanda not found")
+
+    get_scoped_ticket(comanda.ticket_id, db, current_user)
     
     try:
         comanda.status = status
@@ -906,14 +923,14 @@ async def move_ticket(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("admin"))
 ):
-    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    
+    ticket = get_scoped_ticket(ticket_id, db, current_user)
+
     new_table = db.query(Table).filter(Table.id == data.new_table_id).first()
     if not new_table:
         raise HTTPException(status_code=404, detail="New table not found")
-    
+
+    require_own_location(current_user, table_location_id(new_table, db))
+
     existing = db.query(Ticket).filter(
         Ticket.table_id == data.new_table_id,
         Ticket.status.in_(["open", "to_pay"])
@@ -943,7 +960,9 @@ async def merge_tickets(
     target_table = db.query(Table).filter(Table.id == data.target_table_id).first()
     if not target_table:
         raise HTTPException(status_code=404, detail="Target table not found")
-    
+
+    require_own_location(current_user, table_location_id(target_table, db))
+
     target_ticket = db.query(Ticket).filter(
         Ticket.table_id == data.target_table_id,
         Ticket.status.in_(["open", "to_pay"])
@@ -960,8 +979,8 @@ async def merge_tickets(
         db.flush()
     
     for source_id in data.source_ticket_ids:
-        source_ticket = db.query(Ticket).filter(Ticket.id == source_id).first()
-        if source_ticket and source_ticket.id != target_ticket.id:
+        source_ticket = get_scoped_ticket(source_id, db, current_user)
+        if source_ticket.id != target_ticket.id:
             items = db.query(TicketItem).filter(TicketItem.ticket_id == source_id).all()
             for item in items:
                 item.ticket_id = target_ticket.id
@@ -988,13 +1007,13 @@ async def split_ticket(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    original_ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
-    if not original_ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    
+    original_ticket = get_scoped_ticket(ticket_id, db, current_user)
+
     new_table = db.query(Table).filter(Table.id == data.new_table_id).first()
     if not new_table:
         raise HTTPException(status_code=404, detail="New table not found")
+
+    require_own_location(current_user, table_location_id(new_table, db))
     
     existing = db.query(Ticket).filter(
         Ticket.table_id == data.new_table_id,
@@ -1143,16 +1162,8 @@ async def pay_ticket(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    
-    if current_user.tenant_id and ticket.tenant_id and ticket.tenant_id != current_user.tenant_id:
-        raise HTTPException(status_code=403, detail="La cuenta pertenece a otro negocio")
-    
-    if current_user.location_id and ticket.location_id and ticket.location_id != current_user.location_id:
-        raise HTTPException(status_code=403, detail="La cuenta pertenece a otra sede")
-    
+    ticket = get_scoped_ticket(ticket_id, db, current_user)
+
     if ticket.status == "paid":
         # Reintento del cobro: la cuenta ya quedo pagada y con su venta
         return get_ticket_response(ticket, db)
@@ -1200,6 +1211,8 @@ async def get_ticket_payments(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    get_scoped_ticket(ticket_id, db, current_user)
+
     payments = db.query(TicketPayment).filter(TicketPayment.ticket_id == ticket_id).all()
     return [TicketPaymentResponse(
         id=p.id,
@@ -1218,10 +1231,8 @@ async def generate_precheck(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
-    if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found")
-    
+    ticket = get_scoped_ticket(ticket_id, db, current_user)
+
     ticket.status = "to_pay"
     
     table = db.query(Table).filter(Table.id == ticket.table_id).first()

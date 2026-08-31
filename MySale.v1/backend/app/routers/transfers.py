@@ -10,6 +10,7 @@ from app.models.inventory import Product, ProductStock, StockMovement, MovementT
 from app.models.location import Location
 from app.schemas.transfer import TransferCreate, TransferResponse, TransferItemResponse, TransferReceive
 from app.utils.auth import get_current_user, require_role
+from app.utils.location_scope import require_own_location
 
 router = APIRouter(prefix="/api/transfers", tags=["Transferencias"])
 
@@ -41,6 +42,13 @@ async def get_transfers(
                 (Transfer.from_location_id.in_(tenant_loc_ids)) | 
                 (Transfer.to_location_id.in_(tenant_loc_ids))
             )
+
+    # Un usuario con sede fija solo ve traspasos donde participa su sede
+    if current_user.location_id:
+        query = query.filter(
+            (Transfer.from_location_id == current_user.location_id) |
+            (Transfer.to_location_id == current_user.location_id)
+        )
     
     if from_location_id:
         query = query.filter(Transfer.from_location_id == from_location_id)
@@ -97,6 +105,8 @@ async def create_transfer(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
+    require_own_location(current_user, transfer_data.from_location_id)
+
     from_loc = db.query(Location).filter(Location.id == transfer_data.from_location_id).first()
     if not from_loc:
         raise HTTPException(status_code=404, detail="Ubicacion de origen no encontrada")
@@ -225,6 +235,8 @@ async def receive_transfer(
         tenant_loc_ids = _get_tenant_location_ids(db, current_user)
         if tenant_loc_ids and transfer.to_location_id not in tenant_loc_ids and transfer.from_location_id not in tenant_loc_ids:
             raise HTTPException(status_code=403, detail="No tienes acceso a esta transferencia")
+
+    require_own_location(current_user, transfer.to_location_id)
     
     if transfer.status != TransferStatus.PENDING:
         raise HTTPException(status_code=400, detail="La transferencia ya fue procesada")
@@ -315,6 +327,8 @@ async def cancel_transfer(
         tenant_loc_ids = _get_tenant_location_ids(db, current_user)
         if tenant_loc_ids and transfer.from_location_id not in tenant_loc_ids:
             raise HTTPException(status_code=403, detail="No tienes acceso a esta transferencia")
+
+    require_own_location(current_user, transfer.from_location_id)
     
     if transfer.status != TransferStatus.PENDING:
         raise HTTPException(status_code=400, detail="Solo se pueden cancelar transferencias pendientes")

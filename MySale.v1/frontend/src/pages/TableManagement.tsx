@@ -114,6 +114,7 @@ export default function TableManagement() {
   const { user } = useAuth();
   const isSuperuser = user?.role?.role_type === 'superuser';
   const isAdmin = user?.role?.role_type === 'admin';
+  const canDeleteOrder = isAdmin || isSuperuser;
 
   const [zones, setZones] = useState<ZoneWithTables[]>([]);
   const [selectedZone, setSelectedZone] = useState<number | null>(null);
@@ -570,6 +571,10 @@ export default function TableManagement() {
         }
         break;
       case 'delete_order':
+        if (!canDeleteOrder) {
+          toast.error('Solo el administrador puede eliminar pedidos');
+          return;
+        }
         if (currentTicket) {
           setConfirmAction({
             title: 'Eliminar pedido',
@@ -2298,12 +2303,14 @@ export default function TableManagement() {
             )}
             {currentTicket && (
               <>
-                <button
-                  onClick={() => handleMenuAction('delete_order')}
-                  className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
-                >
-                  ELIMINAR PEDIDO
-                </button>
+                {canDeleteOrder && (
+                  <button
+                    onClick={() => handleMenuAction('delete_order')}
+                    className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"
+                  >
+                    ELIMINAR PEDIDO
+                  </button>
+                )}
                 <button
                   onClick={() => handleMenuAction('view_order')}
                   className="px-4 py-3 hover:bg-gray-100 border-b border-gray-200 font-semibold text-gray-700 text-center"

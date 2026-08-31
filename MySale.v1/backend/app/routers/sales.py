@@ -14,6 +14,7 @@ from app.models.location import Location
 from app.schemas.sale import SaleCreate, SaleResponse, SaleItemResponse
 from app.utils.auth import get_current_user, require_role
 from app.utils.folio import generate_folio
+from app.utils.location_scope import require_own_location, scoped_location_id
 from app.utils.menu import product_belongs_to_location
 from app.utils.stock import register_sale_stock_exit
 
@@ -80,6 +81,8 @@ async def get_sales(
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Sale)
+
+    location_id = scoped_location_id(current_user, location_id)
 
     # Tenant isolation: only show sales from locations belonging to user's tenant
     if current_user.tenant_id:
@@ -166,7 +169,9 @@ async def get_sale(
         tenant_loc_ids = _get_tenant_location_ids(db, current_user)
         if tenant_loc_ids and sale.location_id not in tenant_loc_ids:
             raise HTTPException(status_code=403, detail="No tienes acceso a esta venta")
-    
+
+    require_own_location(current_user, sale.location_id)
+
     location = db.query(Location).filter(Location.id == sale.location_id).first()
     cashier = db.query(User).filter(User.id == sale.cashier_id).first()
     
@@ -226,8 +231,9 @@ async def create_sale(
     ).first()
     
     if not shift:
-        if sale_data.location_id:
-            location = db.query(Location).filter(Location.id == sale_data.location_id).first()
+        requested_location_id = scoped_location_id(current_user, sale_data.location_id)
+        if requested_location_id:
+            location = db.query(Location).filter(Location.id == requested_location_id).first()
             if not location:
                 raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
             shift = Shift(
@@ -412,7 +418,9 @@ async def get_sale_by_folio(
         tenant_loc_ids = _get_tenant_location_ids(db, current_user)
         if tenant_loc_ids and sale.location_id not in tenant_loc_ids:
             raise HTTPException(status_code=403, detail="No tienes acceso a esta venta")
-    
+
+    require_own_location(current_user, sale.location_id)
+
     location = db.query(Location).filter(Location.id == sale.location_id).first()
     cashier = db.query(User).filter(User.id == sale.cashier_id).first()
     

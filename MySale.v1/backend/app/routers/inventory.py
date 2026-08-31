@@ -20,6 +20,7 @@ from app.schemas.inventory import (
     ModifierCreate, ModifierUpdate, ModifierResponse
 )
 from app.utils.auth import get_current_user, require_role, require_module
+from app.utils.location_scope import require_own_location, scoped_location_id
 
 router = APIRouter(prefix="/api/inventory", tags=["Inventario"])
 
@@ -59,7 +60,7 @@ def _serialize_product(
 
 
 def _validate_product_location(db: Session, location_id: Optional[int], current_user: User) -> None:
-    """La sede de un producto debe pertenecer al tenant del usuario."""
+    """La sede de un producto debe ser del tenant y de la sede fija del usuario."""
     if not location_id:
         return
     location = db.query(Location).filter(Location.id == location_id).first()
@@ -67,6 +68,7 @@ def _validate_product_location(db: Session, location_id: Optional[int], current_
         raise HTTPException(status_code=404, detail="Sede no encontrada")
     if current_user.tenant_id and location.tenant_id != current_user.tenant_id:
         raise HTTPException(status_code=403, detail="La sede no pertenece a este cliente")
+    require_own_location(current_user, location_id)
 
 
 @router.post("/upload-image")
@@ -259,8 +261,7 @@ async def get_products(
         query = query.filter((Product.tenant_id == current_user.tenant_id) | (Product.tenant_id == None))
 
     # Un usuario con sede fija siempre ve la carta de su sede
-    if current_user.location_id:
-        location_id = current_user.location_id
+    location_id = scoped_location_id(current_user, location_id)
 
     if subfamily_id:
         query = query.filter(Product.subfamily_id == subfamily_id)
@@ -336,8 +337,10 @@ async def create_product(
         raise HTTPException(status_code=404, detail="Subfamilia no encontrada")
     
     _validate_product_location(db, product.location_id, current_user)
-    
-    db_product = Product(**product.model_dump(), tenant_id=current_user.tenant_id)
+
+    product_data = product.model_dump()
+    product_data["location_id"] = scoped_location_id(current_user, product.location_id)
+    db_product = Product(**product_data, tenant_id=current_user.tenant_id)
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
@@ -369,6 +372,8 @@ async def get_product(
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    require_own_location(current_user, product.location_id)
     
     stocks = []
     for stock in product.stocks:
@@ -395,6 +400,8 @@ async def update_product(
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    require_own_location(current_user, product.location_id)
     
     update_data = product_update.model_dump(exclude_unset=True)
     
@@ -436,6 +443,9 @@ async def delete_product(
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    require_own_location(current_user, product.location_id)
+
     has_sales = db.query(SaleItem).filter(SaleItem.product_id == product_id).first()
     has_tickets = db.query(TicketItem).filter(TicketItem.product_id == product_id).first()
     has_transfers = db.query(TransferItem).filter(TransferItem.product_id == product_id).first()
@@ -519,20 +529,21 @@ async def register_purchase(
     product = db.query(Product).filter(Product.id == purchase.product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
-    
-    location = db.query(Location).filter(Location.id == purchase.location_id).first()
+
+    purchase_location_id = scoped_location_id(current_user, purchase.location_id)
+    location = db.query(Location).filter(Location.id == purchase_location_id).first()
     if not location:
         raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
     
     stock = db.query(ProductStock).filter(
         ProductStock.product_id == purchase.product_id,
-        ProductStock.location_id == purchase.location_id
+        ProductStock.location_id == purchase_location_id
     ).first()
     
     if not stock:
         stock = ProductStock(
             product_id=purchase.product_id,
-            location_id=purchase.location_id,
+            location_id=purchase_location_id,
             quantity=0
         )
         db.add(stock)
@@ -551,7 +562,7 @@ async def register_purchase(
     
     movement = StockMovement(
         product_id=purchase.product_id,
-        location_id=purchase.location_id,
+        location_id=purchase_location_id,
         movement_type=MovementType.PURCHASE,
         quantity=purchase.quantity,
         unit_cost=purchase.unit_cost,
@@ -579,16 +590,17 @@ async def adjust_stock(
     product = db.query(Product).filter(Product.id == adjustment.product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
-    
+
+    adjustment_location_id = scoped_location_id(current_user, adjustment.location_id)
     stock = db.query(ProductStock).filter(
         ProductStock.product_id == adjustment.product_id,
-        ProductStock.location_id == adjustment.location_id
+        ProductStock.location_id == adjustment_location_id
     ).first()
     
     if not stock:
         stock = ProductStock(
             product_id=adjustment.product_id,
-            location_id=adjustment.location_id,
+            location_id=adjustment_location_id,
             quantity=0
         )
         db.add(stock)
@@ -598,7 +610,7 @@ async def adjust_stock(
     
     movement = StockMovement(
         product_id=adjustment.product_id,
-        location_id=adjustment.location_id,
+        location_id=adjustment_location_id,
         movement_type=MovementType.ADJUSTMENT,
         quantity=adjustment.quantity - old_quantity,
         notes=adjustment.notes,
@@ -624,7 +636,8 @@ async def blind_inventory(
 ):
     from datetime import datetime
     from app.timezone import now_colombia
-    
+
+    location_id = scoped_location_id(current_user, location_id)
     location = db.query(Location).filter(Location.id == location_id).first()
     if not location:
         raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
@@ -685,6 +698,7 @@ async def get_stock_alerts(
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN)),
     _module_check: User = Depends(require_module("inventory"))
 ):
+    location_id = scoped_location_id(current_user, location_id)
     query = db.query(ProductStock).join(Product)
     
     if location_id:

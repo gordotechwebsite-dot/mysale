@@ -9,6 +9,7 @@ from app.models.inventory import Product, ProductStock, StockMovement, MovementT
 from app.models.location import Location
 from app.schemas.loss import LossCreate, LossResponse, LossItemResponse
 from app.utils.auth import get_current_user
+from app.utils.location_scope import require_own_location, scoped_location_id
 
 router = APIRouter(prefix="/api/losses", tags=["Mermas y Roturas"])
 
@@ -31,6 +32,7 @@ async def get_losses(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    location_id = scoped_location_id(current_user, location_id)
     query = db.query(Loss)
     
     # Tenant isolation
@@ -90,6 +92,8 @@ async def create_loss(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    require_own_location(current_user, loss_data.location_id)
+
     location = db.query(Location).filter(Location.id == loss_data.location_id).first()
     if not location:
         raise HTTPException(status_code=404, detail="Ubicacion no encontrada")
@@ -208,6 +212,8 @@ async def get_loss(
         tenant_loc_ids = _get_tenant_location_ids(db, current_user)
         if tenant_loc_ids and loss.location_id not in tenant_loc_ids:
             raise HTTPException(status_code=403, detail="No tienes acceso a esta merma")
+
+    require_own_location(current_user, loss.location_id)
     
     location = db.query(Location).filter(Location.id == loss.location_id).first()
     user = db.query(User).filter(User.id == loss.reported_by).first()

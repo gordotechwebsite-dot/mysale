@@ -8,6 +8,7 @@ from app.models.cash import CashCut, CashDenomination, CashClose
 from app.models.location import Location
 from app.schemas.cash import CashCutCreate, CashCutResponse, CashDenominationResponse, CashCloseCreate, CashCloseResponse
 from app.utils.auth import get_current_user
+from app.utils.location_scope import require_own_location, scoped_location_id
 from datetime import datetime, timedelta
 from app.timezone import now_colombia
 
@@ -39,6 +40,12 @@ async def get_cash_cuts(
             s.id for s in db.query(Shift.id).filter(Shift.location_id.in_(tenant_location_ids)).all()
         ]
         query = query.filter(CashCut.shift_id.in_(tenant_shift_ids))
+
+    if current_user.location_id:
+        own_shift_ids = [
+            s.id for s in db.query(Shift.id).filter(Shift.location_id == current_user.location_id).all()
+        ]
+        query = query.filter(CashCut.shift_id.in_(own_shift_ids))
     
     if shift_id:
         query = query.filter(CashCut.shift_id == shift_id)
@@ -82,6 +89,8 @@ async def create_blind_cash_cut(
     shift = db.query(Shift).filter(Shift.id == cut_data.shift_id).first()
     if not shift:
         raise HTTPException(status_code=404, detail="Turno no encontrado")
+
+    require_own_location(current_user, shift.location_id)
     
     if shift.user_id != current_user.id:
         raise HTTPException(
@@ -158,6 +167,7 @@ async def get_cash_closes(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    location_id = scoped_location_id(current_user, location_id)
     query = db.query(CashClose)
 
     # Tenant isolation: only show closes from user's tenant locations
@@ -224,7 +234,7 @@ async def create_cash_close(
         close_date = now_colombia()
 
     cash_close = CashClose(
-        location_id=data.location_id,
+        location_id=scoped_location_id(current_user, data.location_id),
         user_id=current_user.id,
         close_date=close_date,
         total_sales=data.total_sales,
@@ -276,6 +286,9 @@ async def delete_cash_close(
     cash_close = db.query(CashClose).filter(CashClose.id == close_id).first()
     if not cash_close:
         raise HTTPException(status_code=404, detail="Cierre de caja no encontrado")
+
+    require_own_location(current_user, cash_close.location_id)
+
     db.delete(cash_close)
     db.commit()
     return {"detail": "Cierre de caja eliminado"}

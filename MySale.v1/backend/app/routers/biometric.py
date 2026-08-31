@@ -374,7 +374,7 @@ async def clock_in_out(
         log = BiometricLog(
             user_id=matched_user.id,
             tenant_id=matched_user.tenant_id,
-            location_id=request.location_id,
+            location_id=matched_user.location_id or request.location_id,
             event_type=BiometricEventType.CLOCK_OUT,
             success=True,
             match_score=match_score,
@@ -404,7 +404,7 @@ async def clock_in_out(
         log = BiometricLog(
             user_id=matched_user.id,
             tenant_id=matched_user.tenant_id,
-            location_id=request.location_id,
+            location_id=matched_user.location_id or request.location_id,
             event_type=BiometricEventType.CLOCK_IN,
             success=True,
             match_score=match_score,
@@ -416,7 +416,7 @@ async def clock_in_out(
         attendance = AttendanceRecord(
             user_id=matched_user.id,
             tenant_id=matched_user.tenant_id,
-            location_id=request.location_id,
+            location_id=matched_user.location_id or request.location_id,
             clock_in=now,
             clock_in_biometric_log_id=log.id
         )
