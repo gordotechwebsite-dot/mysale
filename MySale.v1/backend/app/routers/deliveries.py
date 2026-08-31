@@ -11,6 +11,7 @@ from app.models.inventory import Product
 from app.models.location import Location
 from app.schemas.delivery import DeliveryCreate, DeliveryResponse, DeliveryItemResponse, DeliveryUpdateStatus
 from app.utils.auth import get_current_user
+from app.utils.stock import register_sale_stock_exit
 
 router = APIRouter(prefix="/api/deliveries", tags=["Domicilios"])
 
@@ -228,6 +229,16 @@ async def create_delivery(
             subtotal=item_info["subtotal"]
         )
         db.add(sale_item)
+        register_sale_stock_exit(
+            db,
+            product=item_info["product"],
+            location_id=shift.location_id,
+            quantity=item_info["quantity"],
+            reference_id=sale.id,
+            reference_type="sale",
+            created_by_id=current_user.id,
+            notes=f"Domicilio {sale.folio}"
+        )
         
     shift.total_sales += grand_total
     if data.payment_method == PaymentMethod.CASH:

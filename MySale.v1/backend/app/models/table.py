@@ -106,6 +106,7 @@ class Ticket(Base):
     customer_name = Column(String(100))
     num_people = Column(Integer, default=1)
     status = Column(String(20), default="open")
+    sale_id = Column(Integer, ForeignKey("sales.id"), nullable=True)
     subtotal = Column(Float, default=0)
     tax = Column(Float, default=0)
     tip = Column(Float, default=0)
@@ -166,6 +167,7 @@ class TicketPayment(Base):
     payment_method = Column(String(50), nullable=False)
     amount = Column(Float, nullable=False)
     reference = Column(String(100))
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=now_colombia)
     
     ticket = relationship("Ticket", back_populates="payments")

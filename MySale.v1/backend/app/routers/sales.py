@@ -13,7 +13,9 @@ from app.models.inventory import Product
 from app.models.location import Location
 from app.schemas.sale import SaleCreate, SaleResponse, SaleItemResponse
 from app.utils.auth import get_current_user, require_role
+from app.utils.folio import generate_folio
 from app.utils.menu import product_belongs_to_location
+from app.utils.stock import register_sale_stock_exit
 
 router = APIRouter(prefix="/api/sales", tags=["Ventas"])
 
@@ -24,13 +26,6 @@ def _get_tenant_location_ids(db: Session, current_user: User) -> list:
         return []
     locs = db.query(Location.id).filter(Location.tenant_id == current_user.tenant_id).all()
     return [l[0] for l in locs]
-
-
-def generate_folio(db: Session, location: Location) -> str:
-    location.folio_counter += 1
-    prefix = location.folio_prefix or location.code
-    folio = f"{prefix}-{location.folio_counter:06d}"
-    return folio
 
 
 def _serialize_sale(db: Session, sale: Sale) -> SaleResponse:
@@ -297,7 +292,7 @@ async def create_sale(
     
     total = subtotal - total_discount
     
-    folio = generate_folio(db, location)
+    folio = generate_folio(location)
     
     change_given = None
     if sale_data.payment_method == PaymentMethod.CASH and sale_data.amount_received:
@@ -343,6 +338,16 @@ async def create_sale(
             notes=item_info["notes"]
         )
         db.add(sale_item)
+        register_sale_stock_exit(
+            db,
+            product=item_info["product"],
+            location_id=shift.location_id,
+            quantity=item_info["quantity"],
+            reference_id=sale.id,
+            reference_type="sale",
+            created_by_id=current_user.id,
+            notes=f"Venta {sale.folio}"
+        )
         
     shift.total_sales += total
     if sale_data.payment_method == PaymentMethod.CASH:

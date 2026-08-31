@@ -300,6 +300,22 @@ def run_migrations():
                 db.execute(text("ALTER TABLE tickets ADD COLUMN service_charge FLOAT DEFAULT 0"))
                 db.commit()
                 print("Migration: Added service_charge column to tickets table")
+            
+            if 'sale_id' not in ticket_cols:
+                db.execute(text("ALTER TABLE tickets ADD COLUMN sale_id INTEGER"))
+                db.commit()
+                print("Migration: Added sale_id column to tickets table")
+        
+        # Add missing columns to ticket_payments table
+        result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='ticket_payments'"))
+        if result.fetchone():
+            result = db.execute(text("PRAGMA table_info(ticket_payments)"))
+            ticket_payment_cols = [row[1] for row in result.fetchall()]
+            
+            if 'created_by_id' not in ticket_payment_cols:
+                db.execute(text("ALTER TABLE ticket_payments ADD COLUMN created_by_id INTEGER"))
+                db.commit()
+                print("Migration: Added created_by_id column to ticket_payments table")
         
         # Ensure all tenants have access to all modules (assign missing modules)
         from app.models.tenant import Tenant, TenantModule
