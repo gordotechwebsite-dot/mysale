@@ -1,6 +1,7 @@
 import { toast } from 'react-hot-toast';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
 import { useCart } from '../context/CartContext';
 import { submitSale } from '../offline/sales';
@@ -99,6 +100,7 @@ const getCategoryIcon = (name: string): LucideIcon => {
 };
 
 const POS: React.FC = () => {
+  const { user } = useAuth();
   const { currentShift, isLoading: isShiftLoading } = useShift();
   const { items, addItem, removeItem, updateQuantity, clearCart, total, subtotal } = useCart();
   const navigate = useNavigate();
@@ -163,7 +165,7 @@ const POS: React.FC = () => {
   const loadData = async () => {
     try {
       const [productsData, familiesData, subfamiliesData] = await Promise.all([
-        cachedGetProducts(currentShift?.location_id),
+        cachedGetProducts(user?.location_id || currentShift?.location_id),
         cachedGetFamilies(),
         cachedGetSubFamilies()
       ]);

@@ -257,7 +257,11 @@ async def get_products(
     query = db.query(Product).filter(Product.is_active == True)
     if current_user.tenant_id:
         query = query.filter((Product.tenant_id == current_user.tenant_id) | (Product.tenant_id == None))
-    
+
+    # Un usuario con sede fija siempre ve la carta de su sede
+    if current_user.location_id:
+        location_id = current_user.location_id
+
     if subfamily_id:
         query = query.filter(Product.subfamily_id == subfamily_id)
     
