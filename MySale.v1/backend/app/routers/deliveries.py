@@ -11,6 +11,7 @@ from app.models.inventory import Product
 from app.models.location import Location
 from app.schemas.delivery import DeliveryCreate, DeliveryResponse, DeliveryItemResponse, DeliveryUpdateStatus
 from app.utils.auth import get_current_user
+from app.utils.location_scope import require_own_location
 from app.utils.stock import register_sale_stock_exit
 
 router = APIRouter(prefix="/api/deliveries", tags=["Domicilios"])
@@ -93,6 +94,9 @@ async def get_deliveries(
         tenant_loc_ids = _get_tenant_location_ids(db, current_user)
         if tenant_loc_ids:
             query = query.filter(Sale.location_id.in_(tenant_loc_ids))
+
+    if current_user.location_id:
+        query = query.filter(Sale.location_id == current_user.location_id)
     
     if delivery_status:
         query = query.filter(Sale.delivery_status == delivery_status)
@@ -130,6 +134,8 @@ async def get_delivery(
         tenant_loc_ids = _get_tenant_location_ids(db, current_user)
         if tenant_loc_ids and sale.location_id not in tenant_loc_ids:
             raise HTTPException(status_code=403, detail="No tienes acceso a este domicilio")
+
+    require_own_location(current_user, sale.location_id)
     
     location = db.query(Location).filter(Location.id == sale.location_id).first()
     cashier = db.query(User).filter(User.id == sale.cashier_id).first()
@@ -273,6 +279,8 @@ async def update_delivery_status(
         tenant_loc_ids = _get_tenant_location_ids(db, current_user)
         if tenant_loc_ids and sale.location_id not in tenant_loc_ids:
             raise HTTPException(status_code=403, detail="No tienes acceso a este domicilio")
+
+    require_own_location(current_user, sale.location_id)
     
     sale.delivery_status = data.delivery_status
     if data.delivery_person:

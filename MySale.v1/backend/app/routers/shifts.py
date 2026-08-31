@@ -9,6 +9,7 @@ from app.models.shift import Shift, ShiftStatus, ShiftAlert, AlertType
 from app.models.location import Location
 from app.schemas.shift import ShiftCreate, ShiftClose, ShiftResponse, ShiftAlertResponse
 from app.utils.auth import get_current_user, require_role
+from app.utils.location_scope import require_own_location, scoped_location_id
 
 router = APIRouter(prefix="/api/shifts", tags=["Turnos"])
 
@@ -38,6 +39,7 @@ async def get_shifts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    location_id = scoped_location_id(current_user, location_id)
     query = db.query(Shift)
     
     # Tenant isolation
@@ -132,7 +134,8 @@ async def open_shift(
             detail="Ya tiene un turno abierto"
         )
     
-    location = db.query(Location).filter(Location.id == shift_data.location_id).first()
+    location_id = scoped_location_id(current_user, shift_data.location_id)
+    location = db.query(Location).filter(Location.id == location_id).first()
     if not location:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -141,7 +144,7 @@ async def open_shift(
     
     shift = Shift(
         user_id=current_user.id,
-        location_id=shift_data.location_id,
+        location_id=location.id,
         initial_cash=shift_data.initial_cash or location.daily_base_cash,
         biometric_verified=shift_data.biometric_verified
     )
@@ -235,6 +238,8 @@ async def close_shift_by_admin(
         tenant_loc_ids = _get_tenant_location_ids(db, current_user)
         if tenant_loc_ids and shift.location_id not in tenant_loc_ids:
             raise HTTPException(status_code=403, detail="No tienes acceso a este turno")
+
+    require_own_location(current_user, shift.location_id)
     
     if shift.status != ShiftStatus.OPEN:
         raise HTTPException(

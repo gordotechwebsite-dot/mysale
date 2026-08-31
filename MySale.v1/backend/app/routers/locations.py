@@ -14,6 +14,7 @@ from app.models.inventory import Product
 from app.models.cash import CashRegister
 from app.schemas.location import LocationCreate, LocationUpdate, LocationResponse, LocationDashboardResponse
 from app.utils.auth import get_current_user, require_role
+from app.utils.location_scope import require_own_location
 
 router = APIRouter(prefix="/api/locations", tags=["Ubicaciones"])
 
@@ -36,6 +37,11 @@ async def get_locations(
     query = db.query(Location)
     role_type = current_user.role.role_type if current_user.role else None
     query = filter_by_tenant(query, Location, current_user.tenant_id, user_role=role_type)
+
+    # Un usuario con sede fija solo conoce su sede
+    if current_user.location_id:
+        query = query.filter(Location.id == current_user.location_id)
+
     return query.all()
 
 
@@ -50,6 +56,10 @@ async def get_locations_dashboard(
     )
     role_type = current_user.role.role_type if current_user.role else None
     query = filter_by_tenant(query, Location, current_user.tenant_id, user_role=role_type)
+
+    if current_user.location_id:
+        query = query.filter(Location.id == current_user.location_id)
+
     locations = query.all()
     
     today = now_colombia().date()
@@ -146,6 +156,8 @@ async def get_location_detail(
     # Tenant isolation: verify location belongs to user's tenant
     if current_user.tenant_id and location.tenant_id != current_user.tenant_id:
         raise HTTPException(status_code=403, detail="No tienes acceso a esta ubicacion")
+
+    require_own_location(current_user, location.id)
 
     today = now_colombia().date()
     today_start = datetime.combine(today, datetime.min.time())
@@ -320,6 +332,8 @@ async def get_location(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Ubicacion no encontrada"
         )
+
+    require_own_location(current_user, location.id)
     return location
 
 
@@ -339,6 +353,8 @@ async def update_location(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Ubicacion no encontrada"
         )
+
+    require_own_location(current_user, location.id)
     
     update_data = location_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -364,6 +380,8 @@ async def delete_location(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Ubicacion no encontrada"
         )
+
+    require_own_location(current_user, location.id)
     
     location.is_active = False
     db.commit()

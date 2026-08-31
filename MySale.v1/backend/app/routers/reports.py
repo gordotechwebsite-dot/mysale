@@ -22,12 +22,15 @@ from app.schemas.reports import (
     PurchasesReportResponse, PurchaseDetail
 )
 from app.utils.auth import get_current_user, require_role
+from app.utils.location_scope import scoped_location_id
 
 router = APIRouter(prefix="/api/reports", tags=["Reportes"])
 
 
 def _get_tenant_location_ids(db: Session, current_user: User) -> list:
-    """Get all location IDs belonging to the current user's tenant."""
+    """Sedes que el usuario puede reportar: su sede fija, o las de su negocio."""
+    if current_user.location_id:
+        return [current_user.location_id]
     if not current_user.tenant_id:
         return []
     locs = db.query(Location.id).filter(Location.tenant_id == current_user.tenant_id).all()
@@ -40,6 +43,7 @@ async def get_sales_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
+    location_id = scoped_location_id(current_user, request.location_id)
     tenant_loc_ids = _get_tenant_location_ids(db, current_user)
     query = db.query(Sale).filter(
         Sale.created_at >= datetime.combine(request.start_date, datetime.min.time()),
@@ -48,8 +52,8 @@ async def get_sales_report(
     if tenant_loc_ids:
         query = query.filter(Sale.location_id.in_(tenant_loc_ids))
     
-    if request.location_id:
-        query = query.filter(Sale.location_id == request.location_id)
+    if location_id:
+        query = query.filter(Sale.location_id == location_id)
     if request.cashier_id:
         query = query.filter(Sale.cashier_id == request.cashier_id)
     
@@ -111,6 +115,7 @@ async def get_inventory_report(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
+    location_id = scoped_location_id(current_user, location_id)
     tenant_loc_ids = _get_tenant_location_ids(db, current_user)
     location = None
     if location_id:
@@ -253,6 +258,7 @@ async def export_sales_excel(
 ):
     from openpyxl import Workbook
     
+    location_id = scoped_location_id(current_user, location_id)
     tenant_loc_ids = _get_tenant_location_ids(db, current_user)
     query = db.query(Sale).filter(
         Sale.created_at >= datetime.combine(start_date, datetime.min.time()),
@@ -315,6 +321,7 @@ async def export_inventory_excel(
 ):
     from openpyxl import Workbook
     
+    location_id = scoped_location_id(current_user, location_id)
     tenant_loc_ids = _get_tenant_location_ids(db, current_user)
     query = db.query(ProductStock).join(Product)
     if tenant_loc_ids:
@@ -486,6 +493,7 @@ async def export_profitability_excel(
     from openpyxl import Workbook
     from openpyxl.styles import Font
     
+    location_id = scoped_location_id(current_user, location_id)
     tenant_loc_ids = _get_tenant_location_ids(db, current_user)
     
     if not start_date:
@@ -653,6 +661,7 @@ async def get_purchases_report(
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
     """Get purchases report from stock movements of type purchase."""
+    location_id = scoped_location_id(current_user, location_id)
     tenant_loc_ids = _get_tenant_location_ids(db, current_user)
     if not start_date:
         start_date = date.today() - timedelta(days=30)
@@ -730,6 +739,7 @@ async def export_purchases_excel(
     from openpyxl import Workbook
     from openpyxl.styles import Font
 
+    location_id = scoped_location_id(current_user, location_id)
     tenant_loc_ids = _get_tenant_location_ids(db, current_user)
 
     if not start_date:
@@ -907,6 +917,7 @@ async def get_profitability_report(
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
     """Get profitability report: Sales - Cost of Goods - Expenses - Losses = Net Profit."""
+    location_id = scoped_location_id(current_user, location_id)
     tenant_loc_ids = _get_tenant_location_ids(db, current_user)
     if not start_date:
         start_date = date.today() - timedelta(days=30)

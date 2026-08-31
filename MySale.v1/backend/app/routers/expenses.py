@@ -8,6 +8,7 @@ from app.models.expense import Expense, ExpenseCategory
 from app.models.location import Location
 from app.schemas.expense import ExpenseCreate, ExpenseResponse
 from app.utils.auth import get_current_user, require_role
+from app.utils.location_scope import require_own_location, scoped_location_id
 
 router = APIRouter(prefix="/api/expenses", tags=["Gastos"])
 
@@ -38,6 +39,8 @@ async def get_expenses(
         if tenant_loc_ids:
             query = query.filter(Expense.location_id.in_(tenant_loc_ids))
     
+    location_id = scoped_location_id(current_user, location_id)
+
     if location_id:
         query = query.filter(Expense.location_id == location_id)
     if category:
@@ -78,6 +81,8 @@ async def create_expense(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
+    require_own_location(current_user, expense_data.location_id)
+
     location = None
     if expense_data.location_id:
         location = db.query(Location).filter(Location.id == expense_data.location_id).first()
@@ -129,6 +134,8 @@ async def get_expense(
         tenant_loc_ids = _get_tenant_location_ids(db, current_user)
         if tenant_loc_ids and expense.location_id not in tenant_loc_ids:
             raise HTTPException(status_code=403, detail="No tienes acceso a este gasto")
+
+    require_own_location(current_user, expense.location_id)
     
     location = db.query(Location).filter(Location.id == expense.location_id).first() if expense.location_id else None
     user = db.query(User).filter(User.id == expense.created_by_id).first()

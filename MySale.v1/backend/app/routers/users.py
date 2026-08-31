@@ -1,7 +1,7 @@
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.database import get_db
 from app.models.user import User, Role, RoleType, UserModule
 from app.models.tenant import Module, TenantModule, TenantPayment
@@ -25,6 +25,7 @@ from app.schemas.user import (
 from app.utils.auth import get_password_hash, get_current_user, require_role, get_pin_hash
 from app.models.location import Location
 from app.utils.branch_location import get_branch_for_location
+from app.utils.location_scope import require_own_location
 
 router = APIRouter(prefix="/api/users", tags=["Usuarios"])
 
@@ -74,6 +75,30 @@ def _sync_default_branch(db: Session, user: User):
         return
 
     user.default_branch_id = get_branch_for_location(db, user.tenant_id, location).id
+
+
+def _validate_assigned_location(
+    db: Session,
+    current_user: User,
+    location_id: Optional[int]
+) -> None:
+    """La sede que se asigna a un usuario debe ser del negocio y de la sede del creador."""
+    if not location_id:
+        return
+
+    require_own_location(current_user, location_id)
+
+    location = db.query(Location).filter(Location.id == location_id).first()
+    if not location:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ubicacion no encontrada"
+        )
+    if current_user.tenant_id and location.tenant_id != current_user.tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="La sede no pertenece a este cliente"
+        )
 
 
 def _sync_user_modules(db: Session, user_id: int, module_ids: List[int]):
@@ -201,6 +226,10 @@ async def get_users(
     query = db.query(User)
     if current_user.tenant_id:
         query = query.filter(User.tenant_id == current_user.tenant_id)
+
+    # Un usuario con sede fija solo ve el personal de su sede
+    if current_user.location_id:
+        query = query.filter(User.location_id == current_user.location_id)
     
     users = query.offset(skip).limit(limit).all()
     return [_build_user_response(u, db) for u in users]
@@ -232,6 +261,8 @@ async def create_user(
             detail="Solo un superusuario puede crear otro superusuario"
         )
     
+    _validate_assigned_location(db, current_user, user.location_id)
+
     hashed_password = get_password_hash(user.password)
     pin_hash = get_pin_hash(user.pin) if user.pin else None
     db_user = User(
@@ -243,7 +274,7 @@ async def create_user(
         hashed_password=hashed_password,
         pin_hash=pin_hash,
         role_id=user.role_id,
-        location_id=user.location_id,
+        location_id=user.location_id or current_user.location_id,
         tenant_id=current_user.tenant_id  # Assign same tenant as creator
     )
     db.add(db_user)
@@ -276,6 +307,8 @@ async def get_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuario no encontrado"
         )
+
+    require_own_location(current_user, user.location_id)
     return _build_user_response(user, db)
 
 
@@ -296,10 +329,19 @@ async def update_user(
             detail="Usuario no encontrado"
         )
     
+    require_own_location(current_user, user.location_id)
+
     update_data = user_update.model_dump(exclude_unset=True)
     
     # Handle module_ids separately
     module_ids = update_data.pop("module_ids", None)
+
+    # Solo la plataforma (superusuario sin cliente) puede mover un usuario de cliente
+    if "tenant_id" in update_data and current_user.tenant_id:
+        update_data.pop("tenant_id")
+
+    if "location_id" in update_data:
+        _validate_assigned_location(db, current_user, update_data["location_id"])
     
     # Hash password if provided
     if "password" in update_data:
@@ -342,6 +384,8 @@ async def delete_user(
             detail="Usuario no encontrado"
         )
     
+    require_own_location(current_user, user.location_id)
+
     if user.id == current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -441,6 +485,8 @@ async def reset_user_pin(
             detail="Usuario no encontrado"
         )
     
+    require_own_location(current_user, user.location_id)
+
     new_pin = f"{secrets.randbelow(900000) + 100000}"
     user.pin_hash = get_pin_hash(new_pin)
     db.commit()
@@ -466,6 +512,8 @@ async def update_user_modules(
             detail="Usuario no encontrado"
         )
     
+    require_own_location(current_user, user.location_id)
+
     _sync_user_modules(db, user.id, module_ids)
     db.commit()
     db.refresh(user)
@@ -490,6 +538,8 @@ async def get_user_modules(
             detail="Usuario no encontrado"
         )
     
+    require_own_location(current_user, user.location_id)
+
     user_mods = db.query(UserModule).filter(
         UserModule.user_id == user_id,
         UserModule.is_enabled == True
