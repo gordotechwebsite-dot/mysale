@@ -1179,8 +1179,7 @@ export default function TableManagement() {
                     setShowCartPanel(false);
                   }}
                 >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Enviar pedido ({cart.length})
+                  Enviar pedido
                 </Button>
               )}
               <Button variant="outline" className="w-full" onClick={() => setShowCartPanel(false)}>
