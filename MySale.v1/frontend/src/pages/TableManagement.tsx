@@ -1180,17 +1180,17 @@ export default function TableManagement() {
               </span>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
               {cart.length > 0 && (
                 <Button
-                  className="bg-amber-500 hover:bg-amber-600 w-full"
+                  className="bg-emerald-600 hover:bg-emerald-700 w-full"
                   onClick={async () => {
                     await handleAddItemsToTicket();
                     setShowCartPanel(false);
                   }}
                 >
                   <Plus className="w-4 h-4 mr-1" />
-                  Agregar a la cuenta ({cart.length})
+                  Enviar pedido ({cart.length})
                 </Button>
               )}
               <Button variant="outline" className="w-full" onClick={() => setShowCartPanel(false)}>
