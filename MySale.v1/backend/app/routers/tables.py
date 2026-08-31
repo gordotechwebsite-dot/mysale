@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import or_, text
 from typing import List, Optional
 from datetime import datetime, date
 from app.timezone import now_colombia
@@ -428,7 +428,10 @@ async def delete_table(
 
 
 def get_ticket_response(ticket: Ticket, db: Session) -> TicketResponse:
-    items = db.query(TicketItem).filter(TicketItem.ticket_id == ticket.id).all()
+    items = db.query(TicketItem).filter(
+        TicketItem.ticket_id == ticket.id,
+        or_(TicketItem.status == None, TicketItem.status != "cancelled")
+    ).all()
     item_responses = []
     for item in items:
         product = db.query(Product).filter(Product.id == item.product_id).first()
@@ -481,15 +484,20 @@ def get_ticket_response(ticket: Ticket, db: Session) -> TicketResponse:
 
 
 def recalculate_ticket_totals(ticket: Ticket, db: Session):
+    db.flush()
+
     items = db.query(TicketItem).filter(
         TicketItem.ticket_id == ticket.id,
-        TicketItem.status != "cancelled"
+        or_(TicketItem.status == None, TicketItem.status != "cancelled")
     ).all()
-    
-    subtotal = sum(item.subtotal for item in items)
-    tax = subtotal * 0.0
-    total = subtotal + tax + (ticket.tip or 0) + (ticket.service_charge or 0) - (ticket.discount or 0)
-    
+
+    subtotal = round(sum(item.subtotal or 0 for item in items), 2)
+    tax = 0.0
+    total = round(
+        subtotal + tax + (ticket.tip or 0) + (ticket.service_charge or 0) - (ticket.discount or 0),
+        2
+    )
+
     ticket.subtotal = subtotal
     ticket.tax = tax
     ticket.total = total
@@ -632,6 +640,39 @@ async def update_ticket(
     return get_ticket_response(ticket, db)
 
 
+@router.delete("/tickets/{ticket_id}")
+async def cancel_ticket(
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Elimina (anula) una cuenta abierta y libera la mesa."""
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    if current_user.tenant_id and ticket.tenant_id and ticket.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="No tienes acceso a este ticket")
+
+    if ticket.status == "paid":
+        raise HTTPException(status_code=400, detail="No se puede eliminar una cuenta ya pagada")
+
+    items = db.query(TicketItem).filter(TicketItem.ticket_id == ticket_id).all()
+    for item in items:
+        item.status = "cancelled"
+
+    ticket.status = "cancelled"
+    ticket.closed_at = now_colombia()
+    recalculate_ticket_totals(ticket, db)
+
+    table = db.query(Table).filter(Table.id == ticket.table_id).first()
+    if table:
+        table.status = "available"
+
+    db.commit()
+    return {"message": "Ticket cancelled successfully"}
+
+
 @router.post("/tickets/{ticket_id}/items", response_model=TicketResponse)
 async def add_items_to_ticket(
     ticket_id: int,
@@ -663,7 +704,7 @@ async def add_items_to_ticket(
                 detail=f"{product.name} no pertenece a la carta de esta sede"
             )
         
-        subtotal = item_data.quantity * item_data.unit_price - (item_data.discount or 0)
+        subtotal = round(item_data.quantity * item_data.unit_price - (item_data.discount or 0), 2)
         
         item = TicketItem(
             ticket_id=ticket_id,

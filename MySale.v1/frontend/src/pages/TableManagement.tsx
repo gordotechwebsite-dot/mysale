@@ -14,6 +14,7 @@ import {
   getTableTicket,
   addItemsToTicket,
   removeItemFromTicket,
+  cancelTicket,
   createComanda,
   moveTicket,
   payTicket,
@@ -572,11 +573,22 @@ export default function TableManagement() {
           setConfirmAction({
             title: 'Eliminar pedido',
             description: '¿Estás seguro de eliminar este pedido?',
-            onConfirm: () => {
-              toast.success('Pedido eliminado');
-              setCurrentTicket(null);
-              loadZones();
-              setConfirmAction(null);
+            onConfirm: async () => {
+              try {
+                await cancelTicket(currentTicket.id);
+                toast.success('Pedido eliminado');
+                setCurrentTicket(null);
+                setCart([]);
+                setSelectedTable(null);
+                setOrderMode(false);
+                setShowTicketDialog(false);
+                loadZones();
+              } catch (error: unknown) {
+                const err = error as { response?: { data?: { detail?: string } } };
+                toast.error(err.response?.data?.detail || 'Error al eliminar el pedido');
+              } finally {
+                setConfirmAction(null);
+              }
             }
           });
         } else {
