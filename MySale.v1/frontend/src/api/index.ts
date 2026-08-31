@@ -836,6 +836,11 @@ export const removeItemFromTicket = async (ticketId: number, itemId: number): Pr
   return response.data;
 };
 
+export const cancelTicket = async (ticketId: number): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/tables/tickets/${ticketId}`);
+  return response.data;
+};
+
 export const createComanda = async (ticketId: number, data: {
   area: string;
   item_ids: number[];
