@@ -207,11 +207,10 @@ const TableReceiptTicket: React.FC<TableReceiptTicketProps> = ({ ticket, payment
             <div style={{ marginBottom: '3px' }}>
               {ticket.items.map((item, idx) => (
                 <div key={idx} style={{ marginBottom: '3px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 600 }}>
-                    {item.product_name || `Producto #${item.product_id}`}
-                  </div>
                   <div style={{ display: 'flex', fontSize: '11px', color: '#000' }}>
-                    <span style={{ flex: 1 }}></span>
+                    <span style={{ flex: 1, fontWeight: 600, paddingRight: '3px', wordBreak: 'break-word' }}>
+                      {item.product_name || `Producto #${item.product_id}`}
+                    </span>
                     <span style={{ width: '30px', textAlign: 'center' }}>{item.quantity}</span>
                     <span style={{ width: '55px', textAlign: 'right' }}>{formatCurrency(item.unit_price)}</span>
                     <span style={{ width: '60px', textAlign: 'right' }}>{formatCurrency(item.subtotal)}</span>
