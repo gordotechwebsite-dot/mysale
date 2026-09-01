@@ -892,9 +892,7 @@ export default function TableManagement() {
   const filteredProducts = products;
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.product.sale_price * item.quantity), 0);
-  const orderItemCount =
-    (currentTicket?.items.reduce((sum, item) => sum + item.quantity, 0) || 0) +
-    cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const addToCartWithQuantity = (product: Product) => {
     if (product.is_sold_out) {
@@ -1080,10 +1078,10 @@ export default function TableManagement() {
               className="fixed bottom-4 right-4 z-40 flex items-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-2xl shadow-lg"
             >
               <ShoppingCart size={20} />
-              {orderItemCount > 0 ? (
+              {cartItemCount > 0 ? (
                 <>
-                  <span className="text-sm">${(currentTicket.total + cartTotal).toLocaleString()}</span>
-                  <span className="w-6 h-6 flex items-center justify-center text-xs rounded-full bg-white/20">{orderItemCount}</span>
+                  <span className="text-sm">${cartTotal.toLocaleString()}</span>
+                  <span className="w-6 h-6 flex items-center justify-center text-xs rounded-full bg-white/20">{cartItemCount}</span>
                 </>
               ) : (
                 <span className="text-sm">Carrito</span>
@@ -1098,28 +1096,11 @@ export default function TableManagement() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-emerald-600" />
-                Pedido - {selectedTable.name}
+                Carrito - {selectedTable.name}
               </DialogTitle>
             </DialogHeader>
 
             <div className="max-h-[55vh] overflow-y-auto divide-y divide-gray-100">
-              {currentTicket?.items.map(item => (
-                <div key={item.id} className="flex items-center gap-2 py-2.5">
-                  <span className="font-bold text-gray-900 w-8 shrink-0">{item.quantity}x</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{item.product_name}</p>
-                    {item.notes && <p className="text-xs text-gray-500">{item.notes}</p>}
-                    {item.comanda_id && <p className="text-xs text-emerald-600">Enviado a cocina</p>}
-                  </div>
-                  <span className="text-sm font-semibold text-gray-900">${item.subtotal.toLocaleString()}</span>
-                  {!item.comanda_id && (
-                    <button onClick={() => handleRemoveItem(item.id)} className="text-red-400 hover:text-red-600">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
-
               {cart.map(item => (
                 <div key={`cart-${item.product.id}`} className="py-2.5 space-y-2">
                   <div className="flex items-center gap-2">
@@ -1147,15 +1128,15 @@ export default function TableManagement() {
                 </div>
               ))}
 
-              {orderItemCount === 0 && (
-                <p className="py-10 text-center text-gray-400">Sin productos en la cuenta</p>
+              {cart.length === 0 && (
+                <p className="py-10 text-center text-gray-400">Carrito vacio</p>
               )}
             </div>
 
             <div className="flex items-center justify-between border-t border-gray-200 pt-3">
               <span className="font-semibold text-gray-700">Total</span>
               <span className="text-xl font-bold text-emerald-600">
-                ${((currentTicket?.total || 0) + cartTotal).toLocaleString()}
+                ${cartTotal.toLocaleString()}
               </span>
             </div>
 
