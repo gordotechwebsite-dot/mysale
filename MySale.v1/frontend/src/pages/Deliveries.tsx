@@ -77,6 +77,18 @@ const categoryIconMap: Record<string, LucideIcon> = {
   'Desayunos': Egg, 'Frutas': Apple, 'Comidas': UtensilsCrossed,
 };
 
+const PAYMENT_METHODS = [
+  { method: 'cash' as const, icon: Banknote, label: 'Efectivo' },
+  { method: 'transfer' as const, icon: Smartphone, label: 'Nequi' },
+  { method: 'card' as const, icon: CreditCard, label: 'Bre-B' },
+];
+
+const PAYMENT_METHOD_LABELS: Record<'cash' | 'card' | 'transfer', string> = {
+  cash: 'Efectivo',
+  transfer: 'Nequi',
+  card: 'Bre-B',
+};
+
 const getCategoryIcon = (name: string): LucideIcon => {
   if (categoryIconMap[name]) return categoryIconMap[name];
   const lowerName = name.toLowerCase();
@@ -396,11 +408,7 @@ const Deliveries: React.FC = () => {
           <CreditCard className="w-3 h-3" /> Método de Pago
         </h4>
         <div className="grid grid-cols-3 gap-1">
-          {[
-            { method: 'cash' as const, icon: Banknote, label: 'Efectivo' },
-            { method: 'transfer' as const, icon: Smartphone, label: 'Nequi' },
-            { method: 'card' as const, icon: CreditCard, label: 'Bre-B' },
-          ].map(({ method, icon: Icon, label }) => (
+          {PAYMENT_METHODS.map(({ method, icon: Icon, label }) => (
             <button
               key={method}
               onClick={() => setPaymentMethod(method)}
@@ -649,11 +657,7 @@ const Deliveries: React.FC = () => {
                   Método de Pago
                 </h4>
                 <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { method: 'cash' as const, icon: Banknote, label: 'Efectivo' },
-                    { method: 'transfer' as const, icon: Smartphone, label: 'Nequi' },
-                    { method: 'card' as const, icon: CreditCard, label: 'Bre-B' },
-                  ].map(({ method, icon: Icon, label }) => (
+                  {PAYMENT_METHODS.map(({ method, icon: Icon, label }) => (
                     <button
                       key={method}
                       onClick={() => setPaymentMethod(method)}
@@ -875,25 +879,11 @@ const Deliveries: React.FC = () => {
               {deliveryPerson && <p className="text-gray-600 flex items-center gap-1"><Bike className="w-3 h-3" /> {deliveryPerson}</p>}
             </div>
 
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              {[
-                { method: 'cash' as const, icon: Banknote, label: 'Efectivo', color: 'green' },
-                { method: 'card' as const, icon: CreditCard, label: 'Tarjeta', color: 'blue' },
-                { method: 'transfer' as const, icon: Smartphone, label: 'Transfer', color: 'purple' },
-              ].map(({ method, icon: Icon, label, color }) => (
-                <button
-                  key={method}
-                  onClick={() => setPaymentMethod(method)}
-                  className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition-all ${
-                    paymentMethod === method
-                      ? `border-${color}-500 bg-${color}-50`
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon className={`w-7 h-7 ${paymentMethod === method ? `text-${color}-600` : 'text-gray-400'}`} />
-                  <span className={`text-sm font-medium ${paymentMethod === method ? `text-${color}-600` : 'text-gray-600'}`}>{label}</span>
-                </button>
-              ))}
+            <div className="flex items-center justify-center gap-2 mb-4 text-purple-700 font-semibold">
+              {paymentMethod === 'cash' && <Banknote className="w-5 h-5" />}
+              {paymentMethod === 'transfer' && <Smartphone className="w-5 h-5" />}
+              {paymentMethod === 'card' && <CreditCard className="w-5 h-5" />}
+              <span>{PAYMENT_METHOD_LABELS[paymentMethod]}</span>
             </div>
 
             {paymentMethod === 'cash' && (
