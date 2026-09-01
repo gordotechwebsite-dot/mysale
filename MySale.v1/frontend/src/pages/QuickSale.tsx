@@ -292,7 +292,7 @@ const QuickSale: React.FC = () => {
   const quickAmounts = [50000, 100000, 200000];
 
   // Shared cart/checkout panel
-  const CartPanel = () => (
+  const cartPanel = (
     <>
       <div className="p-3 px-4 border-b bg-orange-50">
         <div className="flex items-center justify-between">
@@ -470,7 +470,7 @@ const QuickSale: React.FC = () => {
         {mobileStep === 'checkout' ? (
           /* Checkout: show cart panel inline */
           <div className="flex flex-col" style={{ minHeight: '100%' }}>
-            <CartPanel />
+            {cartPanel}
           </div>
         ) : mobileStep === 'categories' && showingCategories ? (
           /* Categories grid */
@@ -663,7 +663,7 @@ const QuickSale: React.FC = () => {
 
         {/* Desktop Cart Panel */}
         <Card className="w-80 flex-shrink-0 flex flex-col">
-          <CartPanel />
+          {cartPanel}
         </Card>
       </div>
     </div>
