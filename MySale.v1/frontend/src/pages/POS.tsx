@@ -271,7 +271,7 @@ const POS: React.FC = () => {
     return null;
   }
 
-  const CartContent = () => (
+  const cartContent = (
     <>
       {/* Cart Header */}
       <div className="p-3 lg:p-4" style={{ borderBottom: '1px solid #e5e7eb' }}>
@@ -539,7 +539,7 @@ const POS: React.FC = () => {
         className="hidden lg:flex w-96 flex-col bg-white"
         style={{ borderRadius: '18px', boxShadow: '0 20px 40px rgba(0,0,0,0.08)' }}
       >
-        <CartContent />
+        {cartContent}
       </div>
 
       {/* Mobile: Floating Cart Button */}
@@ -576,7 +576,7 @@ const POS: React.FC = () => {
             <div className="flex justify-center py-2">
               <div className="w-10 h-1 rounded-full" style={{ backgroundColor: '#d1d5db' }} />
             </div>
-            <CartContent />
+            {cartContent}
           </div>
         </div>
       )}

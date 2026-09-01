@@ -351,7 +351,7 @@ const Deliveries: React.FC = () => {
   };
 
   // Desktop order panel content
-  const OrderPanel = () => (
+  const orderPanel = (
     <>
       <div className="p-2 px-3 border-b bg-purple-50">
         <div className="flex items-center justify-between">
@@ -841,7 +841,7 @@ const Deliveries: React.FC = () => {
 
         {/* Order ticket - right */}
         <Card className="w-[420px] flex-shrink-0 flex flex-col">
-          <OrderPanel />
+          {orderPanel}
         </Card>
       </div>
 
