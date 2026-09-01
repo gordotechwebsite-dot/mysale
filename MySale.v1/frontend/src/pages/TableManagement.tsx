@@ -740,10 +740,12 @@ export default function TableManagement() {
         unit_price: item.product.sale_price,
         notes: item.notes || undefined
       }));
-      const updatedTicket = await addItemsToTicket(currentTicket.id, items);
-      setCurrentTicket(updatedTicket);
+      await addItemsToTicket(currentTicket.id, items);
       setCart([]);
-      toast.success('Items agregados');
+      setShowCartPanel(false);
+      const ticket = await getTableTicket(selectedTable!.id);
+      setCurrentTicket(ticket);
+      toast.success('Pedido enviado');
       loadZones();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
@@ -1161,10 +1163,7 @@ export default function TableManagement() {
               {cart.length > 0 && (
                 <Button
                   className="bg-emerald-600 hover:bg-emerald-700 w-full"
-                  onClick={async () => {
-                    await handleAddItemsToTicket();
-                    setShowCartPanel(false);
-                  }}
+                  onClick={handleAddItemsToTicket}
                 >
                   Enviar pedido
                 </Button>
