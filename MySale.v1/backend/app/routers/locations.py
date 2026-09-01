@@ -132,6 +132,7 @@ async def get_locations_dashboard(
             location_type=location.location_type,
             address=location.address,
             image_url=location.image_url,
+            receipt_logo_url=location.receipt_logo_url,
             is_active=location.is_active,
             has_own_menu=location.has_own_menu,
             today_sales=today_sales_data[0] or 0,

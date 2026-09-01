@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
@@ -9,7 +9,9 @@ import base64
 from app.database import get_db
 from app.models.user import User, RoleType
 from app.models.tenant import Tenant
+from app.models.location import Location
 from app.utils.auth import get_current_user, require_role
+from app.utils.location_scope import fixed_location_id
 
 router = APIRouter(prefix="/api/business-profile", tags=["Perfil de Negocio"])
 
@@ -158,10 +160,14 @@ async def upload_logo(
 
 @router.get("/receipt-info", response_model=BusinessProfileResponse)
 async def get_receipt_info(
+    location_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get business profile for receipt/ticket printing. Accessible by any authenticated user."""
+    """Get business profile for receipt/ticket printing. Accessible by any authenticated user.
+
+    A location with its own receipt logo prints that logo instead of the tenant's.
+    """
     if not current_user.tenant_id:
         raise HTTPException(status_code=400, detail="Usuario no asociado a un negocio")
 
@@ -169,9 +175,21 @@ async def get_receipt_info(
     if not tenant:
         raise HTTPException(status_code=404, detail="Negocio no encontrado")
 
+    own_location_id = fixed_location_id(current_user)
+    effective_location_id = own_location_id or location_id
+
+    logo_url = tenant.logo_url
+    if effective_location_id:
+        location = db.query(Location).filter(
+            Location.id == effective_location_id,
+            Location.tenant_id == current_user.tenant_id
+        ).first()
+        if location and location.receipt_logo_url:
+            logo_url = location.receipt_logo_url
+
     return BusinessProfileResponse(
         name=tenant.name,
-        logo_url=tenant.logo_url,
+        logo_url=logo_url,
         razon_social=tenant.razon_social,
         nit=tenant.nit,
         slogan=tenant.slogan,

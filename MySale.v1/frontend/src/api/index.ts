@@ -541,6 +541,7 @@ export interface LocationDashboard {
   location_type: string;
   address: string | null;
   image_url: string | null;
+  receipt_logo_url: string | null;
   is_active: boolean;
   has_own_menu: boolean;
   today_sales: number;
@@ -614,6 +615,7 @@ export const updateLocation = async (id: number, data: {
   name?: string;
   address?: string;
   image_url?: string;
+  receipt_logo_url?: string;
   is_active?: boolean;
   daily_base_cash?: number;
   has_own_menu?: boolean;
@@ -1417,8 +1419,10 @@ export const updateDeliveryStatus = async (id: number, data: {
 };
 
 // Business Profile (receipt info - accessible by any authenticated user)
-export const getReceiptInfo = async () => {
-  const response = await api.get('/api/business-profile/receipt-info');
+export const getReceiptInfo = async (locationId?: number | null) => {
+  const response = await api.get('/api/business-profile/receipt-info', {
+    params: locationId ? { location_id: locationId } : undefined,
+  });
   return response.data;
 };
 

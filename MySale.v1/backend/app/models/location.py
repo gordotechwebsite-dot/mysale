@@ -21,6 +21,7 @@ class Location(Base):
     location_type = Column(SQLEnum(LocationType), nullable=False)
     address = Column(String(255), nullable=True)
     image_url = Column(String(500), nullable=True)
+    receipt_logo_url = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
     daily_base_cash = Column(Integer, default=100000)
     has_own_menu = Column(Boolean, default=False, nullable=False)
