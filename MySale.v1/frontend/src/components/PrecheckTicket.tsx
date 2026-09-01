@@ -83,12 +83,12 @@ const PrecheckTicket: React.FC<PrecheckTicketProps> = ({ ticket, onClose }) => {
   };
 
   const s = {
-    row: { display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' } as React.CSSProperties,
-    label: { color: '#555' } as React.CSSProperties,
+    row: { display: 'flex', justifyContent: 'space-between', fontSize: '11px', lineHeight: '1.5' } as React.CSSProperties,
+    label: { color: '#000' } as React.CSSProperties,
     bold: { fontWeight: 600 } as React.CSSProperties,
     sepDash: { borderTop: '1px dashed #000', margin: '5px 0' } as React.CSSProperties,
     sepSolid: { borderTop: '2px solid #000', margin: '5px 0' } as React.CSSProperties,
-    detail: { fontSize: '10px', color: '#333' } as React.CSSProperties,
+    detail: { fontSize: '11px', color: '#000' } as React.CSSProperties,
   };
 
   return (
@@ -130,7 +130,7 @@ const PrecheckTicket: React.FC<PrecheckTicketProps> = ({ ticket, onClose }) => {
             <div style={{ textAlign: 'center', fontSize: '16px', fontWeight: 'bold', margin: '6px 0', letterSpacing: '2px', padding: '4px 0', borderBottom: '2px dashed #000', borderTop: '2px dashed #000' }}>
               *** PRECUENTA ***
             </div>
-            <div style={{ textAlign: 'center', fontSize: '9px', color: '#666', marginBottom: '4px' }}>
+            <div style={{ textAlign: 'center', fontSize: '11px', color: '#000', marginBottom: '4px' }}>
               Este documento NO es una factura
             </div>
 
@@ -176,7 +176,7 @@ const PrecheckTicket: React.FC<PrecheckTicketProps> = ({ ticket, onClose }) => {
 
             {/* Items header */}
             <div style={s.sepDash} />
-            <div style={{ display: 'flex', fontSize: '10px', fontWeight: 'bold', paddingBottom: '3px', borderBottom: '1px solid #000', marginBottom: '3px' }}>
+            <div style={{ display: 'flex', fontSize: '11px', fontWeight: 'bold', paddingBottom: '3px', borderBottom: '1px solid #000', marginBottom: '3px' }}>
               <span style={{ flex: 1 }}>Producto</span>
               <span style={{ width: '30px', textAlign: 'center' }}>Ud</span>
               <span style={{ width: '55px', textAlign: 'right' }}>P.Unit</span>
@@ -190,14 +190,14 @@ const PrecheckTicket: React.FC<PrecheckTicketProps> = ({ ticket, onClose }) => {
                   <div style={{ fontSize: '11px', fontWeight: 600 }}>
                     {item.product_name || `Producto #${item.product_id}`}
                   </div>
-                  <div style={{ display: 'flex', fontSize: '10px', color: '#333' }}>
+                  <div style={{ display: 'flex', fontSize: '11px', color: '#000' }}>
                     <span style={{ flex: 1 }}></span>
                     <span style={{ width: '30px', textAlign: 'center' }}>{item.quantity}</span>
                     <span style={{ width: '55px', textAlign: 'right' }}>{formatCurrency(item.unit_price)}</span>
                     <span style={{ width: '60px', textAlign: 'right' }}>{formatCurrency(item.subtotal)}</span>
                   </div>
                   {item.discount > 0 && (
-                    <div style={{ fontSize: '9px', color: '#666', textAlign: 'right' }}>
+                    <div style={{ fontSize: '11px', color: '#000', textAlign: 'right' }}>
                       Desc: -{formatCurrency(item.discount)}
                     </div>
                   )}
@@ -205,7 +205,7 @@ const PrecheckTicket: React.FC<PrecheckTicketProps> = ({ ticket, onClose }) => {
               ))}
             </div>
 
-            <div style={{ fontSize: '10px', color: '#555', textAlign: 'right', marginTop: '2px' }}>
+            <div style={{ fontSize: '11px', color: '#000', textAlign: 'right', marginTop: '2px' }}>
               {totalItems} artículo{totalItems !== 1 ? 's' : ''}
             </div>
 
@@ -246,7 +246,7 @@ const PrecheckTicket: React.FC<PrecheckTicketProps> = ({ ticket, onClose }) => {
 
             {/* Per-person split */}
             {ticket.num_people > 1 && (
-              <div style={{ textAlign: 'center', fontSize: '10px', color: '#555', marginTop: '4px' }}>
+              <div style={{ textAlign: 'center', fontSize: '11px', color: '#000', marginTop: '4px' }}>
                 Por persona ({ticket.num_people}): {formatCurrency(Math.ceil(ticket.total / ticket.num_people))}
               </div>
             )}
@@ -257,7 +257,7 @@ const PrecheckTicket: React.FC<PrecheckTicketProps> = ({ ticket, onClose }) => {
               <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '2px' }}>
                 Solicite su factura al momento de pagar
               </div>
-              <div style={{ fontSize: '9px', color: '#999', marginTop: '6px' }}>Powered by MySale POS</div>
+              <div style={{ fontSize: '11px', color: '#000', marginTop: '6px' }}>Powered by MySale POS</div>
             </div>
           </div>
         </div>

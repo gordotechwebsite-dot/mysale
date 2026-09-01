@@ -94,14 +94,14 @@ const TableReceiptTicket: React.FC<TableReceiptTicketProps> = ({ ticket, payment
   };
 
   const s = {
-    row: { display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' } as React.CSSProperties,
-    label: { color: '#555' } as React.CSSProperties,
+    row: { display: 'flex', justifyContent: 'space-between', fontSize: '11px', lineHeight: '1.5' } as React.CSSProperties,
+    label: { color: '#000' } as React.CSSProperties,
     bold: { fontWeight: 600 } as React.CSSProperties,
     sepDash: { borderTop: '1px dashed #000', margin: '5px 0' } as React.CSSProperties,
     sepSolid: { borderTop: '2px solid #000', margin: '5px 0' } as React.CSSProperties,
     sepDouble: { borderTop: '3px double #000', margin: '5px 0' } as React.CSSProperties,
     center: { textAlign: 'center' as const },
-    detail: { fontSize: '10px', color: '#333' } as React.CSSProperties,
+    detail: { fontSize: '11px', color: '#000' } as React.CSSProperties,
   };
 
   return (
@@ -196,7 +196,7 @@ const TableReceiptTicket: React.FC<TableReceiptTicketProps> = ({ ticket, payment
 
             {/* Items header */}
             <div style={s.sepDash} />
-            <div style={{ display: 'flex', fontSize: '10px', fontWeight: 'bold', paddingBottom: '3px', borderBottom: '1px solid #000', marginBottom: '3px' }}>
+            <div style={{ display: 'flex', fontSize: '11px', fontWeight: 'bold', paddingBottom: '3px', borderBottom: '1px solid #000', marginBottom: '3px' }}>
               <span style={{ flex: 1 }}>Producto</span>
               <span style={{ width: '30px', textAlign: 'center' }}>Ud</span>
               <span style={{ width: '55px', textAlign: 'right' }}>P.Unit</span>
@@ -210,14 +210,14 @@ const TableReceiptTicket: React.FC<TableReceiptTicketProps> = ({ ticket, payment
                   <div style={{ fontSize: '11px', fontWeight: 600 }}>
                     {item.product_name || `Producto #${item.product_id}`}
                   </div>
-                  <div style={{ display: 'flex', fontSize: '10px', color: '#333' }}>
+                  <div style={{ display: 'flex', fontSize: '11px', color: '#000' }}>
                     <span style={{ flex: 1 }}></span>
                     <span style={{ width: '30px', textAlign: 'center' }}>{item.quantity}</span>
                     <span style={{ width: '55px', textAlign: 'right' }}>{formatCurrency(item.unit_price)}</span>
                     <span style={{ width: '60px', textAlign: 'right' }}>{formatCurrency(item.subtotal)}</span>
                   </div>
                   {item.discount > 0 && (
-                    <div style={{ fontSize: '9px', color: '#666', textAlign: 'right' }}>
+                    <div style={{ fontSize: '11px', color: '#000', textAlign: 'right' }}>
                       Desc: -{formatCurrency(item.discount)}
                     </div>
                   )}
@@ -225,7 +225,7 @@ const TableReceiptTicket: React.FC<TableReceiptTicketProps> = ({ ticket, payment
               ))}
             </div>
 
-            <div style={{ fontSize: '10px', color: '#555', textAlign: 'right', marginTop: '2px' }}>
+            <div style={{ fontSize: '11px', color: '#000', textAlign: 'right', marginTop: '2px' }}>
               {totalItems} artículo{totalItems !== 1 ? 's' : ''}
             </div>
 
@@ -299,9 +299,9 @@ const TableReceiptTicket: React.FC<TableReceiptTicketProps> = ({ ticket, payment
                 ¡Gracias por su visita!
               </div>
               {business?.slogan && (
-                <div style={{ fontSize: '10px', color: '#555', fontStyle: 'italic' }}>{business.slogan}</div>
+                <div style={{ fontSize: '11px', color: '#000', fontStyle: 'italic' }}>{business.slogan}</div>
               )}
-              <div style={{ fontSize: '9px', color: '#999', marginTop: '6px' }}>Powered by MySale POS</div>
+              <div style={{ fontSize: '11px', color: '#000', marginTop: '6px' }}>Powered by MySale POS</div>
             </div>
           </div>
         </div>

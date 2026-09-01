@@ -46,36 +46,36 @@ const thermalStyles = `
   .receipt-header { text-align: center; margin-bottom: 6px; }
   .receipt-logo { max-width: 45mm; max-height: 18mm; margin: 0 auto 4px; display: block; object-fit: contain; }
   .business-name { font-size: 15px; font-weight: bold; margin-bottom: 1px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .business-detail { font-size: 10px; color: #333; line-height: 1.3; }
+  .business-detail { font-size: 11px; color: #000; line-height: 1.3; }
   .sep-dash { border: none; border-top: 1px dashed #000; margin: 5px 0; }
   .sep-solid { border: none; border-top: 2px solid #000; margin: 5px 0; }
   .sep-double { border: none; border-top: 3px double #000; margin: 5px 0; }
   .doc-title { text-align: center; font-size: 14px; font-weight: bold; margin: 4px 0; letter-spacing: 1px; }
-  .info-row { display: flex; justify-content: space-between; font-size: 10px; line-height: 1.5; }
-  .info-label { color: #555; }
+  .info-row { display: flex; justify-content: space-between; font-size: 11px; line-height: 1.5; }
+  .info-label { color: #000; }
   .info-value { font-weight: 600; }
-  .items-header { display: flex; font-size: 10px; font-weight: bold; padding: 3px 0; border-bottom: 1px solid #000; margin-bottom: 3px; }
+  .items-header { display: flex; font-size: 11px; font-weight: bold; padding: 3px 0; border-bottom: 1px solid #000; margin-bottom: 3px; }
   .items-header span:first-child { flex: 1; }
   .items-header span:nth-child(2) { width: 30px; text-align: center; }
   .items-header span:nth-child(3) { width: 55px; text-align: right; }
   .items-header span:nth-child(4) { width: 60px; text-align: right; }
   .item-row { margin-bottom: 3px; }
   .item-name { font-size: 11px; font-weight: 600; }
-  .item-detail { display: flex; font-size: 10px; color: #333; }
+  .item-detail { display: flex; font-size: 11px; color: #000; }
   .item-detail span:first-child { flex: 1; }
   .item-detail span:nth-child(2) { width: 30px; text-align: center; }
   .item-detail span:nth-child(3) { width: 55px; text-align: right; }
   .item-detail span:nth-child(4) { width: 60px; text-align: right; }
-  .item-notes { font-size: 9px; color: #555; font-style: italic; }
-  .item-discount { font-size: 9px; color: #666; text-align: right; }
+  .item-notes { font-size: 11px; color: #000; font-style: italic; }
+  .item-discount { font-size: 11px; color: #000; text-align: right; }
   .totals-section { margin-top: 4px; }
   .totals-row { display: flex; justify-content: space-between; font-size: 11px; padding: 1px 0; }
   .total-final { display: flex; justify-content: space-between; font-size: 16px; font-weight: bold; padding: 3px 0; }
   .payment-section { margin-top: 4px; }
   .footer { text-align: center; margin-top: 8px; }
   .footer-thanks { font-size: 12px; font-weight: bold; margin-bottom: 2px; }
-  .footer-slogan { font-size: 10px; color: #555; font-style: italic; }
-  .footer-brand { font-size: 9px; color: #999; margin-top: 6px; }
+  .footer-slogan { font-size: 11px; color: #000; font-style: italic; }
+  .footer-brand { font-size: 11px; color: #000; margin-top: 6px; }
 `;
 
 const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
@@ -224,19 +224,19 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
                 {business?.name || 'Mi Negocio'}
               </div>
               {business?.razon_social && (
-                <div style={{ fontSize: '10px', color: '#333' }}>{business.razon_social}</div>
+                <div style={{ fontSize: '11px', color: '#000' }}>{business.razon_social}</div>
               )}
               {business?.nit && (
-                <div style={{ fontSize: '10px', color: '#333' }}>NIT: {business.nit}</div>
+                <div style={{ fontSize: '11px', color: '#000' }}>NIT: {business.nit}</div>
               )}
               {business?.address && (
-                <div style={{ fontSize: '10px', color: '#333' }}>{business.address}</div>
+                <div style={{ fontSize: '11px', color: '#000' }}>{business.address}</div>
               )}
               {business?.contact_phone && (
-                <div style={{ fontSize: '10px', color: '#333' }}>Tel: {business.contact_phone}</div>
+                <div style={{ fontSize: '11px', color: '#000' }}>Tel: {business.contact_phone}</div>
               )}
               {business?.contact_email && (
-                <div style={{ fontSize: '10px', color: '#333' }}>{business.contact_email}</div>
+                <div style={{ fontSize: '11px', color: '#000' }}>{business.contact_email}</div>
               )}
             </div>
 
@@ -249,27 +249,27 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
 
             {/* Sale info */}
             <div style={{ marginBottom: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' }}>
-                <span style={{ color: '#555' }}>Folio:</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', lineHeight: '1.5' }}>
+                <span style={{ color: '#000' }}>Folio:</span>
                 <span style={{ fontWeight: 600 }}>{sale.folio}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' }}>
-                <span style={{ color: '#555' }}>Fecha:</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', lineHeight: '1.5' }}>
+                <span style={{ color: '#000' }}>Fecha:</span>
                 <span>{formatDate(sale.created_at)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' }}>
-                <span style={{ color: '#555' }}>Hora:</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', lineHeight: '1.5' }}>
+                <span style={{ color: '#000' }}>Hora:</span>
                 <span>{formatTime(sale.created_at)}</span>
               </div>
               {sale.cashier_name && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' }}>
-                  <span style={{ color: '#555' }}>Cajero:</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', lineHeight: '1.5' }}>
+                  <span style={{ color: '#000' }}>Cajero:</span>
                   <span>{sale.cashier_name}</span>
                 </div>
               )}
               {sale.location_name && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' }}>
-                  <span style={{ color: '#555' }}>Sede:</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', lineHeight: '1.5' }}>
+                  <span style={{ color: '#000' }}>Sede:</span>
                   <span>{sale.location_name}</span>
                 </div>
               )}
@@ -277,7 +277,7 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
 
             {/* Items header */}
             <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
-            <div style={{ display: 'flex', fontSize: '10px', fontWeight: 'bold', paddingBottom: '3px', borderBottom: '1px solid #000', marginBottom: '3px' }}>
+            <div style={{ display: 'flex', fontSize: '11px', fontWeight: 'bold', paddingBottom: '3px', borderBottom: '1px solid #000', marginBottom: '3px' }}>
               <span style={{ flex: 1 }}>Producto</span>
               <span style={{ width: '30px', textAlign: 'center' }}>Ud</span>
               <span style={{ width: '55px', textAlign: 'right' }}>P.Unit</span>
@@ -292,18 +292,18 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
                     {item.product_name || `Producto #${item.product_id}`}
                   </div>
                   {item.notes && (
-                    <div style={{ fontSize: '9px', color: '#555', fontStyle: 'italic' }}>
+                    <div style={{ fontSize: '11px', color: '#000', fontStyle: 'italic' }}>
                       ▸ {item.notes}
                     </div>
                   )}
-                  <div style={{ display: 'flex', fontSize: '10px', color: '#333' }}>
+                  <div style={{ display: 'flex', fontSize: '11px', color: '#000' }}>
                     <span style={{ flex: 1 }}></span>
                     <span style={{ width: '30px', textAlign: 'center' }}>{item.quantity}</span>
                     <span style={{ width: '55px', textAlign: 'right' }}>{formatCurrency(item.unit_price)}</span>
                     <span style={{ width: '60px', textAlign: 'right' }}>{formatCurrency(item.subtotal)}</span>
                   </div>
                   {item.discount > 0 && (
-                    <div style={{ fontSize: '9px', color: '#666', textAlign: 'right' }}>
+                    <div style={{ fontSize: '11px', color: '#000', textAlign: 'right' }}>
                       Desc: -{formatCurrency(item.discount)}
                     </div>
                   )}
@@ -343,13 +343,13 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
 
             {/* Payment */}
             <div style={{ marginTop: '4px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' }}>
-                <span style={{ color: '#555' }}>Método de pago:</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', lineHeight: '1.5' }}>
+                <span style={{ color: '#000' }}>Método de pago:</span>
                 <span style={{ fontWeight: 'bold' }}>{paymentMethodLabel(sale.payment_method)}</span>
               </div>
               {sale.amount_received != null && sale.payment_method === 'cash' && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', lineHeight: '1.5' }}>
-                  <span style={{ color: '#555' }}>Recibido:</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', lineHeight: '1.5' }}>
+                  <span style={{ color: '#000' }}>Recibido:</span>
                   <span>{formatCurrency(sale.amount_received)}</span>
                 </div>
               )}
@@ -368,11 +368,11 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
                 ¡Gracias por su compra!
               </div>
               {business?.slogan && (
-                <div style={{ fontSize: '10px', color: '#555', fontStyle: 'italic' }}>
+                <div style={{ fontSize: '11px', color: '#000', fontStyle: 'italic' }}>
                   {business.slogan}
                 </div>
               )}
-              <div style={{ fontSize: '9px', color: '#999', marginTop: '6px' }}>
+              <div style={{ fontSize: '11px', color: '#000', marginTop: '6px' }}>
                 Powered by MySale POS
               </div>
             </div>

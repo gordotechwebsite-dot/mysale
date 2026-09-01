@@ -1,3 +1,15 @@
+const legibilityStyles = `
+  body, body * {
+    color: #000 !important;
+    font-style: normal !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body, body * { font-weight: 700 !important; }
+  body { font-size: 13px !important; line-height: 1.4 !important; }
+`;
+
 export function printReceiptWindow(title: string, styles: string, bodyHTML: string) {
   const printWindow = window.open('', '_blank', 'width=320,height=600');
   if (!printWindow) return;
@@ -5,7 +17,7 @@ export function printReceiptWindow(title: string, styles: string, bodyHTML: stri
   printWindow.document.write(`
     <!DOCTYPE html><html><head><meta charset="utf-8">
     <title>${title}</title>
-    <style>${styles}</style></head>
+    <style>${styles}${legibilityStyles}</style></head>
     <body>${bodyHTML}</body></html>
   `);
   printWindow.document.close();
