@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { getReceiptInfo } from '../api';
 import type { Ticket } from '../types';
 import { Printer, X } from 'lucide-react';
+import { printReceiptWindow } from '../lib/printReceipt';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -89,16 +90,7 @@ const TableReceiptTicket: React.FC<TableReceiptTicketProps> = ({ ticket, payment
   const handlePrint = () => {
     const printContent = receiptRef.current;
     if (!printContent) return;
-    const printWindow = window.open('', '_blank', 'width=320,height=600');
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <!DOCTYPE html><html><head><meta charset="utf-8">
-      <title>Factura Mesa - ${ticket.table_name || ticket.id}</title>
-      <style>${thermalStyles}</style></head>
-      <body>${printContent.innerHTML}</body></html>
-    `);
-    printWindow.document.close();
-    printWindow.onload = () => { printWindow.focus(); printWindow.print(); printWindow.close(); };
+    printReceiptWindow(`Factura Mesa - ${ticket.table_name || ticket.id}`, thermalStyles, printContent.innerHTML);
   };
 
   const s = {
