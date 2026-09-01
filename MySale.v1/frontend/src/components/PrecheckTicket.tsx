@@ -136,10 +136,6 @@ const PrecheckTicket: React.FC<PrecheckTicketProps> = ({ ticket, onClose }) => {
 
             {/* Ticket info */}
             <div style={{ marginBottom: '4px' }}>
-              <div style={s.row}>
-                <span style={s.label}>Cuenta:</span>
-                <span style={s.bold}>#{ticket.id}</span>
-              </div>
               {ticket.table_name && (
                 <div style={s.row}>
                   <span style={s.label}>Mesa:</span>
@@ -243,13 +239,6 @@ const PrecheckTicket: React.FC<PrecheckTicketProps> = ({ ticket, onClose }) => {
               <span>{formatCurrency(ticket.total)}</span>
             </div>
             <div style={{ borderTop: '3px double #000', margin: '5px 0' }} />
-
-            {/* Per-person split */}
-            {ticket.num_people > 1 && (
-              <div style={{ textAlign: 'center', fontSize: '11px', color: '#000', marginTop: '4px' }}>
-                Por persona ({ticket.num_people}): {formatCurrency(Math.ceil(ticket.total / ticket.num_people))}
-              </div>
-            )}
 
             {/* Footer */}
             <div style={s.sepDash} />
