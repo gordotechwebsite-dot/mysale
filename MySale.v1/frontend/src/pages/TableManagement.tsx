@@ -935,7 +935,7 @@ export default function TableManagement() {
               <span className="hidden lg:inline">Volver a Mesas</span>
             </Button>
             <h1 className="text-base lg:text-2xl font-bold text-gray-900 truncate">
-              {selectedTable.name} {currentTicket ? `- Cuenta #${currentTicket.id}` : '- Nueva Cuenta'}
+              {selectedTable.name}{currentTicket ? '' : ' - Nueva Cuenta'}
             </h1>
           </div>
         </div>
@@ -1897,7 +1897,7 @@ export default function TableManagement() {
         <DialogContent className="bg-white text-gray-900 border-gray-200 max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
-              <span>{selectedTable?.name} - {currentTicket ? `Cuenta #${currentTicket.id}` : 'Abrir Cuenta'}</span>
+              <span>{selectedTable?.name}{currentTicket ? '' : ' - Abrir Cuenta'}</span>
               {currentTicket && (
                 <span className="text-emerald-600 font-bold text-lg">
                   Total: ${currentTicket.total.toLocaleString()}
