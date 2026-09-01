@@ -288,20 +288,19 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
             <div style={{ marginBottom: '3px' }}>
               {sale.items.map((item, idx) => (
                 <div key={idx} style={{ marginBottom: '3px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 600 }}>
-                    {item.product_name || `Producto #${item.product_id}`}
+                  <div style={{ display: 'flex', fontSize: '11px', color: '#000' }}>
+                    <span style={{ flex: 1, fontWeight: 600, paddingRight: '3px', wordBreak: 'break-word' }}>
+                      {item.product_name || `Producto #${item.product_id}`}
+                    </span>
+                    <span style={{ width: '30px', textAlign: 'center' }}>{item.quantity}</span>
+                    <span style={{ width: '55px', textAlign: 'right' }}>{formatCurrency(item.unit_price)}</span>
+                    <span style={{ width: '60px', textAlign: 'right' }}>{formatCurrency(item.subtotal)}</span>
                   </div>
                   {item.notes && (
                     <div style={{ fontSize: '11px', color: '#000', fontStyle: 'italic' }}>
                       ▸ {item.notes}
                     </div>
                   )}
-                  <div style={{ display: 'flex', fontSize: '11px', color: '#000' }}>
-                    <span style={{ flex: 1 }}></span>
-                    <span style={{ width: '30px', textAlign: 'center' }}>{item.quantity}</span>
-                    <span style={{ width: '55px', textAlign: 'right' }}>{formatCurrency(item.unit_price)}</span>
-                    <span style={{ width: '60px', textAlign: 'right' }}>{formatCurrency(item.subtotal)}</span>
-                  </div>
                   {item.discount > 0 && (
                     <div style={{ fontSize: '11px', color: '#000', textAlign: 'right' }}>
                       Desc: -{formatCurrency(item.discount)}
