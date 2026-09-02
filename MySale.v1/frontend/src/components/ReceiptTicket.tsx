@@ -88,7 +88,7 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
 
   const loadBusinessInfo = async () => {
     try {
-      const data = await getReceiptInfo();
+      const data = await getReceiptInfo(sale.location_id);
       setBusiness(data);
     } catch (error) {
       console.error('Error loading business info:', error);

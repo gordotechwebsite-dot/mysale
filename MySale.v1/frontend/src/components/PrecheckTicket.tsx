@@ -44,7 +44,7 @@ const PrecheckTicket: React.FC<PrecheckTicketProps> = ({ ticket, onClose }) => {
 
   const loadBusinessInfo = async () => {
     try {
-      const data = await getReceiptInfo();
+      const data = await getReceiptInfo(ticket.location_id);
       setBusiness(data);
     } catch (error) {
       console.error('Error loading business info:', error);
