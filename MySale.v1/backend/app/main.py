@@ -39,6 +39,20 @@ def run_migrations():
             db.execute(text("ALTER TABLE locations ADD COLUMN receipt_business_name VARCHAR(100)"))
             db.commit()
             print("Migration: Added receipt_business_name column to locations table")
+
+        receipt_profile_columns = {
+            'receipt_razon_social': 'VARCHAR(150)',
+            'receipt_nit': 'VARCHAR(50)',
+            'receipt_slogan': 'VARCHAR(200)',
+            'receipt_address': 'VARCHAR(255)',
+            'receipt_phone': 'VARCHAR(50)',
+            'receipt_email': 'VARCHAR(120)',
+        }
+        for column_name, column_type in receipt_profile_columns.items():
+            if column_name not in columns:
+                db.execute(text(f"ALTER TABLE locations ADD COLUMN {column_name} {column_type}"))
+                db.commit()
+                print(f"Migration: Added {column_name} column to locations table")
         
         if 'has_own_menu' not in columns:
             db.execute(text("ALTER TABLE locations ADD COLUMN has_own_menu BOOLEAN DEFAULT 0 NOT NULL"))
