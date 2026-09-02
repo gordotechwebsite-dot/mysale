@@ -1,7 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { Upload, Save, Loader2, CheckCircle } from 'lucide-react';
-import { getBusinessProfile, updateBusinessProfile, uploadBusinessLogo } from '../api';
+import {
+  getBusinessProfile,
+  updateBusinessProfile,
+  uploadBusinessLogo,
+  getLocationReceiptProfiles,
+  updateLocationReceiptProfile,
+  uploadLocationReceiptLogo,
+  deleteLocationReceiptLogo,
+} from '../api';
+import type { LocationReceiptProfile } from '../api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -16,6 +25,28 @@ interface ProfileForm {
   primary_color: string;
 }
 
+type LocationProfileForm = Omit<ProfileForm, 'primary_color'>;
+
+const emptyLocationForm: LocationProfileForm = {
+  name: '',
+  razon_social: '',
+  nit: '',
+  slogan: '',
+  address: '',
+  contact_phone: '',
+  contact_email: '',
+};
+
+const toLocationForm = (profile: LocationReceiptProfile): LocationProfileForm => ({
+  name: profile.name || '',
+  razon_social: profile.razon_social || '',
+  nit: profile.nit || '',
+  slogan: profile.slogan || '',
+  address: profile.address || '',
+  contact_phone: profile.contact_phone || '',
+  contact_email: profile.contact_email || '',
+});
+
 export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -24,6 +55,13 @@ export default function Settings() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const locationLogoInputRef = useRef<HTMLInputElement>(null);
+
+  const [locationProfiles, setLocationProfiles] = useState<LocationReceiptProfile[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null);
+  const [locationForm, setLocationForm] = useState<LocationProfileForm>(emptyLocationForm);
+  const [savingLocation, setSavingLocation] = useState(false);
+  const [uploadingLocationLogo, setUploadingLocationLogo] = useState(false);
 
   const [form, setForm] = useState<ProfileForm>({
     name: '',
@@ -38,7 +76,77 @@ export default function Settings() {
 
   useEffect(() => {
     loadProfile();
+    loadLocationProfiles();
   }, []);
+
+  const loadLocationProfiles = async () => {
+    try {
+      const data = await getLocationReceiptProfiles();
+      setLocationProfiles(data);
+      if (data.length > 0) {
+        setSelectedLocationId(data[0].location_id);
+        setLocationForm(toLocationForm(data[0]));
+      }
+    } catch (error) {
+      console.error('Error loading location receipt profiles:', error);
+    }
+  };
+
+  const selectedLocation = locationProfiles.find((p) => p.location_id === selectedLocationId) || null;
+
+  const handleSelectLocation = (locationId: number) => {
+    setSelectedLocationId(locationId);
+    const profile = locationProfiles.find((p) => p.location_id === locationId);
+    setLocationForm(profile ? toLocationForm(profile) : emptyLocationForm);
+  };
+
+  const handleSaveLocation = async () => {
+    if (!selectedLocationId) return;
+    try {
+      setSavingLocation(true);
+      const updated = await updateLocationReceiptProfile(selectedLocationId, locationForm);
+      setLocationProfiles((prev) => prev.map((p) => (p.location_id === updated.location_id ? updated : p)));
+      setLocationForm(toLocationForm(updated));
+      toast.success('Datos de la sucursal guardados');
+    } catch (error) {
+      console.error('Error saving location receipt profile:', error);
+      toast.error('Error al guardar los datos de la sucursal');
+    } finally {
+      setSavingLocation(false);
+    }
+  };
+
+  const handleLocationLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedLocationId) return;
+    try {
+      setUploadingLocationLogo(true);
+      const updated = await uploadLocationReceiptLogo(selectedLocationId, file);
+      setLocationProfiles((prev) => prev.map((p) => (p.location_id === updated.location_id ? updated : p)));
+      toast.success('Logo de la sucursal actualizado');
+    } catch (error) {
+      console.error('Error uploading location logo:', error);
+      toast.error('Error al subir el logo de la sucursal');
+    } finally {
+      setUploadingLocationLogo(false);
+      if (locationLogoInputRef.current) locationLogoInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveLocationLogo = async () => {
+    if (!selectedLocationId) return;
+    try {
+      setUploadingLocationLogo(true);
+      const updated = await deleteLocationReceiptLogo(selectedLocationId);
+      setLocationProfiles((prev) => prev.map((p) => (p.location_id === updated.location_id ? updated : p)));
+      toast.success('La sucursal vuelve a usar el logo del negocio');
+    } catch (error) {
+      console.error('Error removing location logo:', error);
+      toast.error('Error al quitar el logo de la sucursal');
+    } finally {
+      setUploadingLocationLogo(false);
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -322,6 +430,179 @@ export default function Settings() {
           </div>
         </div>
       </form>
+
+      {locationProfiles.length > 0 && (
+        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #e5e7eb' }}>
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <h2 className="font-semibold" style={{ color: '#111827' }}>Datos de factura por sucursal</h2>
+              <p className="text-sm" style={{ color: '#6b7280' }}>
+                Lo que dejes vacio se imprime con los datos del negocio.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleSaveLocation}
+              disabled={savingLocation || !selectedLocationId}
+              className="flex items-center gap-2 px-5 py-2.5 text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
+              style={{ backgroundColor: '#00a86b' }}
+            >
+              {savingLocation ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+              {savingLocation ? 'Guardando...' : 'Guardar sucursal'}
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mb-5">
+            {locationProfiles.map((profile) => (
+              <button
+                key={profile.location_id}
+                type="button"
+                onClick={() => handleSelectLocation(profile.location_id)}
+                className="px-4 py-2 text-sm font-medium rounded-xl transition-colors"
+                style={
+                  profile.location_id === selectedLocationId
+                    ? { backgroundColor: '#00a86b', color: '#ffffff' }
+                    : { backgroundColor: '#f3f4f6', color: '#374151' }
+                }
+              >
+                {profile.location_name}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-1.5 block" style={{ color: '#374151' }}>Nombre en la factura</label>
+              <input
+                type="text"
+                value={locationForm.name}
+                onChange={(e) => setLocationForm({ ...locationForm, name: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                style={{ border: '1px solid #e5e7eb' }}
+                placeholder={form.name || 'Usa el del negocio'}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block" style={{ color: '#374151' }}>NIT</label>
+              <input
+                type="text"
+                value={locationForm.nit}
+                onChange={(e) => setLocationForm({ ...locationForm, nit: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                style={{ border: '1px solid #e5e7eb' }}
+                placeholder={form.nit || 'Usa el del negocio'}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block" style={{ color: '#374151' }}>Razon Social</label>
+              <input
+                type="text"
+                value={locationForm.razon_social}
+                onChange={(e) => setLocationForm({ ...locationForm, razon_social: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                style={{ border: '1px solid #e5e7eb' }}
+                placeholder={form.razon_social || 'Usa la del negocio'}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block" style={{ color: '#374151' }}>Eslogan</label>
+              <input
+                type="text"
+                value={locationForm.slogan}
+                onChange={(e) => setLocationForm({ ...locationForm, slogan: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                style={{ border: '1px solid #e5e7eb' }}
+                placeholder={form.slogan || 'Usa el del negocio'}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block" style={{ color: '#374151' }}>Telefono</label>
+              <input
+                type="text"
+                value={locationForm.contact_phone}
+                onChange={(e) => setLocationForm({ ...locationForm, contact_phone: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                style={{ border: '1px solid #e5e7eb' }}
+                placeholder={form.contact_phone || 'Usa el del negocio'}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block" style={{ color: '#374151' }}>Correo Electronico</label>
+              <input
+                type="email"
+                value={locationForm.contact_email}
+                onChange={(e) => setLocationForm({ ...locationForm, contact_email: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                style={{ border: '1px solid #e5e7eb' }}
+                placeholder={form.contact_email || 'Usa el del negocio'}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium mb-1.5 block" style={{ color: '#374151' }}>Direccion</label>
+              <input
+                type="text"
+                value={locationForm.address}
+                onChange={(e) => setLocationForm({ ...locationForm, address: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2"
+                style={{ border: '1px solid #e5e7eb' }}
+                placeholder={form.address || 'Usa la del negocio'}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 mt-5 pt-5" style={{ borderTop: '1px solid #e5e7eb' }}>
+            <div
+              className="w-24 h-24 rounded-xl flex items-center justify-center overflow-hidden"
+              style={{ backgroundColor: '#f3f4f6', border: '2px dashed #d1d5db' }}
+            >
+              {selectedLocation?.logo_url ? (
+                <img
+                  src={selectedLocation.logo_url.startsWith('http') ? selectedLocation.logo_url : `${API_URL}${selectedLocation.logo_url}`}
+                  alt={`Logo de ${selectedLocation.location_name}`}
+                  className="w-full h-full object-contain p-1"
+                />
+              ) : (
+                <Upload size={22} style={{ color: '#9ca3af' }} />
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium" style={{ color: '#374151' }}>Logo en la factura de esta sucursal</p>
+              <p className="text-xs mb-2" style={{ color: '#9ca3af' }}>
+                {selectedLocation?.logo_url ? 'PNG, JPG o SVG. Maximo 2MB.' : 'Sin logo propio: usa el del negocio.'}
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => locationLogoInputRef.current?.click()}
+                  disabled={uploadingLocationLogo || !selectedLocationId}
+                  className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: 'rgba(0, 168, 107, 0.1)', color: '#00a86b' }}
+                >
+                  {uploadingLocationLogo ? 'Procesando...' : selectedLocation?.logo_url ? 'Cambiar logo' : 'Subir logo'}
+                </button>
+                {selectedLocation?.logo_url && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveLocationLogo}
+                    disabled={uploadingLocationLogo}
+                    className="text-sm font-medium disabled:opacity-50"
+                    style={{ color: '#ef4444' }}
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
+            </div>
+            <input
+              ref={locationLogoInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+              onChange={handleLocationLogoUpload}
+              className="hidden"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

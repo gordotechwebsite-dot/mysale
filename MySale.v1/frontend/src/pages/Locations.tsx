@@ -35,9 +35,6 @@ const Locations: React.FC = () => {
   const [showAddLocation, setShowAddLocation] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadingImageFor, setUploadingImageFor] = useState<number | null>(null);
-  const [uploadingLogoFor, setUploadingLogoFor] = useState<number | null>(null);
-  const [receiptNames, setReceiptNames] = useState<Record<number, string>>({});
-  const [savingNameFor, setSavingNameFor] = useState<number | null>(null);
 
   const [newLocation, setNewLocation] = useState({
     name: '',
@@ -57,9 +54,6 @@ const Locations: React.FC = () => {
     try {
       const data = await getLocationsDashboard();
       setLocations(data);
-      setReceiptNames(
-        Object.fromEntries(data.map((l) => [l.id, l.receipt_business_name || '']))
-      );
     } catch (error) {
       console.error('Error loading locations:', error);
     } finally {
@@ -83,57 +77,6 @@ const Locations: React.FC = () => {
       toast.error('Error al subir la imagen');
     } finally {
       setUploadingImageFor(null);
-    }
-  };
-
-  const handleReceiptLogoUpload = async (locationId: number, file: File) => {
-    setUploadingLogoFor(locationId);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const response = await api.post('/api/inventory/upload-image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      await updateLocation(locationId, { receipt_logo_url: response.data.url });
-      await loadLocations();
-      toast.success('Logo de factura actualizado');
-    } catch (error) {
-      console.error('Error uploading receipt logo:', error);
-      toast.error('Error al subir el logo de la factura');
-    } finally {
-      setUploadingLogoFor(null);
-    }
-  };
-
-  const handleRemoveReceiptLogo = async (locationId: number) => {
-    setUploadingLogoFor(locationId);
-    try {
-      await updateLocation(locationId, { receipt_logo_url: '' });
-      await loadLocations();
-      toast.success('La sede vuelve a usar el logo del negocio');
-    } catch (error) {
-      console.error('Error removing receipt logo:', error);
-      toast.error('Error al quitar el logo de la factura');
-    } finally {
-      setUploadingLogoFor(null);
-    }
-  };
-
-  const handleSaveReceiptName = async (locationId: number) => {
-    const location = locations.find((l) => l.id === locationId);
-    const value = (receiptNames[locationId] || '').trim();
-    if (!location || value === (location.receipt_business_name || '')) return;
-
-    setSavingNameFor(locationId);
-    try {
-      await updateLocation(locationId, { receipt_business_name: value });
-      await loadLocations();
-      toast.success(value ? 'Nombre de la factura actualizado' : 'La sede vuelve a usar el nombre del negocio');
-    } catch (error) {
-      console.error('Error updating receipt name:', error);
-      toast.error('Error al guardar el nombre de la factura');
-    } finally {
-      setSavingNameFor(null);
     }
   };
 
@@ -350,69 +293,6 @@ const Locations: React.FC = () => {
                       />
                       Carta propia (solo muestra los productos de esta sede)
                     </label>
-                  )}
-                  {location.location_type === 'pos' && (
-                    <div className="flex items-center gap-2 text-xs text-gray-600">
-                      <span className="whitespace-nowrap">Nombre en factura:</span>
-                      <input
-                        type="text"
-                        value={receiptNames[location.id] ?? ''}
-                        placeholder="usa el del negocio"
-                        onChange={(e) =>
-                          setReceiptNames((prev) => ({ ...prev, [location.id]: e.target.value }))
-                        }
-                        onBlur={() => handleSaveReceiptName(location.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            (e.target as HTMLInputElement).blur();
-                          }
-                        }}
-                        disabled={savingNameFor === location.id}
-                        className="flex-1 min-w-0 px-2 py-1 border border-gray-200 rounded focus:outline-none focus:border-[#00a86b] disabled:opacity-50"
-                      />
-                    </div>
-                  )}
-                  {location.location_type === 'pos' && (
-                    <div className="flex items-center gap-2 text-xs text-gray-600">
-                      <span className="whitespace-nowrap">Logo de factura:</span>
-                      {location.receipt_logo_url ? (
-                        <img
-                          src={resolveImageUrl(location.receipt_logo_url)}
-                          alt={`Logo de factura de ${location.name}`}
-                          className="h-8 w-auto max-w-[80px] object-contain bg-white rounded border border-gray-200"
-                        />
-                      ) : (
-                        <span className="text-gray-400">usa el del negocio</span>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        id={`receipt-logo-input-${location.id}`}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleReceiptLogoUpload(location.id, file);
-                          }
-                        }}
-                      />
-                      <button
-                        onClick={() => document.getElementById(`receipt-logo-input-${location.id}`)?.click()}
-                        disabled={uploadingLogoFor === location.id}
-                        className="ml-auto text-[#00a86b] hover:text-[#008f5b] font-medium disabled:opacity-50"
-                      >
-                        {uploadingLogoFor === location.id ? 'Subiendo...' : 'Cambiar'}
-                      </button>
-                      {location.receipt_logo_url && (
-                        <button
-                          onClick={() => handleRemoveReceiptLogo(location.id)}
-                          disabled={uploadingLogoFor === location.id}
-                          className="text-red-500 hover:text-red-600 font-medium disabled:opacity-50"
-                        >
-                          Quitar
-                        </button>
-                      )}
-                    </div>
                   )}
                   <button
                     onClick={() => navigate(`/location/${location.id}`)}

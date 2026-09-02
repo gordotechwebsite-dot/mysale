@@ -1448,6 +1448,51 @@ export const updateBusinessProfile = async (data: {
   return response.data;
 };
 
+export interface LocationReceiptProfile {
+  location_id: number;
+  location_name: string;
+  name: string | null;
+  razon_social: string | null;
+  nit: string | null;
+  slogan: string | null;
+  address: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  logo_url: string | null;
+}
+
+export const getLocationReceiptProfiles = async (): Promise<LocationReceiptProfile[]> => {
+  const response = await api.get('/api/business-profile/locations');
+  return response.data;
+};
+
+export const updateLocationReceiptProfile = async (locationId: number, data: {
+  name?: string;
+  razon_social?: string;
+  nit?: string;
+  slogan?: string;
+  address?: string;
+  contact_phone?: string;
+  contact_email?: string;
+}): Promise<LocationReceiptProfile> => {
+  const response = await api.put(`/api/business-profile/locations/${locationId}`, data);
+  return response.data;
+};
+
+export const uploadLocationReceiptLogo = async (locationId: number, file: File): Promise<LocationReceiptProfile> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(`/api/business-profile/locations/${locationId}/logo`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+export const deleteLocationReceiptLogo = async (locationId: number): Promise<LocationReceiptProfile> => {
+  const response = await api.delete(`/api/business-profile/locations/${locationId}/logo`);
+  return response.data;
+};
+
 export const uploadBusinessLogo = async (file: File) => {
   const formData = new FormData();
   formData.append('file', file);

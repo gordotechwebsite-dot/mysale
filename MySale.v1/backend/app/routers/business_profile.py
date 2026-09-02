@@ -158,6 +158,159 @@ async def upload_logo(
     return {"logo_url": logo_url, "message": "Logo actualizado exitosamente"}
 
 
+class LocationReceiptProfile(BaseModel):
+    location_id: int
+    location_name: str
+    name: Optional[str] = None
+    razon_social: Optional[str] = None
+    nit: Optional[str] = None
+    slogan: Optional[str] = None
+    address: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    logo_url: Optional[str] = None
+
+
+class LocationReceiptProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    razon_social: Optional[str] = None
+    nit: Optional[str] = None
+    slogan: Optional[str] = None
+    address: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+
+
+def _location_receipt_profile(location: Location) -> LocationReceiptProfile:
+    return LocationReceiptProfile(
+        location_id=location.id,
+        location_name=location.name,
+        name=location.receipt_business_name,
+        razon_social=location.receipt_razon_social,
+        nit=location.receipt_nit,
+        slogan=location.receipt_slogan,
+        address=location.receipt_address,
+        contact_phone=location.receipt_phone,
+        contact_email=location.receipt_email,
+        logo_url=location.receipt_logo_url,
+    )
+
+
+def _get_tenant_location(db: Session, location_id: int, tenant_id: int) -> Location:
+    location = db.query(Location).filter(
+        Location.id == location_id,
+        Location.tenant_id == tenant_id
+    ).first()
+    if not location:
+        raise HTTPException(status_code=404, detail="Sucursal no encontrada")
+    return location
+
+
+@router.get("/locations", response_model=list[LocationReceiptProfile])
+async def get_location_receipt_profiles(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Receipt data of every location of the tenant. Empty fields fall back to the tenant's."""
+    if not current_user.tenant_id:
+        raise HTTPException(status_code=400, detail="Usuario no asociado a un negocio")
+
+    locations = db.query(Location).filter(
+        Location.tenant_id == current_user.tenant_id,
+        Location.is_active == True
+    ).order_by(Location.name).all()
+
+    return [_location_receipt_profile(location) for location in locations]
+
+
+@router.put("/locations/{location_id}", response_model=LocationReceiptProfile)
+async def update_location_receipt_profile(
+    location_id: int,
+    data: LocationReceiptProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Update the receipt data of one location. An empty value goes back to the tenant's data."""
+    if not current_user.tenant_id:
+        raise HTTPException(status_code=400, detail="Usuario no asociado a un negocio")
+
+    location = _get_tenant_location(db, location_id, current_user.tenant_id)
+
+    fields = {
+        "name": "receipt_business_name",
+        "razon_social": "receipt_razon_social",
+        "nit": "receipt_nit",
+        "slogan": "receipt_slogan",
+        "address": "receipt_address",
+        "contact_phone": "receipt_phone",
+        "contact_email": "receipt_email",
+    }
+    for field, column in fields.items():
+        value = getattr(data, field)
+        if value is not None:
+            setattr(location, column, value.strip() or None)
+
+    db.commit()
+    db.refresh(location)
+
+    return _location_receipt_profile(location)
+
+
+@router.post("/locations/{location_id}/logo", response_model=LocationReceiptProfile)
+async def upload_location_logo(
+    location_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Upload the receipt logo of one location."""
+    if not current_user.tenant_id:
+        raise HTTPException(status_code=400, detail="Usuario no asociado a un negocio")
+
+    location = _get_tenant_location(db, location_id, current_user.tenant_id)
+
+    allowed_types = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail="Tipo de archivo no permitido. Use PNG, JPG, WEBP o SVG."
+        )
+
+    contents = await file.read()
+    if len(contents) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="El archivo no debe superar 2MB")
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else "png"
+    filename = f"logo_sede_{location.id}_{uuid.uuid4().hex[:8]}.{ext}"
+    with open(os.path.join(UPLOAD_DIR, filename), "wb") as f:
+        f.write(contents)
+
+    location.receipt_logo_url = f"/uploads/logos/{filename}"
+    db.commit()
+    db.refresh(location)
+
+    return _location_receipt_profile(location)
+
+
+@router.delete("/locations/{location_id}/logo", response_model=LocationReceiptProfile)
+async def delete_location_logo(
+    location_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Remove the receipt logo of one location so it prints the tenant's logo again."""
+    if not current_user.tenant_id:
+        raise HTTPException(status_code=400, detail="Usuario no asociado a un negocio")
+
+    location = _get_tenant_location(db, location_id, current_user.tenant_id)
+    location.receipt_logo_url = None
+    db.commit()
+    db.refresh(location)
+
+    return _location_receipt_profile(location)
+
+
 @router.get("/receipt-info", response_model=BusinessProfileResponse)
 async def get_receipt_info(
     location_id: Optional[int] = Query(None),
@@ -166,7 +319,7 @@ async def get_receipt_info(
 ):
     """Get business profile for receipt/ticket printing. Accessible by any authenticated user.
 
-    A location with its own receipt logo or name prints those instead of the tenant's.
+    Every receipt field a location fills in replaces the tenant's; the rest fall back to it.
     """
     if not current_user.tenant_id:
         raise HTTPException(status_code=400, detail="Usuario no asociado a un negocio")
@@ -178,21 +331,9 @@ async def get_receipt_info(
     own_location_id = fixed_location_id(current_user)
     effective_location_id = own_location_id or location_id
 
-    logo_url = tenant.logo_url
-    name = tenant.name
-    if effective_location_id:
-        location = db.query(Location).filter(
-            Location.id == effective_location_id,
-            Location.tenant_id == current_user.tenant_id
-        ).first()
-        if location and location.receipt_logo_url:
-            logo_url = location.receipt_logo_url
-        if location and location.receipt_business_name:
-            name = location.receipt_business_name
-
-    return BusinessProfileResponse(
-        name=name,
-        logo_url=logo_url,
+    profile = BusinessProfileResponse(
+        name=tenant.name,
+        logo_url=tenant.logo_url,
         razon_social=tenant.razon_social,
         nit=tenant.nit,
         slogan=tenant.slogan,
@@ -201,3 +342,29 @@ async def get_receipt_info(
         contact_email=tenant.contact_email,
         primary_color=tenant.primary_color,
     )
+
+    if not effective_location_id:
+        return profile
+
+    location = db.query(Location).filter(
+        Location.id == effective_location_id,
+        Location.tenant_id == current_user.tenant_id
+    ).first()
+    if not location:
+        return profile
+
+    overrides = {
+        "name": location.receipt_business_name,
+        "logo_url": location.receipt_logo_url,
+        "razon_social": location.receipt_razon_social,
+        "nit": location.receipt_nit,
+        "slogan": location.receipt_slogan,
+        "address": location.receipt_address,
+        "contact_phone": location.receipt_phone,
+        "contact_email": location.receipt_email,
+    }
+    for field, value in overrides.items():
+        if value:
+            setattr(profile, field, value)
+
+    return profile
