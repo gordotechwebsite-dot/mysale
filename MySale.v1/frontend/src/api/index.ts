@@ -542,6 +542,7 @@ export interface LocationDashboard {
   address: string | null;
   image_url: string | null;
   receipt_logo_url: string | null;
+  receipt_business_name: string | null;
   is_active: boolean;
   has_own_menu: boolean;
   today_sales: number;
@@ -616,6 +617,7 @@ export const updateLocation = async (id: number, data: {
   address?: string;
   image_url?: string;
   receipt_logo_url?: string;
+  receipt_business_name?: string;
   is_active?: boolean;
   daily_base_cash?: number;
   has_own_menu?: boolean;
