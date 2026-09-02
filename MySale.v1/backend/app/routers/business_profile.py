@@ -166,7 +166,7 @@ async def get_receipt_info(
 ):
     """Get business profile for receipt/ticket printing. Accessible by any authenticated user.
 
-    A location with its own receipt logo prints that logo instead of the tenant's.
+    A location with its own receipt logo or name prints those instead of the tenant's.
     """
     if not current_user.tenant_id:
         raise HTTPException(status_code=400, detail="Usuario no asociado a un negocio")
@@ -179,6 +179,7 @@ async def get_receipt_info(
     effective_location_id = own_location_id or location_id
 
     logo_url = tenant.logo_url
+    name = tenant.name
     if effective_location_id:
         location = db.query(Location).filter(
             Location.id == effective_location_id,
@@ -186,9 +187,11 @@ async def get_receipt_info(
         ).first()
         if location and location.receipt_logo_url:
             logo_url = location.receipt_logo_url
+        if location and location.receipt_business_name:
+            name = location.receipt_business_name
 
     return BusinessProfileResponse(
-        name=tenant.name,
+        name=name,
         logo_url=logo_url,
         razon_social=tenant.razon_social,
         nit=tenant.nit,

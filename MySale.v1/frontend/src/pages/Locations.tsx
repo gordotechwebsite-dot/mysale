@@ -36,6 +36,8 @@ const Locations: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadingImageFor, setUploadingImageFor] = useState<number | null>(null);
   const [uploadingLogoFor, setUploadingLogoFor] = useState<number | null>(null);
+  const [receiptNames, setReceiptNames] = useState<Record<number, string>>({});
+  const [savingNameFor, setSavingNameFor] = useState<number | null>(null);
 
   const [newLocation, setNewLocation] = useState({
     name: '',
@@ -55,6 +57,9 @@ const Locations: React.FC = () => {
     try {
       const data = await getLocationsDashboard();
       setLocations(data);
+      setReceiptNames(
+        Object.fromEntries(data.map((l) => [l.id, l.receipt_business_name || '']))
+      );
     } catch (error) {
       console.error('Error loading locations:', error);
     } finally {
@@ -111,6 +116,24 @@ const Locations: React.FC = () => {
       toast.error('Error al quitar el logo de la factura');
     } finally {
       setUploadingLogoFor(null);
+    }
+  };
+
+  const handleSaveReceiptName = async (locationId: number) => {
+    const location = locations.find((l) => l.id === locationId);
+    const value = (receiptNames[locationId] || '').trim();
+    if (!location || value === (location.receipt_business_name || '')) return;
+
+    setSavingNameFor(locationId);
+    try {
+      await updateLocation(locationId, { receipt_business_name: value });
+      await loadLocations();
+      toast.success(value ? 'Nombre de la factura actualizado' : 'La sede vuelve a usar el nombre del negocio');
+    } catch (error) {
+      console.error('Error updating receipt name:', error);
+      toast.error('Error al guardar el nombre de la factura');
+    } finally {
+      setSavingNameFor(null);
     }
   };
 
@@ -327,6 +350,27 @@ const Locations: React.FC = () => {
                       />
                       Carta propia (solo muestra los productos de esta sede)
                     </label>
+                  )}
+                  {location.location_type === 'pos' && (
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <span className="whitespace-nowrap">Nombre en factura:</span>
+                      <input
+                        type="text"
+                        value={receiptNames[location.id] ?? ''}
+                        placeholder="usa el del negocio"
+                        onChange={(e) =>
+                          setReceiptNames((prev) => ({ ...prev, [location.id]: e.target.value }))
+                        }
+                        onBlur={() => handleSaveReceiptName(location.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            (e.target as HTMLInputElement).blur();
+                          }
+                        }}
+                        disabled={savingNameFor === location.id}
+                        className="flex-1 min-w-0 px-2 py-1 border border-gray-200 rounded focus:outline-none focus:border-[#00a86b] disabled:opacity-50"
+                      />
+                    </div>
                   )}
                   {location.location_type === 'pos' && (
                     <div className="flex items-center gap-2 text-xs text-gray-600">

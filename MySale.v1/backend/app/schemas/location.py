@@ -11,6 +11,7 @@ class LocationCreate(BaseModel):
     address: Optional[str] = None
     image_url: Optional[str] = None
     receipt_logo_url: Optional[str] = None
+    receipt_business_name: Optional[str] = None
     daily_base_cash: int = 100000
     has_own_menu: bool = False
     folio_prefix: Optional[str] = None
@@ -21,6 +22,7 @@ class LocationUpdate(BaseModel):
     address: Optional[str] = None
     image_url: Optional[str] = None
     receipt_logo_url: Optional[str] = None
+    receipt_business_name: Optional[str] = None
     is_active: Optional[bool] = None
     daily_base_cash: Optional[int] = None
     has_own_menu: Optional[bool] = None
@@ -35,6 +37,7 @@ class LocationResponse(BaseModel):
     address: Optional[str]
     image_url: Optional[str]
     receipt_logo_url: Optional[str]
+    receipt_business_name: Optional[str]
     is_active: bool
     daily_base_cash: int
     has_own_menu: bool
@@ -54,6 +57,7 @@ class LocationDashboardResponse(BaseModel):
     address: Optional[str]
     image_url: Optional[str]
     receipt_logo_url: Optional[str] = None
+    receipt_business_name: Optional[str] = None
     is_active: bool
     has_own_menu: bool = False
     today_sales: float
