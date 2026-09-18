@@ -256,11 +256,11 @@ const Users: React.FC = () => {
       </Card>
 
       <Dialog open={showAddUser} onOpenChange={setShowAddUser}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><UserIcon className="w-5 h-5" />Nuevo Usuario</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="flex-1 space-y-4 overflow-y-auto py-4 pr-1">
             <div className="flex justify-center mb-4">
               <div className="relative">
                 <div 
@@ -344,7 +344,7 @@ const Users: React.FC = () => {
               </div>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="border-t pt-4">
             <Button variant="outline" onClick={() => setShowAddUser(false)}>Cancelar</Button>
             <Button onClick={handleAddUser} disabled={isProcessing || !newUser.username || !newUser.password || !newUser.full_name || !newUser.role_id} className="bg-blue-600 hover:bg-blue-700">
               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crear Usuario'}
@@ -407,7 +407,7 @@ const Users: React.FC = () => {
 
       {/* User Detail Modal - ID Card Style */}
       <Dialog open={showUserDetail} onOpenChange={(open) => { setShowUserDetail(open); if (!open) { setResetPinResult(null); setShowPin(false); } }}>
-        <DialogContent className="max-w-3xl p-0 overflow-hidden rounded-2xl border-0 shadow-2xl [&>button.absolute]:hidden" aria-describedby={undefined}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 rounded-2xl border-0 shadow-2xl [&>button.absolute]:hidden" aria-describedby={undefined}>
           {selectedUser && (
             <div>
               {/* ID Card - Horizontal Layout */}
