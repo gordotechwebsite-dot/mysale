@@ -1389,6 +1389,7 @@ export const autoClockOut = async (): Promise<{ message: string; total_minutes?:
 // Deliveries (Domicilios)
 export const getDeliveries = async (params?: {
   delivery_status?: string;
+  location_id?: number;
   start_date?: string;
   end_date?: string;
   limit?: number;
