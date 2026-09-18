@@ -348,7 +348,52 @@ def run_migrations():
                 db.execute(text("ALTER TABLE ticket_payments ADD COLUMN created_by_id INTEGER"))
                 db.commit()
                 print("Migration: Added created_by_id column to ticket_payments table")
-        
+
+        # Ventas cobradas en una sede quedaron en el turno de otra sede: se devuelven a su turno
+        misaligned = db.execute(text("""
+            SELECT s.id, s.shift_id, s.location_id, s.total, s.payment_method, s.created_at
+            FROM sales s
+            JOIN shifts sh ON sh.id = s.shift_id
+            WHERE s.location_id IS NOT NULL AND sh.location_id != s.location_id
+        """)).fetchall()
+        moved = 0
+        for sale_id, old_shift_id, sale_location_id, total, payment_method, created_at in misaligned:
+            target = db.execute(text("""
+                SELECT id FROM shifts
+                WHERE location_id = :loc
+                  AND start_time <= :created_at
+                  AND (end_time IS NULL OR end_time >= :created_at)
+                ORDER BY CASE WHEN end_time IS NULL THEN 0 ELSE 1 END, start_time DESC
+                LIMIT 1
+            """), {"loc": sale_location_id, "created_at": created_at}).fetchone()
+            if not target:
+                continue
+            new_shift_id = target[0]
+            method = (payment_method or "").lower()
+            column = {
+                "cash": "total_cash_sales",
+                "card": "total_card_sales",
+                "transfer": "total_transfer_sales",
+            }.get(method)
+            for shift_id, sign in ((old_shift_id, -1), (new_shift_id, 1)):
+                db.execute(
+                    text("UPDATE shifts SET total_sales = total_sales + :amount WHERE id = :id"),
+                    {"amount": sign * (total or 0), "id": shift_id}
+                )
+                if column:
+                    db.execute(
+                        text(f"UPDATE shifts SET {column} = {column} + :amount WHERE id = :id"),
+                        {"amount": sign * (total or 0), "id": shift_id}
+                    )
+            db.execute(
+                text("UPDATE sales SET shift_id = :new_shift WHERE id = :id"),
+                {"new_shift": new_shift_id, "id": sale_id}
+            )
+            moved += 1
+        if moved:
+            db.commit()
+            print(f"Migration: Reasignadas {moved} ventas al turno de su sede")
+
         # Ensure all tenants have access to all modules (assign missing modules)
         from app.models.tenant import Tenant, TenantModule
         tenants = db.query(Tenant).all()
