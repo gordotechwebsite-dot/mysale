@@ -5,8 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
 import { getDeliveries, createDelivery } from '../api';
 import { cachedGetProducts, cachedGetFamilies, cachedGetSubFamilies, cachedGetLocations } from '../offline/catalog';
-import type { Product, Delivery, Family, SubFamily } from '../types';
+import type { Product, Delivery, Family, SubFamily, Sale } from '../types';
 import ConfirmDialog from '../components/ConfirmDialog';
+import ReceiptTicket from '../components/ReceiptTicket';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,6 +90,15 @@ const PAYMENT_METHOD_LABELS: Record<'cash' | 'card' | 'transfer', string> = {
   card: 'Bre-B',
 };
 
+const deliveryToSale = (delivery: Delivery): Sale => ({
+  ...delivery,
+  total: delivery.grand_total,
+  payment_method: delivery.payment_method as 'cash' | 'card' | 'transfer',
+  amount_received: delivery.amount_received ?? null,
+  change_given: delivery.change_given ?? null,
+  notes: delivery.notes ?? null,
+});
+
 const getCategoryIcon = (name: string): LucideIcon => {
   if (categoryIconMap[name]) return categoryIconMap[name];
   const lowerName = name.toLowerCase();
@@ -119,7 +129,7 @@ const Deliveries: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
   const [amountReceived, setAmountReceived] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [lastDelivery, setLastDelivery] = useState<Delivery | null>(null);
 
   // Customer info
   const [customerName, setCustomerName] = useState('');
@@ -281,7 +291,7 @@ const Deliveries: React.FC = () => {
     try {
       const feeVal = parseFloat(deliveryFee) || 0;
       const grandTotalVal = total + feeVal;
-      await createDelivery({
+      const delivery = await createDelivery({
         payment_method: paymentMethod,
         items: items.map(item => ({
           product_id: item.product.id,
@@ -299,7 +309,7 @@ const Deliveries: React.FC = () => {
       });
       clearCart();
       setShowPayment(false);
-      setShowSuccess(true);
+      setLastDelivery(delivery);
       setAmountReceived('');
       setCustomerName('');
       setCustomerPhone('');
@@ -310,10 +320,7 @@ const Deliveries: React.FC = () => {
       setMobileStep('categories');
       setSelectedFamily(null);
       await loadDeliveries();
-
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 2000);
+      toast.success('Domicilio registrado');
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Error al registrar domicilio');
     } finally {
@@ -987,17 +994,19 @@ const Deliveries: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Success overlay */}
-      {showSuccess && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-8 flex flex-col items-center animate-in fade-in zoom-in">
-            <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mb-4">
-              <Check className="w-10 h-10 text-white" />
-            </div>
-            <h3 className="text-2xl font-bold">Domicilio Registrado!</h3>
-            <p className="text-gray-500 mt-2">El pedido fue registrado exitosamente</p>
-          </div>
-        </div>
+      {/* Factura del domicilio recien registrado */}
+      {lastDelivery && (
+        <ReceiptTicket
+          sale={deliveryToSale(lastDelivery)}
+          delivery={{
+            customer_name: lastDelivery.customer_name,
+            customer_phone: lastDelivery.customer_phone,
+            customer_address: lastDelivery.customer_address,
+            delivery_person: lastDelivery.delivery_person,
+            delivery_fee: lastDelivery.delivery_fee,
+          }}
+          onClose={() => { setLastDelivery(null); resetSearch(); }}
+        />
       )}
 
       <ConfirmDialog

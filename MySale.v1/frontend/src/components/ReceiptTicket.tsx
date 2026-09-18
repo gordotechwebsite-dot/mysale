@@ -18,8 +18,17 @@ interface BusinessInfo {
   primary_color: string | null;
 }
 
+interface DeliveryDetails {
+  customer_name?: string;
+  customer_phone?: string;
+  customer_address?: string;
+  delivery_person?: string;
+  delivery_fee?: number;
+}
+
 interface ReceiptTicketProps {
   sale: Sale;
+  delivery?: DeliveryDetails;
   onClose: () => void;
 }
 
@@ -78,7 +87,7 @@ const thermalStyles = `
   .footer-brand { font-size: 11px; color: #000; margin-top: 6px; }
 `;
 
-const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
+const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, delivery, onClose }) => {
   const [business, setBusiness] = useState<BusinessInfo | null>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
 
@@ -145,7 +154,11 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
     const printContent = receiptRef.current;
     if (!printContent) return;
 
-    printReceiptWindow(`Factura - ${sale.folio}`, thermalStyles, printContent.innerHTML);
+    printReceiptWindow(
+      `${delivery ? 'Domicilio' : 'Factura'} - ${sale.folio}`,
+      thermalStyles,
+      printContent.innerHTML
+    );
   };
 
   return (
@@ -165,7 +178,7 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
           style={{ borderBottom: '1px solid #e5e7eb' }}
         >
           <h3 className="font-semibold text-base" style={{ color: '#111827' }}>
-            Factura de Venta
+            {delivery ? 'Factura de Domicilio' : 'Factura de Venta'}
           </h3>
           <div className="flex items-center gap-2">
             <button
@@ -243,7 +256,7 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
             {/* Document title */}
             <div style={{ borderTop: '2px solid #000', margin: '5px 0' }} />
             <div style={{ textAlign: 'center', fontSize: '14px', fontWeight: 'bold', margin: '4px 0', letterSpacing: '1px' }}>
-              FACTURA DE VENTA
+              {delivery ? 'FACTURA DE DOMICILIO' : 'FACTURA DE VENTA'}
             </div>
             <div style={{ borderTop: '2px solid #000', margin: '5px 0' }} />
 
@@ -274,6 +287,38 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
                 </div>
               )}
             </div>
+
+            {delivery && (
+              <>
+                <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
+                <div style={{ marginBottom: '4px' }}>
+                  {delivery.customer_name && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', lineHeight: '1.5' }}>
+                      <span style={{ color: '#000' }}>Cliente:</span>
+                      <span style={{ fontWeight: 600 }}>{delivery.customer_name}</span>
+                    </div>
+                  )}
+                  {delivery.customer_phone && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', lineHeight: '1.5' }}>
+                      <span style={{ color: '#000' }}>Teléfono:</span>
+                      <span>{delivery.customer_phone}</span>
+                    </div>
+                  )}
+                  {delivery.customer_address && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', lineHeight: '1.5' }}>
+                      <span style={{ color: '#000' }}>Dirección:</span>
+                      <span style={{ textAlign: 'right', wordBreak: 'break-word' }}>{delivery.customer_address}</span>
+                    </div>
+                  )}
+                  {delivery.delivery_person && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', lineHeight: '1.5' }}>
+                      <span style={{ color: '#000' }}>Domiciliario:</span>
+                      <span>{delivery.delivery_person}</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Items header */}
             <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }} />
@@ -330,6 +375,12 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
                   <span>{formatCurrency(sale.tax)}</span>
                 </div>
               )}
+              {delivery?.delivery_fee != null && delivery.delivery_fee > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', padding: '1px 0' }}>
+                  <span>Domicilio:</span>
+                  <span>{formatCurrency(delivery.delivery_fee)}</span>
+                </div>
+              )}
             </div>
 
             {/* Total */}
@@ -364,7 +415,7 @@ const ReceiptTicket: React.FC<ReceiptTicketProps> = ({ sale, onClose }) => {
             <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
             <div style={{ textAlign: 'center', marginTop: '8px' }}>
               <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '2px' }}>
-                ¡Gracias por su compra!
+                {delivery ? '¡Gracias por su pedido!' : '¡Gracias por su compra!'}
               </div>
               {business?.slogan && (
                 <div style={{ fontSize: '11px', color: '#000', fontStyle: 'italic' }}>
