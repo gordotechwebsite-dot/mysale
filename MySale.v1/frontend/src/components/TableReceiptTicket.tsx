@@ -83,7 +83,6 @@ const TableReceiptTicket: React.FC<TableReceiptTicketProps> = ({ ticket, payment
     return labels[method] || method;
   };
 
-  const totalItems = ticket.items.reduce((sum, item) => sum + item.quantity, 0);
   const change = paymentMethod === 'cash' && paymentAmount > ticket.total ? paymentAmount - ticket.total : 0;
   const nowStr = new Date().toISOString();
 
@@ -150,10 +149,6 @@ const TableReceiptTicket: React.FC<TableReceiptTicketProps> = ({ ticket, payment
 
             {/* Ticket info */}
             <div style={{ marginBottom: '4px' }}>
-              <div style={s.row}>
-                <span style={s.label}>Cuenta:</span>
-                <span style={s.bold}>#{ticket.id}</span>
-              </div>
               {ticket.table_name && (
                 <div style={s.row}>
                   <span style={s.label}>Mesa:</span>
@@ -170,12 +165,6 @@ const TableReceiptTicket: React.FC<TableReceiptTicketProps> = ({ ticket, payment
                 <div style={s.row}>
                   <span style={s.label}>Cliente:</span>
                   <span>{ticket.customer_name}</span>
-                </div>
-              )}
-              {ticket.num_people > 0 && (
-                <div style={s.row}>
-                  <span style={s.label}>Personas:</span>
-                  <span>{ticket.num_people}</span>
                 </div>
               )}
               <div style={s.row}>
@@ -222,10 +211,6 @@ const TableReceiptTicket: React.FC<TableReceiptTicketProps> = ({ ticket, payment
                   )}
                 </div>
               ))}
-            </div>
-
-            <div style={{ fontSize: '11px', color: '#000', textAlign: 'right', marginTop: '2px' }}>
-              {totalItems} artículo{totalItems !== 1 ? 's' : ''}
             </div>
 
             {/* Totals */}

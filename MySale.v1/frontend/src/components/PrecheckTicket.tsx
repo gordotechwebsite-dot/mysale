@@ -73,7 +73,6 @@ const PrecheckTicket: React.FC<PrecheckTicketProps> = ({ ticket, onClose }) => {
     return `${API_URL}${business.logo_url}`;
   };
 
-  const totalItems = ticket.items.reduce((sum, item) => sum + item.quantity, 0);
   const nowStr = new Date().toISOString();
 
   const handlePrint = () => {
@@ -154,12 +153,6 @@ const PrecheckTicket: React.FC<PrecheckTicketProps> = ({ ticket, onClose }) => {
                   <span>{ticket.customer_name}</span>
                 </div>
               )}
-              {ticket.num_people > 0 && (
-                <div style={s.row}>
-                  <span style={s.label}>Personas:</span>
-                  <span>{ticket.num_people}</span>
-                </div>
-              )}
               <div style={s.row}>
                 <span style={s.label}>Fecha:</span>
                 <span>{formatDate(nowStr)}</span>
@@ -198,10 +191,6 @@ const PrecheckTicket: React.FC<PrecheckTicketProps> = ({ ticket, onClose }) => {
                   )}
                 </div>
               ))}
-            </div>
-
-            <div style={{ fontSize: '11px', color: '#000', textAlign: 'right', marginTop: '2px' }}>
-              {totalItems} artículo{totalItems !== 1 ? 's' : ''}
             </div>
 
             {/* Totals */}
