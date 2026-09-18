@@ -748,7 +748,7 @@ export default function TableManagement() {
       setShowCartPanel(false);
       const ticket = await getTableTicket(selectedTable!.id);
       setCurrentTicket(ticket);
-      toast.success('Pedido enviado');
+      toast.success('Su orden está siendo preparada');
       loadZones();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
@@ -784,7 +784,7 @@ export default function TableManagement() {
       });
       const ticket = await getTableTicket(selectedTable!.id);
       setCurrentTicket(ticket);
-      toast.success('Comanda enviada a cocina');
+      toast.success('Su orden está siendo preparada');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       toast.error(err.response?.data?.detail || 'Error al enviar comanda');
