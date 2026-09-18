@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { isAxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
-import { getUsers, createUser, deleteUser, getRoles, getLocations, resetUserPin, toggleUserActive, getMyModules, updateUserModules } from '../api';
+import { getUsers, createUser, deleteUser, getRoles, getLocations, resetUserPin, toggleUserActive, getMyModules, updateUserModules, updateUserRole } from '../api';
 import type { EnabledModule } from '../api';
 import type { User, Role, Location } from '../types';
-import { roleLabel } from '@/lib/roles';
+import { roleLabel, isOwner } from '@/lib/roles';
+import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +32,7 @@ const generatePassword = (fullName: string): string => {
 const generatePIN = (): string => String(Math.floor(Math.random() * 900000) + 100000);
 
 const Users: React.FC = () => {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -53,6 +56,9 @@ const Users: React.FC = () => {
   const [editingModules, setEditingModules] = useState(false);
   const [detailModuleIds, setDetailModuleIds] = useState<number[]>([]);
   const [savingModules, setSavingModules] = useState(false);
+  const [editingRole, setEditingRole] = useState(false);
+  const [detailRoleId, setDetailRoleId] = useState('');
+  const [savingRole, setSavingRole] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => { loadData(); }, []);
@@ -144,6 +150,23 @@ const Users: React.FC = () => {
       toast.error(error.response?.data?.detail || 'Error al actualizar módulos');
     } finally {
       setSavingModules(false);
+    }
+  };
+
+  const handleSaveRole = async () => {
+    if (!selectedUser || !detailRoleId) return;
+    setSavingRole(true);
+    try {
+      const updated = await updateUserRole(selectedUser.id, Number(detailRoleId));
+      setSelectedUser(updated);
+      setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+      setEditingRole(false);
+      toast.success('Rol actualizado');
+    } catch (error) {
+      const detail = isAxiosError(error) ? error.response?.data?.detail : null;
+      toast.error(detail || 'Error al cambiar el rol');
+    } finally {
+      setSavingRole(false);
     }
   };
 
@@ -406,7 +429,7 @@ const Users: React.FC = () => {
       </Dialog>
 
       {/* User Detail Modal - ID Card Style */}
-      <Dialog open={showUserDetail} onOpenChange={(open) => { setShowUserDetail(open); if (!open) { setResetPinResult(null); setShowPin(false); } }}>
+      <Dialog open={showUserDetail} onOpenChange={(open) => { setShowUserDetail(open); if (!open) { setResetPinResult(null); setShowPin(false); setEditingRole(false); } }}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 rounded-2xl border-0 shadow-2xl [&>button.absolute]:hidden" aria-describedby={undefined}>
           {selectedUser && (
             <div>
@@ -454,7 +477,29 @@ const Users: React.FC = () => {
                   <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                     <div className="space-y-1">
                       <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Rol</p>
-                      <div>{selectedUser.role ? getRoleBadge(selectedUser.role.role_type) : <span className="text-gray-400 text-sm">Sin rol</span>}</div>
+                      {editingRole ? (
+                        <div className="space-y-2">
+                          <Select value={detailRoleId} onValueChange={setDetailRoleId}>
+                            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Seleccione rol" /></SelectTrigger>
+                            <SelectContent>{filteredRoles.map(r => (<SelectItem key={r.id} value={r.id.toString()}>{roleLabel(r.role_type) || r.name}</SelectItem>))}</SelectContent>
+                          </Select>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="outline" className="rounded-lg text-xs" onClick={() => setEditingRole(false)}>Cancelar</Button>
+                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 rounded-lg text-xs" onClick={handleSaveRole} disabled={savingRole || !detailRoleId}>
+                              {savingRole ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Save className="w-3 h-3 mr-1" />Guardar</>}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {selectedUser.role ? getRoleBadge(selectedUser.role.role_type) : <span className="text-gray-400 text-sm">Sin rol</span>}
+                          {isOwner(currentUser) && selectedUser.id !== currentUser?.id && (
+                            <Button size="sm" variant="outline" className="h-6 rounded-lg text-xs" onClick={() => { setDetailRoleId(selectedUser.role_id ? selectedUser.role_id.toString() : ''); setEditingRole(true); }}>
+                              Cambiar
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-1">
