@@ -594,6 +594,28 @@ def run_migrations():
         db.execute(text("UPDATE roles SET can_void_sales = 1 WHERE role_type IN ('ADMIN', 'admin')"))
         db.commit()
 
+        role_scopes = [row[0] for row in db.query(Role.tenant_id).distinct().all()]
+        for scope_tenant_id in role_scopes:
+            existing_waiter = db.query(Role).filter(
+                Role.tenant_id.is_(None) if scope_tenant_id is None else Role.tenant_id == scope_tenant_id,
+                Role.role_type == RoleType.WAITER
+            ).first()
+            if not existing_waiter:
+                db.add(Role(
+                    tenant_id=scope_tenant_id,
+                    name="Mesero",
+                    role_type=RoleType.WAITER,
+                    can_void_sales=False,
+                    can_manage_inventory=False,
+                    can_manage_users=False,
+                    can_view_reports=False,
+                    can_manage_locations=False,
+                    can_set_stock_thresholds=False,
+                    can_close_shifts=False
+                ))
+                print(f"Migration: Created Mesero role for tenant {scope_tenant_id}")
+        db.commit()
+
         for module_data in all_modules:
             existing = db.query(Module).filter(Module.code == module_data["code"]).first()
             if not existing:
