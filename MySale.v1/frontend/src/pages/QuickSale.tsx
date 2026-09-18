@@ -6,9 +6,11 @@ import { decodeWeightedBarcode } from '../api';
 import { submitSale } from '../offline/sales';
 import { cachedGetProducts, cachedGetFamilies, cachedGetSubFamilies, cachedGetLocations } from '../offline/catalog';
 import type { Product, Family, SubFamily, Location } from '../types';
+import { canSelectLocation, getFixedLocationId } from '../lib/locationScope';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -84,6 +86,7 @@ const getCategoryIcon = (name: string): LucideIcon => {
 const QuickSale: React.FC = () => {
   const { items, addItem, removeItem, updateQuantity, updateNotes, clearCart, total, subtotal } = useCart();
   const { user } = useAuth();
+  const canChooseLocation = canSelectLocation(user);
   const searchRef = useRef<HTMLInputElement>(null);
   const paymentInputRef = useRef<HTMLInputElement>(null);
 
@@ -154,17 +157,29 @@ const QuickSale: React.FC = () => {
       ]);
       setFamilies(familiesData);
       setSubfamilies(subfamiliesData);
-      setLocations(locs);
       const posLocations = locs.filter(l => l.location_type === 'pos');
-      if (user?.location_id && user.location_id > 0) {
-        setSelectedLocation(user.location_id);
-      } else if (posLocations.length > 0) {
-        setSelectedLocation(posLocations[0].id);
+      const fixedLocationId = getFixedLocationId(user);
+      if (fixedLocationId) {
+        setLocations(posLocations.filter(l => l.id === fixedLocationId));
+        setSelectedLocation(fixedLocationId);
+      } else {
+        setLocations(posLocations);
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Error loading locations:', error);
       toast.error('Error al cargar ubicaciones');
     }
+  };
+
+  const handleLocationChange = (value: string) => {
+    const locationId = parseInt(value);
+    if (locationId === selectedLocation) return;
+    clearCart();
+    setSelectedFamily(null);
+    setSearchTerm('');
+    setMobileStep('categories');
+    setSelectedLocation(locationId);
   };
 
   const loadProducts = async () => {
@@ -252,12 +267,21 @@ const QuickSale: React.FC = () => {
     }
     if (e.key === 'F2') {
       e.preventDefault();
-      if (items.length > 0) setShowPayment(true);
+      if (items.length === 0) return;
+      if (!selectedLocation) {
+        toast.error('Selecciona la sede para facturar');
+        return;
+      }
+      setShowPayment(true);
     }
   };
 
   const handlePayment = async () => {
-    if (items.length === 0 || !selectedLocation) return;
+    if (items.length === 0) return;
+    if (!selectedLocation) {
+      toast.error('Selecciona la sede para facturar');
+      return;
+    }
     setIsProcessing(true);
     try {
       const { sale, offline } = await submitSale({
@@ -411,8 +435,14 @@ const QuickSale: React.FC = () => {
         </div>
         <Button
           className="w-full h-12 text-base font-bold bg-orange-600 hover:bg-orange-700"
-          disabled={items.length === 0}
-          onClick={() => setShowPayment(true)}
+          disabled={items.length === 0 || !selectedLocation}
+          onClick={() => {
+            if (!selectedLocation) {
+              toast.error('Selecciona la sede para facturar');
+              return;
+            }
+            setShowPayment(true);
+          }}
         >
           <Zap className="w-5 h-5 mr-2" />
           Cobrar Rapido (F2)
@@ -424,6 +454,23 @@ const QuickSale: React.FC = () => {
   // --- MOBILE VIEW ---
   const MobileView = () => (
     <div className="lg:hidden flex flex-col flex-1 min-h-0">
+      {canChooseLocation && (
+        <div className="px-3 pt-2">
+          <Select
+            value={selectedLocation?.toString() || ''}
+            onValueChange={handleLocationChange}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Seleccionar sede para facturar" />
+            </SelectTrigger>
+            <SelectContent>
+              {locations.map(loc => (
+                <SelectItem key={loc.id} value={loc.id.toString()}>{loc.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       {/* Mobile search + back */}
       <div className="px-3 pt-2 pb-2 flex items-center gap-2">
         {(mobileStep !== 'categories' || selectedFamily) && (
@@ -467,7 +514,11 @@ const QuickSale: React.FC = () => {
 
       {/* Mobile content */}
       <div className="flex-1 overflow-auto scrollbar-on-hover px-3 pb-24">
-        {mobileStep === 'checkout' ? (
+        {!selectedLocation ? (
+          <div className="flex items-center justify-center h-40 text-gray-400">
+            <p className="text-sm">Selecciona la sede para facturar</p>
+          </div>
+        ) : mobileStep === 'checkout' ? (
           /* Checkout: show cart panel inline */
           <div className="flex flex-col" style={{ minHeight: '100%' }}>
             {cartPanel}
@@ -559,6 +610,24 @@ const QuickSale: React.FC = () => {
     <div className="hidden lg:flex flex-1 min-h-0 flex-col gap-4 overflow-hidden">
       <div className="flex-1 flex gap-4 min-h-0">
         <div className="flex-1 min-w-0 flex flex-col">
+          {canChooseLocation && (
+            <div className="mb-3 flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-600">Sede para facturar:</span>
+              <Select
+                value={selectedLocation?.toString() || ''}
+                onValueChange={handleLocationChange}
+              >
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Seleccionar sede" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map(loc => (
+                    <SelectItem key={loc.id} value={loc.id.toString()}>{loc.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="mb-4">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -615,7 +684,7 @@ const QuickSale: React.FC = () => {
           <div className="flex-1 overflow-auto scrollbar-on-hover">
             {!selectedLocation ? (
               <div className="flex items-center justify-center h-full text-gray-400">
-                <p>Selecciona un punto de venta para comenzar</p>
+                <p>Selecciona la sede para facturar</p>
               </div>
             ) : isLoading ? (
               <div className="flex items-center justify-center h-full">
