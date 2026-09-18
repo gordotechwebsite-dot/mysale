@@ -160,22 +160,10 @@ const TableReceiptTicket: React.FC<TableReceiptTicketProps> = ({ ticket, payment
                   <span style={s.bold}>{ticket.table_name}</span>
                 </div>
               )}
-              {ticket.waiter_name && (
-                <div style={s.row}>
-                  <span style={s.label}>Mesero:</span>
-                  <span>{ticket.waiter_name}</span>
-                </div>
-              )}
               {ticket.customer_name && (
                 <div style={s.row}>
                   <span style={s.label}>Cliente:</span>
                   <span>{ticket.customer_name}</span>
-                </div>
-              )}
-              {ticket.num_people > 0 && (
-                <div style={s.row}>
-                  <span style={s.label}>Personas:</span>
-                  <span>{ticket.num_people}</span>
                 </div>
               )}
               <div style={s.row}>
