@@ -167,6 +167,7 @@ export default function TableManagement() {
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentReference, setPaymentReference] = useState('');
   const [tip, setTip] = useState(0);
+  const [tipPercent, setTipPercent] = useState(0);
 
   const [openingTicket, setOpeningTicket] = useState(false);
   const [showTableReceipt, setShowTableReceipt] = useState(false);
@@ -807,7 +808,17 @@ export default function TableManagement() {
     setPaymentMethod('cash');
     setPaymentReference('');
     setTip(0);
+    setTipPercent(0);
     setShowPaymentDialog(true);
+  };
+
+  const applyTipPercent = (percent: number) => {
+    const base = currentTicket?.total || 0;
+    const nextPercent = tipPercent === percent ? 0 : percent;
+    const nextTip = Math.round((base * nextPercent) / 100);
+    setTipPercent(nextPercent);
+    setTip(nextTip);
+    setPaymentAmount(base + nextTip);
   };
 
   const handlePayTicket = async () => {
@@ -1158,7 +1169,7 @@ export default function TableManagement() {
 
         <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
           <DialogContent className="bg-white text-gray-900 border-gray-200" onKeyDown={(e) => {
-            if (e.key === 'Enter' && paymentAmount >= (currentTicket?.total || 0)) {
+            if (e.key === 'Enter' && paymentAmount >= (currentTicket?.total || 0) + tip) {
               e.preventDefault();
               handlePayTicket();
             }
@@ -1168,7 +1179,7 @@ export default function TableManagement() {
             </DialogHeader>
             <div className="space-y-4">
               <div className="text-center text-3xl font-bold text-emerald-600">
-                ${currentTicket?.total.toLocaleString()}
+                ${((currentTicket?.total || 0) + tip).toLocaleString()}
               </div>
               <div>
                 <Label>Método de Pago</Label>
@@ -1192,9 +1203,9 @@ export default function TableManagement() {
                     onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
                     className="bg-gray-50 border-gray-300"
                   />
-                  {paymentAmount > (currentTicket?.total || 0) && (
+                  {paymentAmount > (currentTicket?.total || 0) + tip && (
                     <div className="text-amber-600 mt-2">
-                      Cambio: ${(paymentAmount - (currentTicket?.total || 0)).toLocaleString()}
+                      Cambio: ${(paymentAmount - (currentTicket?.total || 0) - tip).toLocaleString()}
                     </div>
                   )}
                 </div>
@@ -1212,12 +1223,26 @@ export default function TableManagement() {
               )}
               <div>
                 <Label>Propina</Label>
-                <Input
-                  type="number"
-                  value={tip}
-                  onChange={(e) => setTip(parseFloat(e.target.value) || 0)}
-                  className="bg-gray-50 border-gray-300"
-                />
+                <div className="grid grid-cols-3 gap-2 mt-1">
+                  {[5, 10, 15].map((percent) => (
+                    <Button
+                      key={percent}
+                      type="button"
+                      variant="outline"
+                      onClick={() => applyTipPercent(percent)}
+                      className={tipPercent === percent
+                        ? 'bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600 hover:text-white'
+                        : 'bg-gray-50 border-gray-300'}
+                    >
+                      {percent}%
+                    </Button>
+                  ))}
+                </div>
+                {tip > 0 && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    Propina: ${tip.toLocaleString()}
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -2150,7 +2175,7 @@ export default function TableManagement() {
             <div className="text-center p-4 bg-gray-100 rounded-lg">
               <div className="text-sm text-gray-500">Total a Pagar</div>
               <div className="text-3xl font-bold text-emerald-600">
-                ${currentTicket?.total.toLocaleString()}
+                ${((currentTicket?.total || 0) + tip).toLocaleString()}
               </div>
             </div>
             <div>
@@ -2188,18 +2213,32 @@ export default function TableManagement() {
             )}
             <div>
               <Label>Propina (opcional)</Label>
-              <Input
-                type="number"
-                value={tip}
-                onChange={(e) => setTip(parseFloat(e.target.value) || 0)}
-                className="bg-gray-50 border-gray-300"
-              />
+              <div className="grid grid-cols-3 gap-2 mt-1">
+                {[5, 10, 15].map((percent) => (
+                  <Button
+                    key={percent}
+                    type="button"
+                    variant="outline"
+                    onClick={() => applyTipPercent(percent)}
+                    className={tipPercent === percent
+                      ? 'bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600 hover:text-white'
+                      : 'bg-gray-50 border-gray-300'}
+                  >
+                    {percent}%
+                  </Button>
+                ))}
+              </div>
+              {tip > 0 && (
+                <div className="mt-2 text-sm text-gray-600">
+                  Propina: ${tip.toLocaleString()}
+                </div>
+              )}
             </div>
-            {paymentMethod === 'cash' && paymentAmount > (currentTicket?.total || 0) && (
+            {paymentMethod === 'cash' && paymentAmount > (currentTicket?.total || 0) + tip && (
               <div className="p-3 bg-emerald-900/30 rounded-lg">
                 <div className="text-sm text-gray-500">Cambio</div>
                 <div className="text-xl font-bold text-emerald-600">
-                  ${(paymentAmount - (currentTicket?.total || 0)).toLocaleString()}
+                  ${(paymentAmount - (currentTicket?.total || 0) - tip).toLocaleString()}
                 </div>
               </div>
             )}
