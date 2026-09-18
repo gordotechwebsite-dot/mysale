@@ -65,7 +65,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#0a0a0a' }}>
+    <div className="min-h-[100dvh] relative overflow-hidden" style={{ backgroundColor: '#0a0a0a' }}>
       {/* Animated Background - Balatro for admin, Grainient for clients */}
       <div className="absolute inset-0" style={{ zIndex: 0 }}>
         {isAdmin ? (
@@ -109,7 +109,7 @@ const Login: React.FC = () => {
       </div>
 
       {/* Main Container */}
-      <div className="min-h-screen flex items-center justify-center px-4 py-8 relative" style={{ zIndex: 1 }}>
+      <div className="min-h-[100dvh] flex items-center justify-center px-4 py-6 relative" style={{ zIndex: 1 }}>
         <div className="w-full flex items-center justify-center" style={{ maxWidth: '460px' }}>
           {/* Left Column - Login Card */}
           <div 
