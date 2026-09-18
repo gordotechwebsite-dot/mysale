@@ -63,6 +63,11 @@ export const toggleUserActive = async (userId: number, isActive: boolean): Promi
   return response.data;
 };
 
+export const updateUserRole = async (userId: number, roleId: number): Promise<User> => {
+  const response = await api.put(`/api/users/${userId}`, { role_id: roleId });
+  return response.data;
+};
+
 export const getRoles = async (): Promise<Role[]> => {
   const response = await api.get('/api/users/roles');
   return response.data;
