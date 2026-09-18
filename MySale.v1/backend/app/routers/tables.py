@@ -554,6 +554,7 @@ async def create_ticket(
     
     ticket = Ticket(
         table_id=data.table_id,
+        tenant_id=current_user.tenant_id or table.tenant_id,
         location_id=location_id,
         waiter_id=current_user.id,
         customer_name=data.customer_name,
@@ -972,6 +973,7 @@ async def merge_tickets(
         zone = db.query(Zone).filter(Zone.id == target_table.zone_id).first()
         target_ticket = Ticket(
             table_id=data.target_table_id,
+            tenant_id=current_user.tenant_id or target_table.tenant_id,
             location_id=zone.location_id if zone else 1,
             waiter_id=current_user.id
         )
@@ -1024,6 +1026,7 @@ async def split_ticket(
     
     new_ticket = Ticket(
         table_id=data.new_table_id,
+        tenant_id=original_ticket.tenant_id or current_user.tenant_id,
         location_id=original_ticket.location_id,
         waiter_id=current_user.id
     )
@@ -1063,14 +1066,25 @@ def _register_ticket_sale(
     current_user: User
 ) -> Sale:
     """Convierte la cuenta de mesa cobrada en una venta con turno, caja e inventario."""
-    shift = db.query(Shift).filter(
-        Shift.user_id == current_user.id,
-        Shift.status == ShiftStatus.OPEN
-    ).first()
-
-    location_id = ticket.location_id or (shift.location_id if shift else None)
+    location_id = ticket.location_id
     if not location_id:
-        raise HTTPException(status_code=400, detail="La cuenta no tiene sede asignada")
+        shift = db.query(Shift).filter(
+            Shift.user_id == current_user.id,
+            Shift.status == ShiftStatus.OPEN
+        ).first()
+        location_id = shift.location_id if shift else None
+        if not location_id:
+            raise HTTPException(status_code=400, detail="La cuenta no tiene sede asignada")
+    else:
+        # El cobro entra a la caja de la sede de la cuenta, no a la del cajero en otra sede
+        shift = db.query(Shift).filter(
+            Shift.location_id == location_id,
+            Shift.status == ShiftStatus.OPEN,
+            Shift.user_id == current_user.id
+        ).first() or db.query(Shift).filter(
+            Shift.location_id == location_id,
+            Shift.status == ShiftStatus.OPEN
+        ).first()
 
     location = db.query(Location).filter(Location.id == location_id).first()
     if not location:

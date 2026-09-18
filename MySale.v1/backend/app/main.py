@@ -329,6 +329,14 @@ def run_migrations():
                 db.execute(text("ALTER TABLE tickets ADD COLUMN sale_id INTEGER"))
                 db.commit()
                 print("Migration: Added sale_id column to tickets table")
+
+            # Las cuentas se crearon sin negocio y quedaban invisibles en Caja
+            db.execute(text("""
+                UPDATE tickets
+                SET tenant_id = (SELECT locations.tenant_id FROM locations WHERE locations.id = tickets.location_id)
+                WHERE tenant_id IS NULL AND location_id IS NOT NULL
+            """))
+            db.commit()
         
         # Add missing columns to ticket_payments table
         result = db.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='ticket_payments'"))
