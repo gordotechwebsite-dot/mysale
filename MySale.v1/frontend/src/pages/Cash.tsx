@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useShift } from '../context/ShiftContext';
+import { useAuth } from '../context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
@@ -14,11 +15,16 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Banknote, RefreshCw, Loader2, Receipt, Bike, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
-import { getTickets, getSales, getDeliveries } from '../api';
-import type { Ticket, Sale, Delivery } from '../types';
+import { getTickets, getSales, getDeliveries, getLocations, getShifts } from '../api';
+import { canSelectLocation, getFixedLocationId } from '../lib/locationScope';
+import type { Ticket, Sale, Delivery, Location, Shift } from '../types';
 
 const Cash: React.FC = () => {
-  const { currentShift } = useShift();
+  const { user } = useAuth();
+  const canChooseLocation = canSelectLocation(user);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
+  const [shifts, setShifts] = useState<Shift[]>([]);
   const [openTickets, setOpenTickets] = useState<Ticket[]>([]);
   const [closedTickets, setClosedTickets] = useState<Ticket[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -27,26 +33,54 @@ const Cash: React.FC = () => {
 
   const today = new Date().toLocaleDateString('en-CA');
 
+  const loadLocations = useCallback(async () => {
+    try {
+      const data = await getLocations();
+      const posLocations = data.filter(l => l.location_type === 'pos');
+      const fixedLocationId = getFixedLocationId(user);
+      const visibleLocations = fixedLocationId
+        ? posLocations.filter(l => l.id === fixedLocationId)
+        : posLocations;
+      setLocations(visibleLocations);
+      if (visibleLocations.length > 0) {
+        setSelectedLocation(current => current ?? visibleLocations[0].id);
+      } else {
+        setIsLoading(false);
+      }
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'Error al cargar las sedes');
+      setIsLoading(false);
+    }
+  }, [user]);
+
   const loadData = useCallback(async () => {
+    if (!selectedLocation) return;
     try {
       setIsLoading(true);
-      const [open, closed, daySales, dayDeliveries] = await Promise.all([
-        getTickets({ state: 'open' }),
-        getTickets({ state: 'closed', day: today }),
-        getSales({ sale_type: 'regular', start_date: today, end_date: today, limit: 500 }),
-        getDeliveries({ start_date: today, end_date: today, limit: 500 }),
+      const [open, closed, daySales, dayDeliveries, dayShifts] = await Promise.all([
+        getTickets({ state: 'open', location_id: selectedLocation }),
+        getTickets({ state: 'closed', day: today, location_id: selectedLocation }),
+        getSales({ sale_type: 'regular', start_date: today, end_date: today, limit: 500, location_id: selectedLocation }),
+        getDeliveries({ start_date: today, end_date: today, limit: 500, location_id: selectedLocation }),
+        getShifts({ location_id: selectedLocation, status: 'open' }),
       ]);
       setOpenTickets(open);
       setClosedTickets(closed);
       setSales(daySales);
       setDeliveries(dayDeliveries);
+      setShifts(dayShifts);
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       toast.error(err.response?.data?.detail || 'Error al cargar los movimientos de caja');
     } finally {
       setIsLoading(false);
     }
-  }, [today]);
+  }, [today, selectedLocation]);
+
+  useEffect(() => {
+    loadLocations();
+  }, [loadLocations]);
 
   useEffect(() => {
     loadData();
@@ -96,6 +130,7 @@ const Cash: React.FC = () => {
     }
   };
 
+  const selectedLocationName = locations.find(l => l.id === selectedLocation)?.name;
   const openTotal = openTickets.reduce((sum, t) => sum + t.total, 0);
   const closedTotal = closedTickets.reduce((sum, t) => sum + t.total, 0);
   const salesTotal = sales.reduce((sum, s) => sum + s.total, 0);
@@ -114,18 +149,72 @@ const Cash: React.FC = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Caja - Movimientos del Día</h1>
-          {currentShift && (
-            <p className="text-sm text-gray-500">
-              Turno activo en {currentShift.location_name} · Efectivo esperado:{' '}
-              {formatCurrency(currentShift.total_cash_sales + currentShift.initial_cash)}
-            </p>
-          )}
+          <p className="text-sm text-gray-500">
+            {selectedLocationName || 'Sin sede seleccionada'}
+            {shifts.length === 0 && ' · Sin turno abierto'}
+          </p>
         </div>
-        <Button variant="outline" onClick={loadData}>
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Actualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          {canChooseLocation && (
+            <Select
+              value={selectedLocation?.toString() || ''}
+              onValueChange={v => setSelectedLocation(parseInt(v))}
+            >
+              <SelectTrigger className="w-52">
+                <SelectValue placeholder="Seleccionar sede" />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.map(loc => (
+                  <SelectItem key={loc.id} value={loc.id.toString()}>
+                    {loc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button variant="outline" onClick={loadData}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Actualizar
+          </Button>
+        </div>
       </div>
+
+      {shifts.map(shift => (
+        <Card key={shift.id}>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Banknote className="w-5 h-5" />
+              Turno de {shift.user_name || 'cajero'} · abierto {formatTime(shift.start_time)}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+              <div>
+                <p className="text-sm text-gray-500">Base inicial</p>
+                <p className="font-semibold">{formatCurrency(shift.initial_cash)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Efectivo</p>
+                <p className="font-semibold">{formatCurrency(shift.total_cash_sales)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Tarjeta</p>
+                <p className="font-semibold">{formatCurrency(shift.total_card_sales)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Transferencia</p>
+                <p className="font-semibold">{formatCurrency(shift.total_transfer_sales)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Efectivo esperado</p>
+                <p className="font-semibold text-emerald-600">
+                  {formatCurrency(shift.initial_cash + shift.total_cash_sales)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
