@@ -50,6 +50,7 @@ class SaleResponse(BaseModel):
     discount: float
     total: float
     payment_method: PaymentMethod
+    sale_type: Optional[str] = None
     amount_received: Optional[float]
     change_given: Optional[float]
     notes: Optional[str]
