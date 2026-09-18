@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ShiftProvider } from './context/ShiftContext';
 import { CartProvider } from './context/CartContext';
 import { Toaster } from '@/components/ui/sonner';
+import { Toaster as HotToaster } from 'react-hot-toast';
 import { isInstalledApp, getStoredClientId } from './lib/installed';
 import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import OfflineSalesIndicator from './components/OfflineSalesIndicator';
@@ -114,6 +115,7 @@ function App() {
       <>
         <Activation onActivated={() => setNeedsActivation(false)} />
         <Toaster />
+        <HotToaster position="top-center" toastOptions={{ duration: 3000, style: { fontSize: '16px', fontWeight: 600, padding: '14px 18px' } }} />
         <PWAUpdatePrompt />
       </>
     );
@@ -125,6 +127,7 @@ function App() {
         <AuthProvider>
           <AppRoutes />
           <Toaster />
+          <HotToaster position="top-center" toastOptions={{ duration: 3000, style: { fontSize: '16px', fontWeight: 600, padding: '14px 18px' } }} />
           <PWAUpdatePrompt />
           <OfflineSalesIndicator />
         </AuthProvider>
