@@ -7,6 +7,7 @@ import logging
 from contextlib import asynccontextmanager
 from app.database import engine, Base, SessionLocal
 from app.models import *
+from app.models.user import RoleType
 from app.routers import auth, users, locations, inventory, shifts, sales, cash, losses, transfers, expenses, reports, cost_control, tables, tenants, integration, faq, biometric, branches, deliveries, business_profile, notifications
 from app.routers.tenants import public_router as tenants_public_router
 
