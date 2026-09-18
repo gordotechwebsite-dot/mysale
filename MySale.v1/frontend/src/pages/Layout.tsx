@@ -673,8 +673,10 @@ const Layout: React.FC = () => {
   const [toastNotif, setToastNotif] = React.useState<NotificationItem | null>(null);
   const seenIdsRef = React.useRef<Set<number>>(new Set());
   const initialLoadDone = React.useRef(false);
+  const canSeeNotifications = canManageBusiness(user);
 
   const loadNotifications = React.useCallback(async () => {
+    if (!canSeeNotifications) return;
     try {
       const [notifs, count] = await Promise.all([getNotifications(), getUnreadCount()]);
       if (!initialLoadDone.current) {
@@ -691,13 +693,14 @@ const Layout: React.FC = () => {
       setNotifications(notifs);
       setUnreadCount(count.unread_count);
     } catch { /* ignore */ }
-  }, []);
+  }, [canSeeNotifications]);
 
   React.useEffect(() => {
+    if (!canSeeNotifications) return;
     loadNotifications();
     const interval = setInterval(loadNotifications, 15000);
     return () => clearInterval(interval);
-  }, [loadNotifications]);
+  }, [loadNotifications, canSeeNotifications]);
 
   React.useEffect(() => {
     if (!toastNotif) return;
@@ -980,6 +983,7 @@ const Layout: React.FC = () => {
           </h2>
           <div className="flex items-center gap-3">
             <ColombiaClockDisplay onClick={() => setPinModalOpen(true)} />
+            {canSeeNotifications && (
             <div className="relative" ref={notifRef}>
               <button 
                 className="relative p-2 transition-colors"
@@ -1064,6 +1068,7 @@ const Layout: React.FC = () => {
                 </div>
               )}
             </div>
+            )}
           </div>
         </header>
 

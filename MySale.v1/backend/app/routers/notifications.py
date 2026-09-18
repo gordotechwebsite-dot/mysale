@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.database import get_db
 from app.models.notification import Notification, NotificationType
@@ -11,10 +11,23 @@ from app.schemas.notification import (
     NotificationCreate, NotificationBroadcast,
     NotificationResponse, NotificationCountResponse
 )
-from app.utils.auth import get_current_user, require_role
+from app.utils.auth import require_role
 from app.timezone import now_colombia
 
 router = APIRouter(prefix="/api", tags=["notifications"])
+
+NOTIFICATION_RETENTION_DAYS = 7
+
+
+def purge_expired_notifications(db: Session) -> int:
+    """Delete notifications older than the retention window."""
+    cutoff = now_colombia() - timedelta(days=NOTIFICATION_RETENTION_DAYS)
+    deleted = db.query(Notification).filter(
+        Notification.created_at < cutoff
+    ).delete(synchronize_session=False)
+    if deleted:
+        db.commit()
+    return deleted
 
 
 # ---- Client-facing endpoints ----
@@ -22,8 +35,9 @@ router = APIRouter(prefix="/api", tags=["notifications"])
 @router.get("/notifications", response_model=List[NotificationResponse])
 async def get_my_notifications(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("superuser", "admin"))
 ):
+    purge_expired_notifications(db)
     query = db.query(Notification)
     if current_user.tenant_id:
         query = query.filter(
@@ -38,7 +52,7 @@ async def get_my_notifications(
 @router.get("/notifications/unread-count", response_model=NotificationCountResponse)
 async def get_unread_count(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("superuser", "admin"))
 ):
     query = db.query(Notification).filter(Notification.is_read == False)
     if current_user.tenant_id:
@@ -55,7 +69,7 @@ async def get_unread_count(
 async def mark_as_read(
     notification_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("superuser", "admin"))
 ):
     notification = db.query(Notification).filter(Notification.id == notification_id).first()
     if not notification:
@@ -69,7 +83,7 @@ async def mark_as_read(
 @router.put("/notifications/read-all")
 async def mark_all_as_read(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_role("superuser", "admin"))
 ):
     query = db.query(Notification).filter(Notification.is_read == False)
     if current_user.tenant_id:
@@ -140,4 +154,5 @@ async def get_all_notifications(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role("superuser"))
 ):
+    purge_expired_notifications(db)
     return db.query(Notification).order_by(Notification.created_at.desc()).limit(100).all()
