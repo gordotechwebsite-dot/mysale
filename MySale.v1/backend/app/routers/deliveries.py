@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import datetime, date
 from app.timezone import now_colombia
 from app.database import get_db
-from app.models.user import User
+from app.models.user import User, RoleType
 from app.models.shift import Shift, ShiftStatus
 from app.models.sale import Sale, SaleItem, PaymentMethod, SaleType, DeliveryStatus
 from app.models.inventory import Product
@@ -150,6 +150,12 @@ async def create_delivery(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    if current_user.role.role_type == RoleType.WAITER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El mesero solo puede vender en Gestion de Mesas"
+        )
+
     shift = db.query(Shift).filter(
         Shift.user_id == current_user.id,
         Shift.status == ShiftStatus.OPEN

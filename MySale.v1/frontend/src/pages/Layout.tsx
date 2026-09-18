@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useShift } from '../context/ShiftContext';
 import { clockWithPin, getNotifications, getUnreadCount, markNotificationRead, markAllNotificationsRead } from '@/api';
 import type { NotificationItem } from '@/api';
+import { canManageBusiness, isOwner, isWaiter, roleLabel, WAITER_MODULES } from '@/lib/roles';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -653,8 +654,8 @@ const moduleGroup: Record<string, string> = {
 // Modules that require admin role
 const adminOnlyModules = ['inventory', 'cost_control', 'expenses', 'reports', 'users', 'branches', 'work_report', 'locations'];
 
-// Modules that require superuser role
-const superuserOnlyModules = ['super_admin', 'locations_admin', 'settings'];
+// Modules that only the owner can open
+const ownerOnlyModules = ['super_admin', 'locations_admin', 'settings'];
 
 const Layout: React.FC = () => {
   const { user, logout, enabledModules } = useAuth();
@@ -733,8 +734,15 @@ const Layout: React.FC = () => {
     navigate('/login');
   };
 
-  const isAdmin = user?.role?.role_type === 'superuser' || user?.role?.role_type === 'admin';
-  const isSuperuser = user?.role?.role_type === 'superuser';
+  const isAdmin = canManageBusiness(user);
+  const isSuperuser = isOwner(user);
+  const waiterOnly = isWaiter(user);
+
+  React.useEffect(() => {
+    if (waiterOnly && location.pathname !== '/tables') {
+      navigate('/tables', { replace: true });
+    }
+  }, [waiterOnly, location.pathname, navigate]);
 
   // Build menu items dynamically from enabled modules, sorted by usage groups
   const menuItems = enabledModules.length > 0 
@@ -743,7 +751,8 @@ const Layout: React.FC = () => {
           // Hide modules that are now integrated into other modules
           if (module.code === 'losses') return false;
           // Check role-based access
-          if (superuserOnlyModules.includes(module.code) && !isSuperuser) return false;
+          if (waiterOnly) return WAITER_MODULES.includes(module.code);
+          if (ownerOnlyModules.includes(module.code) && !isSuperuser) return false;
           if (adminOnlyModules.includes(module.code) && !isAdmin) return false;
           return true;
         })
@@ -756,11 +765,15 @@ const Layout: React.FC = () => {
           sortOrder: moduleSortOrder[module.code] ?? 99,
         }))
         .sort((a, b) => a.sortOrder - b.sortOrder)
-    : [
-        // Fallback menu if no modules loaded (for backwards compatibility)
-        { path: '/', icon: LayoutDashboard, label: 'Dashboard', code: 'dashboard', group: 'Ventas', sortOrder: 1 },
-        { path: '/pos', icon: ShoppingCart, label: 'Punto de Venta', code: 'pos', group: 'Ventas', sortOrder: 3 },
-      ];
+    : waiterOnly
+      ? [
+          { path: '/tables', icon: UtensilsCrossed, label: 'Gestion de Mesas', code: 'tables', group: 'Ventas', sortOrder: 1 },
+        ]
+      : [
+          // Fallback menu if no modules loaded (for backwards compatibility)
+          { path: '/', icon: LayoutDashboard, label: 'Dashboard', code: 'dashboard', group: 'Ventas', sortOrder: 1 },
+          { path: '/pos', icon: ShoppingCart, label: 'Punto de Venta', code: 'pos', group: 'Ventas', sortOrder: 3 },
+        ];
 
   // Add Settings item for superusers (not a tenant module, always available)
   if (isSuperuser && !menuItems.find(item => item.code === 'settings')) {
@@ -831,7 +844,7 @@ const Layout: React.FC = () => {
         <div className="flex-shrink-0 p-5" style={{ borderBottom: '1px solid #e5e7eb' }}>
           <p className="text-xs" style={{ color: '#6b7280' }}>Bienvenido,</p>
           <p className="font-semibold text-sm truncate" style={{ color: '#111827' }}>{user?.full_name}</p>
-          <p className="text-xs" style={{ color: '#00a86b' }}>{user?.role?.name}</p>
+          <p className="text-xs" style={{ color: '#00a86b' }}>{roleLabel(user?.role?.role_type) || user?.role?.name}</p>
           {currentShift && (
             <div 
               className="mt-2 px-3 py-2 text-xs"

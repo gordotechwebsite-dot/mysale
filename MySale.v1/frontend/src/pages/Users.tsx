@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import { getUsers, createUser, deleteUser, getRoles, getLocations, resetUserPin, toggleUserActive, getMyModules, updateUserModules } from '../api';
 import type { EnabledModule } from '../api';
 import type { User, Role, Location } from '../types';
+import { roleLabel } from '@/lib/roles';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -184,7 +185,7 @@ const Users: React.FC = () => {
   const getRoleBadge = (roleType: string) => {
     const type = roleType?.toUpperCase();
     const badges: Record<string, JSX.Element> = {
-      'SUPERUSER': <Badge className="bg-purple-500">Superusuario</Badge>,
+      'SUPERUSER': <Badge className="bg-purple-500">Propietario</Badge>,
       'ADMIN': <Badge className="bg-blue-500">Administrador</Badge>,
       'CASHIER': <Badge className="bg-green-500">Cajero</Badge>,
       'WAITER': <Badge className="bg-orange-500">Mesero</Badge>
@@ -307,7 +308,7 @@ const Users: React.FC = () => {
               <label className="text-sm font-medium text-gray-700 mb-1 block">Rol *</label>
               <Select value={newUser.role_id} onValueChange={(v) => setNewUser({ ...newUser, role_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Seleccione rol" /></SelectTrigger>
-                <SelectContent>{filteredRoles.map(r => (<SelectItem key={r.id} value={r.id.toString()}>{r.name}</SelectItem>))}</SelectContent>
+                <SelectContent>{filteredRoles.map(r => (<SelectItem key={r.id} value={r.id.toString()}>{roleLabel(r.role_type) || r.name}</SelectItem>))}</SelectContent>
               </Select>
             </div>
             <div>

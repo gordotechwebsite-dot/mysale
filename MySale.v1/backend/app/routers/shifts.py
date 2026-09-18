@@ -223,7 +223,7 @@ async def close_shift_by_admin(
     shift_id: int,
     shift_close: ShiftClose,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(RoleType.ADMIN))
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
 ):
     shift = db.query(Shift).filter(Shift.id == shift_id).first()
     

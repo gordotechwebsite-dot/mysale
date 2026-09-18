@@ -3,7 +3,7 @@ from app.models.location import Location
 from app.models.branch import Branch, WorkSession
 from app.models.inventory import Group, Family, SubFamily, Product, ProductStock, StockMovement, ProductModifier
 from app.models.shift import Shift, ShiftAlert
-from app.models.sale import Sale, SaleItem
+from app.models.sale import Sale, SaleItem, SaleVoid
 from app.models.cash import CashRegister, CashDenomination, CashCut
 from app.models.loss import Loss, LossItem
 from app.models.transfer import Transfer, TransferItem
@@ -22,7 +22,7 @@ __all__ = [
     "Branch", "WorkSession",
     "Group", "Family", "SubFamily", "Product", "ProductStock", "StockMovement", "ProductModifier",
     "Shift", "ShiftAlert",
-    "Sale", "SaleItem",
+    "Sale", "SaleItem", "SaleVoid",
     "CashRegister", "CashDenomination", "CashCut",
     "Loss", "LossItem",
     "Transfer", "TransferItem",

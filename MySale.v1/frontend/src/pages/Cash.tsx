@@ -15,8 +15,10 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Banknote, RefreshCw, Loader2, Receipt, Bike, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
-import { getTickets, getSales, getDeliveries, getLocations, getShifts } from '../api';
+import { getTickets, getSales, getDeliveries, getLocations, getShifts, voidSale } from '../api';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { canSelectLocation, getFixedLocationId } from '../lib/locationScope';
+import { canVoidSales } from '../lib/roles';
 import type { Ticket, Sale, Delivery, Location, Shift } from '../types';
 
 const Cash: React.FC = () => {
@@ -30,6 +32,8 @@ const Cash: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [saleToVoid, setSaleToVoid] = useState<Sale | null>(null);
+  const canVoid = canVoidSales(user);
 
   const today = new Date().toLocaleDateString('en-CA');
 
@@ -85,6 +89,19 @@ const Cash: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleVoidSale = async (sale: Sale) => {
+    try {
+      await voidSale(sale.id);
+      toast.success(`Venta ${sale.folio} anulada`);
+      loadData();
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'No se pudo anular la venta');
+    } finally {
+      setSaleToVoid(null);
+    }
+  };
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('es-CO', {
@@ -384,6 +401,7 @@ const Cash: React.FC = () => {
                         <TableHead>Pago</TableHead>
                         <TableHead>Productos</TableHead>
                         <TableHead className="text-right">Total</TableHead>
+                        {canVoid && <TableHead className="text-right">Acciones</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -397,6 +415,18 @@ const Cash: React.FC = () => {
                           <TableCell className="text-right font-semibold">
                             {formatCurrency(sale.total)}
                           </TableCell>
+                          {canVoid && (
+                            <TableCell className="text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                onClick={() => setSaleToVoid(sale)}
+                              >
+                                Anular
+                              </Button>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -454,6 +484,18 @@ const Cash: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ConfirmDialog
+        open={saleToVoid !== null}
+        onOpenChange={open => { if (!open) setSaleToVoid(null); }}
+        title="Anular venta"
+        description={saleToVoid
+          ? `Se anula la venta ${saleToVoid.folio} por ${formatCurrency(saleToVoid.total)}, se devuelve el inventario y se descuenta de la caja.`
+          : ''}
+        confirmLabel="Anular"
+        variant="danger"
+        onConfirm={() => { if (saleToVoid) handleVoidSale(saleToVoid); }}
+      />
     </div>
   );
 };

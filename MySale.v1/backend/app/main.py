@@ -590,6 +590,10 @@ def run_migrations():
                     {"code": "deliveries", "name": "Domicilios", "description": "Registro y seguimiento de ventas a domicilio", "icon": "Bike", "route": "/deliveries", "display_order": 5, "is_core": False},
                 ]
         
+        db.execute(text("UPDATE roles SET name = 'Propietario' WHERE name = 'Superusuario'"))
+        db.execute(text("UPDATE roles SET can_void_sales = 1 WHERE role_type IN ('ADMIN', 'admin')"))
+        db.commit()
+
         for module_data in all_modules:
             existing = db.query(Module).filter(Module.code == module_data["code"]).first()
             if not existing:
@@ -1186,7 +1190,7 @@ def init_default_data():
             return
         
         superuser_role = Role(
-            name="Superusuario",
+            name="Propietario",
             role_type=RoleType.SUPERUSER,
             can_void_sales=True,
             can_manage_inventory=True,
@@ -1201,13 +1205,13 @@ def init_default_data():
         admin_role = Role(
             name="Administrador",
             role_type=RoleType.ADMIN,
-            can_void_sales=False,
+            can_void_sales=True,
             can_manage_inventory=True,
             can_manage_users=True,
             can_view_reports=True,
             can_manage_locations=False,
             can_set_stock_thresholds=False,
-            can_close_shifts=False
+            can_close_shifts=True
         )
         db.add(admin_role)
         
@@ -1223,6 +1227,19 @@ def init_default_data():
             can_close_shifts=False
         )
         db.add(cashier_role)
+
+        waiter_role = Role(
+            name="Mesero",
+            role_type=RoleType.WAITER,
+            can_void_sales=False,
+            can_manage_inventory=False,
+            can_manage_users=False,
+            can_view_reports=False,
+            can_manage_locations=False,
+            can_set_stock_thresholds=False,
+            can_close_shifts=False
+        )
+        db.add(waiter_role)
         db.flush()
         
         galia = Location(
