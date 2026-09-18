@@ -83,7 +83,6 @@ const TableReceiptTicket: React.FC<TableReceiptTicketProps> = ({ ticket, payment
     return labels[method] || method;
   };
 
-  const totalItems = ticket.items.reduce((sum, item) => sum + item.quantity, 0);
   const change = paymentMethod === 'cash' && paymentAmount > ticket.total ? paymentAmount - ticket.total : 0;
   const nowStr = new Date().toISOString();
 
@@ -216,10 +215,6 @@ const TableReceiptTicket: React.FC<TableReceiptTicketProps> = ({ ticket, payment
                   )}
                 </div>
               ))}
-            </div>
-
-            <div style={{ fontSize: '11px', color: '#000', textAlign: 'right', marginTop: '2px' }}>
-              {totalItems} artículo{totalItems !== 1 ? 's' : ''}
             </div>
 
             {/* Totals */}
