@@ -922,7 +922,7 @@ async def move_ticket(
     ticket_id: int,
     data: MoveTicketRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin"))
+    current_user: User = Depends(require_role("superuser", "admin", "cashier"))
 ):
     ticket = get_scoped_ticket(ticket_id, db, current_user)
 
@@ -1174,7 +1174,7 @@ async def pay_ticket(
     ticket_id: int,
     data: PayTicketRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("superuser", "admin"))
+    current_user: User = Depends(require_role("superuser", "admin", "cashier"))
 ):
     ticket = get_scoped_ticket(ticket_id, db, current_user)
 

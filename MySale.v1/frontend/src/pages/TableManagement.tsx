@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { canSelectLocation, getFixedLocationId } from '../lib/locationScope';
+import { canCharge as canChargeTickets, canManageBusiness, canMoveTable, isAdministrator, isOwner } from '../lib/roles';
 import { toast } from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import {
@@ -113,10 +114,11 @@ interface CartItem {
 export default function TableManagement() {
   const { user } = useAuth();
   const canChooseLocation = canSelectLocation(user);
-  const isSuperuser = user?.role?.role_type === 'superuser';
-  const isAdmin = user?.role?.role_type === 'admin';
-  const canDeleteOrder = isAdmin || isSuperuser;
-  const canCharge = isAdmin || isSuperuser;
+  const isSuperuser = isOwner(user);
+  const isAdmin = isAdministrator(user);
+  const canDeleteOrder = canManageBusiness(user);
+  const canCharge = canChargeTickets(user);
+  const canMove = canMoveTable(user);
 
   const [zones, setZones] = useState<ZoneWithTables[]>([]);
   const [selectedZone, setSelectedZone] = useState<number | null>(null);
@@ -557,8 +559,8 @@ export default function TableManagement() {
         }
         break;
       case 'change_table':
-        if (!isAdmin) {
-          toast.error('Solo el administrador puede cambiar de mesa');
+        if (!canMove) {
+          toast.error('No tienes permiso para cambiar de mesa');
           return;
         }
         console.log('[MOVE] change_table action, currentTicket:', currentTicket?.id, 'selectedTable:', selectedTable?.name);
@@ -746,7 +748,7 @@ export default function TableManagement() {
       setShowCartPanel(false);
       const ticket = await getTableTicket(selectedTable!.id);
       setCurrentTicket(ticket);
-      toast.success('Pedido enviado');
+      toast.success('Su orden está siendo preparada');
       loadZones();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
@@ -782,7 +784,7 @@ export default function TableManagement() {
       });
       const ticket = await getTableTicket(selectedTable!.id);
       setCurrentTicket(ticket);
-      toast.success('Comanda enviada a cocina');
+      toast.success('Su orden está siendo preparada');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: string } } };
       toast.error(err.response?.data?.detail || 'Error al enviar comanda');
@@ -1053,7 +1055,7 @@ export default function TableManagement() {
                   <Receipt className="w-4 h-4 mr-1" />
                   Precuenta
                 </Button>
-                {isAdmin && (
+                {canMove && (
                   <Button
                     variant="outline"
                     className="h-10 text-sm"
@@ -2116,7 +2118,7 @@ export default function TableManagement() {
                     <Send className="w-3 h-3 mr-1" />
                     Enviar
                   </Button>
-                  {isAdmin && (
+                  {canMove && (
                     <Button
                       size="sm"
                       variant="outline"

@@ -61,6 +61,27 @@ class Sale(Base):
     items = relationship("SaleItem", back_populates="sale")
 
 
+class SaleVoid(Base):
+    """Registro de auditoria de las ventas anuladas."""
+
+    __tablename__ = "sale_voids"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, nullable=True, index=True)
+    folio = Column(String(50), nullable=False, index=True)
+    location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
+    shift_id = Column(Integer, nullable=True)
+    cashier_id = Column(Integer, nullable=True)
+    voided_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    total = Column(Float, nullable=False)
+    payment_method = Column(String(20), nullable=True)
+    sale_type = Column(String(20), nullable=True)
+    sale_created_at = Column(DateTime, nullable=True)
+    reason = Column(Text, nullable=True)
+    items_detail = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=now_colombia)
+
+
 class SaleItem(Base):
     __tablename__ = "sale_items"
 

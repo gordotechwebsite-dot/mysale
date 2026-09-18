@@ -98,7 +98,7 @@ async def create_tenant_with_user(
             if not superuser_role:
                 superuser_role = Role(
                     tenant_id=existing_tenant.id,
-                    name="Superusuario",
+                    name="Propietario",
                     role_type=RoleType.SUPERUSER,
                     can_void_sales=True,
                     can_manage_inventory=True,
@@ -160,7 +160,7 @@ async def create_tenant_with_user(
         if not superuser_role:
             superuser_role = Role(
                 tenant_id=tenant.id,
-                name="Superusuario",
+                name="Propietario",
                 role_type=RoleType.SUPERUSER,
                 can_void_sales=True,
                 can_manage_inventory=True,

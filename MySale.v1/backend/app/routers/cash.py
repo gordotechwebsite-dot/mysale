@@ -15,14 +15,6 @@ from app.timezone import now_colombia
 router = APIRouter(prefix="/api/cash", tags=["Caja"])
 
 
-def _deny_superuser_cash_ops(current_user: User) -> None:
-    if current_user.role.role_type == RoleType.SUPERUSER:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="El perfil de dueño no puede declarar ni cerrar caja"
-        )
-
-
 @router.get("/cuts", response_model=List[CashCutResponse])
 async def get_cash_cuts(
     shift_id: int = None,
@@ -85,8 +77,6 @@ async def create_blind_cash_cut(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    _deny_superuser_cash_ops(current_user)
-
     shift = db.query(Shift).filter(Shift.id == cut_data.shift_id).first()
     if not shift:
         raise HTTPException(status_code=404, detail="Turno no encontrado")
@@ -227,8 +217,6 @@ async def create_cash_close(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    _deny_superuser_cash_ops(current_user)
-
     try:
         close_date = datetime.strptime(data.close_date, "%Y-%m-%d")
     except ValueError:
@@ -282,8 +270,6 @@ async def delete_cash_close(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    _deny_superuser_cash_ops(current_user)
-
     cash_close = db.query(CashClose).filter(CashClose.id == close_id).first()
     if not cash_close:
         raise HTTPException(status_code=404, detail="Cierre de caja no encontrado")

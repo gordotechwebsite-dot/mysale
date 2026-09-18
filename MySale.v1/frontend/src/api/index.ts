@@ -305,6 +305,14 @@ export const createSale = async (data: {
   return response.data;
 };
 
+export const voidSale = async (
+  saleId: number,
+  reason?: string
+): Promise<{ message: string; folio: string }> => {
+  const response = await api.post(`/api/sales/${saleId}/void`, { reason });
+  return response.data;
+};
+
 export const createBlindCashCut = async (data: {
   shift_id: number;
   denominations: CashDenomination[];

@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from app.database import get_db
 from app.models.user import User, RoleType
 from app.models.shift import Shift, ShiftStatus
-from app.models.sale import Sale, SaleItem, PaymentMethod, SaleType
+from app.models.sale import Sale, SaleItem, SaleVoid, PaymentMethod, SaleType
 from app.models.inventory import Product
 from app.models.location import Location
 from app.schemas.sale import SaleCreate, SaleResponse, SaleItemResponse
@@ -16,7 +16,8 @@ from app.utils.auth import get_current_user, require_role
 from app.utils.folio import generate_folio
 from app.utils.location_scope import require_own_location, scoped_location_id
 from app.utils.menu import product_belongs_to_location
-from app.utils.stock import register_sale_stock_exit
+from app.utils.stock import register_sale_stock_exit, register_sale_stock_return
+import json
 
 router = APIRouter(prefix="/api/sales", tags=["Ventas"])
 
@@ -215,12 +216,97 @@ async def get_sale(
     )
 
 
+class SaleVoidRequest(BaseModel):
+    reason: Optional[str] = None
+
+
+@router.post("/{sale_id}/void")
+async def void_sale(
+    sale_id: int,
+    data: SaleVoidRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN))
+):
+    """Anula una venta: devuelve el inventario, la descuenta del turno y la audita."""
+    sale = db.query(Sale).filter(Sale.id == sale_id).first()
+    if not sale:
+        raise HTTPException(status_code=404, detail="Venta no encontrada")
+
+    if current_user.tenant_id:
+        tenant_loc_ids = _get_tenant_location_ids(db, current_user)
+        if tenant_loc_ids and sale.location_id not in tenant_loc_ids:
+            raise HTTPException(status_code=403, detail="No tienes acceso a esta venta")
+
+    require_own_location(current_user, sale.location_id)
+
+    items_detail = []
+    for item in sale.items:
+        product = db.query(Product).filter(Product.id == item.product_id).first()
+        items_detail.append({
+            "product_id": item.product_id,
+            "product_name": product.name if product else None,
+            "quantity": item.quantity,
+            "unit_price": item.unit_price,
+            "subtotal": item.subtotal,
+        })
+        if product:
+            register_sale_stock_return(
+                db,
+                product=product,
+                location_id=sale.location_id,
+                quantity=item.quantity,
+                reference_id=sale.id,
+                reference_type="sale_void",
+                created_by_id=current_user.id,
+                notes=f"Anulacion de la venta {sale.folio}"
+            )
+
+    shift = db.query(Shift).filter(Shift.id == sale.shift_id).first()
+    if shift:
+        shift.total_sales = max(0.0, (shift.total_sales or 0) - sale.total)
+        if sale.payment_method == PaymentMethod.CASH:
+            shift.total_cash_sales = max(0.0, (shift.total_cash_sales or 0) - sale.total)
+        elif sale.payment_method == PaymentMethod.CARD:
+            shift.total_card_sales = max(0.0, (shift.total_card_sales or 0) - sale.total)
+        else:
+            shift.total_transfer_sales = max(0.0, (shift.total_transfer_sales or 0) - sale.total)
+
+    db.add(SaleVoid(
+        tenant_id=current_user.tenant_id,
+        folio=sale.folio,
+        location_id=sale.location_id,
+        shift_id=sale.shift_id,
+        cashier_id=sale.cashier_id,
+        voided_by_id=current_user.id,
+        total=sale.total,
+        payment_method=sale.payment_method.value if sale.payment_method else None,
+        sale_type=sale.sale_type.value if sale.sale_type else None,
+        sale_created_at=sale.created_at,
+        reason=data.reason,
+        items_detail=json.dumps(items_detail, default=str)
+    ))
+
+    folio = sale.folio
+    for item in list(sale.items):
+        db.delete(item)
+    db.delete(sale)
+    db.commit()
+
+    return {"message": f"Venta {folio} anulada", "folio": folio}
+
+
 @router.post("/", response_model=SaleResponse)
 async def create_sale(
     sale_data: SaleCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    if current_user.role.role_type == RoleType.WAITER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El mesero solo puede vender en Gestion de Mesas"
+        )
+
     # Idempotency: if this client_uuid was already recorded, return the existing
     # sale instead of creating a duplicate (protects offline sync retries).
     if sale_data.client_uuid:

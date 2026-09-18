@@ -15,8 +15,11 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Banknote, RefreshCw, Loader2, Receipt, Bike, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
-import { getTickets, getSales, getDeliveries, getLocations, getShifts } from '../api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { getTickets, getSales, getDeliveries, getLocations, getShifts, voidSale, getTicket } from '../api';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { canSelectLocation, getFixedLocationId } from '../lib/locationScope';
+import { canVoidSales } from '../lib/roles';
 import type { Ticket, Sale, Delivery, Location, Shift } from '../types';
 
 const Cash: React.FC = () => {
@@ -30,6 +33,19 @@ const Cash: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [saleToVoid, setSaleToVoid] = useState<Sale | null>(null);
+  const [ticketDetail, setTicketDetail] = useState<Ticket | null>(null);
+  const canVoid = canVoidSales(user);
+
+  const openTicketDetail = async (ticket: Ticket) => {
+    setTicketDetail(ticket);
+    try {
+      setTicketDetail(await getTicket(ticket.id));
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'No se pudo cargar el detalle de la cuenta');
+    }
+  };
 
   const today = new Date().toLocaleDateString('en-CA');
 
@@ -86,6 +102,19 @@ const Cash: React.FC = () => {
     loadData();
   }, [loadData]);
 
+  const handleVoidSale = async (sale: Sale) => {
+    try {
+      await voidSale(sale.id);
+      toast.success(`Venta ${sale.folio} anulada`);
+      loadData();
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } } };
+      toast.error(err.response?.data?.detail || 'No se pudo anular la venta');
+    } finally {
+      setSaleToVoid(null);
+    }
+  };
+
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -100,6 +129,56 @@ const Cash: React.FC = () => {
     const minutes = Math.max(0, Math.floor((Date.now() - new Date(openedAt).getTime()) / 60000));
     const hours = Math.floor(minutes / 60);
     return hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m`;
+  };
+
+  const itemStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'Sin enviar';
+      case 'sent':
+      case 'preparing':
+        return 'En preparación';
+      case 'ready':
+        return 'Listo';
+      case 'delivered':
+        return 'Completado';
+      case 'cancelled':
+        return 'Anulado';
+      default:
+        return status;
+    }
+  };
+
+  const itemStatusColor = (status: string) => {
+    switch (status) {
+      case 'sent':
+      case 'preparing':
+        return 'bg-amber-500';
+      case 'ready':
+        return 'bg-blue-500';
+      case 'delivered':
+        return 'bg-green-600';
+      case 'cancelled':
+        return 'bg-red-600';
+      default:
+        return 'bg-gray-500';
+    }
+  };
+
+  const ticketStatusLabel = (status: string) => {
+    switch (status) {
+      case 'open':
+        return 'Abierta';
+      case 'to_pay':
+        return 'Por cobrar';
+      case 'closed':
+      case 'paid':
+        return 'Cobrada';
+      case 'cancelled':
+        return 'Anulada';
+      default:
+        return status;
+    }
   };
 
   const paymentLabel = (method: string) => {
@@ -289,7 +368,11 @@ const Cash: React.FC = () => {
                     </TableHeader>
                     <TableBody>
                       {openTickets.map(ticket => (
-                        <TableRow key={ticket.id}>
+                        <TableRow
+                          key={ticket.id}
+                          className="cursor-pointer"
+                          onClick={() => openTicketDetail(ticket)}
+                        >
                           <TableCell className="font-medium">
                             {ticket.table_name || `Cuenta #${ticket.id}`}
                             {ticket.status === 'to_pay' && (
@@ -340,7 +423,11 @@ const Cash: React.FC = () => {
                     </TableHeader>
                     <TableBody>
                       {closedTickets.map(ticket => (
-                        <TableRow key={ticket.id}>
+                        <TableRow
+                          key={ticket.id}
+                          className="cursor-pointer"
+                          onClick={() => openTicketDetail(ticket)}
+                        >
                           <TableCell className="font-medium">
                             {ticket.table_name || `Cuenta #${ticket.id}`}
                           </TableCell>
@@ -384,6 +471,7 @@ const Cash: React.FC = () => {
                         <TableHead>Pago</TableHead>
                         <TableHead>Productos</TableHead>
                         <TableHead className="text-right">Total</TableHead>
+                        {canVoid && <TableHead className="text-right">Acciones</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -397,6 +485,18 @@ const Cash: React.FC = () => {
                           <TableCell className="text-right font-semibold">
                             {formatCurrency(sale.total)}
                           </TableCell>
+                          {canVoid && (
+                            <TableCell className="text-right">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                onClick={() => setSaleToVoid(sale)}
+                              >
+                                Anular
+                              </Button>
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>
@@ -454,6 +554,102 @@ const Cash: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <ConfirmDialog
+        open={saleToVoid !== null}
+        onOpenChange={open => { if (!open) setSaleToVoid(null); }}
+        title="Anular venta"
+        description={saleToVoid
+          ? `Se anula la venta ${saleToVoid.folio} por ${formatCurrency(saleToVoid.total)}, se devuelve el inventario y se descuenta de la caja.`
+          : ''}
+        confirmLabel="Anular"
+        variant="danger"
+        onConfirm={() => { if (saleToVoid) handleVoidSale(saleToVoid); }}
+      />
+
+      <Dialog open={ticketDetail !== null} onOpenChange={open => { if (!open) setTicketDetail(null); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {ticketDetail?.table_name || `Cuenta #${ticketDetail?.id ?? ''}`}
+            </DialogTitle>
+          </DialogHeader>
+          {ticketDetail && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+                <div>
+                  <p className="text-gray-500">Atendió</p>
+                  <p className="font-medium">{ticketDetail.waiter_name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Abierta</p>
+                  <p className="font-medium">{formatTime(ticketDetail.opened_at)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Cerrada</p>
+                  <p className="font-medium">
+                    {ticketDetail.closed_at ? formatTime(ticketDetail.closed_at) : '-'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Cliente</p>
+                  <p className="font-medium">{ticketDetail.customer_name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Estado</p>
+                  <p className="font-medium">{ticketStatusLabel(ticketDetail.status)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Total</p>
+                  <p className="font-semibold">{formatCurrency(ticketDetail.total)}</p>
+                </div>
+              </div>
+
+              <div className="max-h-80 overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Producto</TableHead>
+                      <TableHead className="text-center">Ud</TableHead>
+                      <TableHead>Hora</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead className="text-right">Subtotal</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ticketDetail.items.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="py-6 text-center text-gray-500">
+                          Esta cuenta no tiene productos
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      ticketDetail.items.map(item => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <span className="font-medium">{item.product_name || `#${item.product_id}`}</span>
+                            {item.notes && (
+                              <span className="block text-xs text-gray-500">{item.notes}</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">{item.quantity}</TableCell>
+                          <TableCell>{formatTime(item.created_at)}</TableCell>
+                          <TableCell>
+                            <Badge className={itemStatusColor(item.status)}>
+                              {itemStatusLabel(item.status)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">{formatCurrency(item.subtotal)}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

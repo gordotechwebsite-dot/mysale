@@ -469,7 +469,7 @@ export interface TicketItem {
   discount: number;
   subtotal: number;
   notes: string | null;
-  status: 'ordered' | 'in_preparation' | 'ready' | 'served' | 'cancelled';
+  status: 'pending' | 'sent' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
   created_at: string;
 }
 

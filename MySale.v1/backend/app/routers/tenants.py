@@ -272,7 +272,7 @@ async def create_tenant(
     # Create superuser role for this tenant
     admin_role = Role(
         tenant_id=tenant.id,
-        name="Superusuario",
+        name="Propietario",
         role_type=RoleType.SUPERUSER,
         can_void_sales=True,
         can_manage_inventory=True,
@@ -809,7 +809,7 @@ async def migrate_tenant_users(
             if not tenant_role:
                 tenant_role = Role(
                     tenant_id=tenant.id,
-                    name="Superusuario",
+                    name="Propietario",
                     role_type=RoleType.SUPERUSER,
                     can_void_sales=True,
                     can_manage_inventory=True,
@@ -836,7 +836,7 @@ async def migrate_tenant_users(
         if not admin_role:
             admin_role = Role(
                 tenant_id=tenant.id,
-                name="Superusuario",
+                name="Propietario",
                 role_type=RoleType.SUPERUSER,
                 can_void_sales=True,
                 can_manage_inventory=True,
