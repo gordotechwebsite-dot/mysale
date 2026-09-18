@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { login as apiLogin } from '../api';
-import { User, Lock, Eye, EyeOff, Fingerprint, Loader2 } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import Grainient from '../components/Grainient';
 import Balatro from '../components/Balatro';
 
@@ -291,32 +291,6 @@ const Login: React.FC = () => {
                   ) : (
                     'Iniciar sesion'
                   )}
-                </button>
-
-                {/* Divider */}
-                <div className="flex items-center gap-4 my-5">
-                  <div className="flex-1 h-px" style={{ backgroundColor: '#e5e7eb' }} />
-                  <span className="text-xs uppercase" style={{ color: '#9ca3af' }}>o</span>
-                  <div className="flex-1 h-px" style={{ backgroundColor: '#e5e7eb' }} />
-                </div>
-
-                {/* Biometric Button */}
-                <button
-                  type="button"
-                  disabled
-                  className="w-full flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ 
-                    backgroundColor: 'transparent',
-                    border: '1px solid #00a86b',
-                    borderRadius: '12px',
-                    color: '#00a86b',
-                    height: '48px',
-                    fontSize: '15px',
-                    fontWeight: 600
-                  }}
-                >
-                  <Fingerprint size={20} />
-                  Acceso con huella
                 </button>
               </form>
 
