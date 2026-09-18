@@ -539,7 +539,7 @@ const ColombiaClockDisplay: React.FC<ColombiaClockDisplayProps> = ({ onClick }) 
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-3 px-4 py-2 transition-all duration-200"
+      className="flex items-center gap-3 px-2 py-1 lg:px-4 lg:py-2 transition-all duration-200"
       style={{ borderRadius: '10px' }}
       title="Clic para registrar entrada/salida"
       onMouseEnter={(e) => {
@@ -549,9 +549,9 @@ const ColombiaClockDisplay: React.FC<ColombiaClockDisplayProps> = ({ onClick }) 
         (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
       }}
     >
-      <div className="text-left">
-        <div className="font-semibold" style={{ color: '#111827', fontSize: '16px' }}>{timeStr}</div>
-        <div className="capitalize" style={{ color: '#6b7280', fontSize: '13px' }}>{dateStr}</div>
+      <div className="text-right lg:text-left">
+        <div className="font-semibold text-sm lg:text-base" style={{ color: '#111827' }}>{timeStr}</div>
+        <div className="capitalize text-xs lg:text-[13px]" style={{ color: '#6b7280' }}>{dateStr}</div>
       </div>
     </button>
   );
