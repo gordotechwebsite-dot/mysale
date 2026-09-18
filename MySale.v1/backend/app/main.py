@@ -986,6 +986,22 @@ def generate_payment_reminders():
         db.close()
 
 
+def purge_old_notifications():
+    """Delete notifications older than the retention window (7 days)."""
+    from app.routers.notifications import purge_expired_notifications
+
+    db = SessionLocal()
+    try:
+        deleted = purge_expired_notifications(db)
+        if deleted:
+            logger.info(f"Notificaciones: {deleted} eliminada(s) por antiguedad")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error eliminando notificaciones antiguas: {e}")
+    finally:
+        db.close()
+
+
 def check_and_suspend_unpaid_tenants():
     """Suspend tenants who haven't paid by the 6th of the month (Bogota time)."""
     from app.timezone import now_colombia
@@ -1046,6 +1062,7 @@ async def payment_check_scheduler():
             await asyncio.sleep(wait_seconds)
             check_and_suspend_unpaid_tenants()
             generate_payment_reminders()
+            purge_old_notifications()
         except asyncio.CancelledError:
             break
         except Exception as e:
@@ -1064,6 +1081,7 @@ async def lifespan(app: FastAPI):
     # Run payment check and reminders on startup (in case server was down on the 6th)
     check_and_suspend_unpaid_tenants()
     generate_payment_reminders()
+    purge_old_notifications()
     # Start background scheduler
     scheduler_task = asyncio.create_task(payment_check_scheduler())
     yield
