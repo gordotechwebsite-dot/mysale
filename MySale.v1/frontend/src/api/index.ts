@@ -68,6 +68,11 @@ export const updateUserRole = async (userId: number, roleId: number): Promise<Us
   return response.data;
 };
 
+export const updateUserLocation = async (userId: number, locationId: number | null): Promise<User> => {
+  const response = await api.put(`/api/users/${userId}`, { location_id: locationId });
+  return response.data;
+};
+
 export const getRoles = async (): Promise<Role[]> => {
   const response = await api.get('/api/users/roles');
   return response.data;

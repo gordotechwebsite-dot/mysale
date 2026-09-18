@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { isAxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
-import { getUsers, createUser, deleteUser, getRoles, getLocations, resetUserPin, toggleUserActive, getMyModules, updateUserModules, updateUserRole } from '../api';
+import { getUsers, createUser, deleteUser, getRoles, getLocations, resetUserPin, toggleUserActive, getMyModules, updateUserModules, updateUserRole, updateUserLocation } from '../api';
 import type { EnabledModule } from '../api';
 import type { User, Role, Location } from '../types';
 import { roleLabel, isOwner } from '@/lib/roles';
@@ -59,6 +59,9 @@ const Users: React.FC = () => {
   const [editingRole, setEditingRole] = useState(false);
   const [detailRoleId, setDetailRoleId] = useState('');
   const [savingRole, setSavingRole] = useState(false);
+  const [editingLocation, setEditingLocation] = useState(false);
+  const [detailLocationId, setDetailLocationId] = useState('none');
+  const [savingLocation, setSavingLocation] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => { loadData(); }, []);
@@ -150,6 +153,26 @@ const Users: React.FC = () => {
       toast.error(error.response?.data?.detail || 'Error al actualizar módulos');
     } finally {
       setSavingModules(false);
+    }
+  };
+
+  const handleSaveLocation = async () => {
+    if (!selectedUser) return;
+    setSavingLocation(true);
+    try {
+      const updated = await updateUserLocation(
+        selectedUser.id,
+        detailLocationId === 'none' ? null : Number(detailLocationId)
+      );
+      setSelectedUser(updated);
+      setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+      setEditingLocation(false);
+      toast.success('Sucursal actualizada');
+    } catch (error) {
+      const detail = isAxiosError(error) ? error.response?.data?.detail : null;
+      toast.error(detail || 'Error al cambiar la sucursal');
+    } finally {
+      setSavingLocation(false);
     }
   };
 
@@ -429,7 +452,7 @@ const Users: React.FC = () => {
       </Dialog>
 
       {/* User Detail Modal - ID Card Style */}
-      <Dialog open={showUserDetail} onOpenChange={(open) => { setShowUserDetail(open); if (!open) { setResetPinResult(null); setShowPin(false); setEditingRole(false); } }}>
+      <Dialog open={showUserDetail} onOpenChange={(open) => { setShowUserDetail(open); if (!open) { setResetPinResult(null); setShowPin(false); setEditingRole(false); setEditingLocation(false); } }}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 rounded-2xl border-0 shadow-2xl [&>button.absolute]:hidden" aria-describedby={undefined}>
           {selectedUser && (
             <div>
@@ -504,12 +527,36 @@ const Users: React.FC = () => {
 
                     <div className="space-y-1">
                       <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">Sucursal</p>
-                      <div className="text-sm font-medium">
-                        {selectedUser.location_id === -1 
-                          ? <Badge className="bg-orange-500 text-xs">Rotativo (todas)</Badge>
-                          : (locations.find(l => l.id === selectedUser.location_id)?.name || <span className="text-gray-400">Sin asignar</span>)
-                        }
-                      </div>
+                      {editingLocation ? (
+                        <div className="space-y-2">
+                          <Select value={detailLocationId} onValueChange={setDetailLocationId}>
+                            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Seleccione sucursal" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Sin asignar</SelectItem>
+                              <SelectItem value="-1">Rotativo (todas)</SelectItem>
+                              {locations.map(l => (<SelectItem key={l.id} value={l.id.toString()}>{l.name}</SelectItem>))}
+                            </SelectContent>
+                          </Select>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="outline" className="rounded-lg text-xs" onClick={() => setEditingLocation(false)}>Cancelar</Button>
+                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 rounded-lg text-xs" onClick={handleSaveLocation} disabled={savingLocation}>
+                              {savingLocation ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Save className="w-3 h-3 mr-1" />Guardar</>}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          {selectedUser.location_id === -1
+                            ? <Badge className="bg-orange-500 text-xs">Rotativo (todas)</Badge>
+                            : (locations.find(l => l.id === selectedUser.location_id)?.name || <span className="text-gray-400">Sin asignar</span>)
+                          }
+                          {isOwner(currentUser) && (
+                            <Button size="sm" variant="outline" className="h-6 rounded-lg text-xs" onClick={() => { setDetailLocationId(selectedUser.location_id ? selectedUser.location_id.toString() : 'none'); setEditingLocation(true); }}>
+                              Cambiar
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-1">
