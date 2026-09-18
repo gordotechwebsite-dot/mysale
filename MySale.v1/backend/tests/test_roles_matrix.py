@@ -203,6 +203,23 @@ class TestWaiterRestrictions:
         assert response.status_code == 403
 
 
+class TestOwnerCashOps:
+    def test_owner_can_open_and_close_shift(self, client, context, admin_headers):
+        opened = client.post(
+            "/api/shifts/open",
+            json={"initial_cash": 50000, "location_id": context["location_id"]},
+            headers=admin_headers,
+        )
+        assert opened.status_code == 200, f"owner open shift failed: {opened.json()}"
+
+        closed = client.post(
+            "/api/shifts/close",
+            json={"final_cash": 50000},
+            headers=admin_headers,
+        )
+        assert closed.status_code == 200, f"owner close shift failed: {closed.json()}"
+
+
 class TestVoidSale:
     def test_cashier_cannot_void_and_admin_can(self, client, context, admin_headers):
         sale = client.post(
