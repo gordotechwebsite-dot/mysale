@@ -128,6 +128,9 @@ async def get_roles(
         roles = db.query(Role).filter(
             or_(Role.tenant_id == None, Role.tenant_id == current_user.tenant_id)
         ).all()
+        # Un rol del cliente reemplaza al global del mismo tipo
+        own_types = {r.role_type for r in roles if r.tenant_id is not None}
+        roles = [r for r in roles if r.tenant_id is not None or r.role_type not in own_types]
     else:
         # System admin sees all roles
         roles = db.query(Role).all()
