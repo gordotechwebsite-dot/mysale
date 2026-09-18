@@ -533,6 +533,7 @@ export default function TableManagement() {
           setNumPeople('');
         }
         setCart([]);
+        setSelectedFamily(null);
         setOrderMode(true);
         break;
       case 'close_order':
@@ -608,6 +609,7 @@ export default function TableManagement() {
         setCustomerName('');
         setNumPeople('');
         setCart([]);
+        setSelectedFamily(null);
         setShowOpenTableDialog(true);
         break;
       case 'num_people':
@@ -895,9 +897,8 @@ export default function TableManagement() {
   }, [families, subFamilies, products]);
 
   useEffect(() => {
-    if (visibleFamilies.length === 0) return;
-    if (!selectedFamily || !visibleFamilies.some(f => f.id === selectedFamily)) {
-      setSelectedFamily(visibleFamilies[0].id);
+    if (selectedFamily && !visibleFamilies.some(f => f.id === selectedFamily)) {
+      setSelectedFamily(null);
     }
   }, [visibleFamilies, selectedFamily]);
 
