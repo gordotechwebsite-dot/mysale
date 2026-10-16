@@ -155,10 +155,20 @@ const Deliveries: React.FC = () => {
     }
   }, [selectedLocation]);
 
+  const categoriesWithCount = useMemo(() => {
+    return families.map(family => {
+      const familySubIds = subfamilies.filter(sf => sf.family_id === family.id).map(sf => sf.id);
+      const count = products.filter(p => familySubIds.includes(p.subfamily_id)).length;
+      return { ...family, count };
+    }).filter(f => f.count > 0);
+  }, [families, subfamilies, products]);
+
+  const activeFamily = selectedFamily ?? (searchTerm ? null : categoriesWithCount[0]?.id ?? null);
+
   const filteredProducts = useMemo(() => {
     let filtered = products;
-    if (selectedFamily) {
-      const familySubIds = subfamilies.filter(sf => sf.family_id === selectedFamily).map(sf => sf.id);
+    if (activeFamily) {
+      const familySubIds = subfamilies.filter(sf => sf.family_id === activeFamily).map(sf => sf.id);
       filtered = filtered.filter(p => familySubIds.includes(p.subfamily_id));
     }
     if (searchTerm) {
@@ -169,15 +179,7 @@ const Deliveries: React.FC = () => {
       );
     }
     return filtered;
-  }, [searchTerm, products, selectedFamily, subfamilies]);
-
-  const categoriesWithCount = useMemo(() => {
-    return families.map(family => {
-      const familySubIds = subfamilies.filter(sf => sf.family_id === family.id).map(sf => sf.id);
-      const count = products.filter(p => familySubIds.includes(p.subfamily_id)).length;
-      return { ...family, count };
-    }).filter(f => f.count > 0);
-  }, [families, subfamilies, products]);
+  }, [searchTerm, products, activeFamily, subfamilies]);
 
   const loadInitialData = async () => {
     try {
@@ -790,9 +792,9 @@ const Deliveries: React.FC = () => {
                   return (
                     <button
                       key={family.id}
-                      onClick={() => { setSelectedFamily(selectedFamily === family.id ? null : family.id); setSearchTerm(''); }}
+                      onClick={() => { setSelectedFamily(family.id); setSearchTerm(''); }}
                       className={`flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-all ${
-                        selectedFamily === family.id
+                        activeFamily === family.id
                           ? 'bg-purple-100 text-purple-600 border-2 border-purple-400'
                           : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-purple-200 hover:bg-purple-50'
                       }`}
