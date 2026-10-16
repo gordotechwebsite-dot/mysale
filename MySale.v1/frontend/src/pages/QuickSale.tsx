@@ -35,7 +35,6 @@ import {
   Package,
   ChevronLeft,
   Sun,
-  Beef,
   Drumstick,
   Bird,
   UtensilsCrossed,
@@ -48,7 +47,6 @@ import {
   PlusCircle,
   Pizza,
   Sandwich,
-  Cookie,
   IceCream,
   Wheat,
   Fish,
@@ -60,13 +58,14 @@ import {
   Snowflake,
   type LucideIcon
 } from 'lucide-react';
+import { Hamburger, HotDog, Fries, Tortilla } from '../components/FoodIcons';
 import ReceiptTicket from '../components/ReceiptTicket';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 const categoryIconMap: Record<string, LucideIcon> = {
-  'Almuerzo': Sun, 'Hamburguesas': Beef, 'Alitas': Drumstick, 'Boneless': Bird,
-  'Picadas': UtensilsCrossed, 'Pollo Broaster': Flame, 'Perros Calientes': Sandwich,
-  'Salchipapas': Cookie, 'Entradas': Soup, 'Platos Especiales': Star, 'Bebidas': Coffee,
+  'Almuerzo': Sun, 'Hamburguesas': Hamburger, 'Alitas': Drumstick, 'Boneless': Bird,
+  'Picadas': UtensilsCrossed, 'Pollo Broaster': Flame, 'Perros Calientes': HotDog,
+  'Salchipapas': Fries, 'Papitas': Fries, 'Tortillas': Tortilla, 'Sandwich': Sandwich, 'Entradas': Soup, 'Platos Especiales': Star, 'Bebidas': Coffee,
   'Bebidas Calientes': Coffee, 'Bebidas Frías': GlassWater,
   'Menú Infantil': Baby, 'Menu Infantil': Baby, 'Adicionales': PlusCircle, 'Pizzas': Pizza,
   'Postres': CakeSlice, 'Pastelería': Cake, 'Helados': IceCream, 'Raspados': Snowflake,
@@ -124,10 +123,20 @@ const QuickSale: React.FC = () => {
   useEffect(() => { loadInitialData(); }, []);
   useEffect(() => { if (selectedLocation) loadProducts(); }, [selectedLocation]);
 
+  const categoriesWithCount = useMemo(() => {
+    return families.map(family => {
+      const familySubIds = subfamilies.filter(sf => sf.family_id === family.id).map(sf => sf.id);
+      const count = products.filter(p => familySubIds.includes(p.subfamily_id)).length;
+      return { ...family, count };
+    }).filter(f => f.count > 0);
+  }, [families, subfamilies, products]);
+
+  const activeFamily = selectedFamily ?? (searchTerm ? null : categoriesWithCount[0]?.id ?? null);
+
   const filteredProducts = useMemo(() => {
     let filtered = products;
-    if (selectedFamily) {
-      const familySubIds = subfamilies.filter(sf => sf.family_id === selectedFamily).map(sf => sf.id);
+    if (activeFamily) {
+      const familySubIds = subfamilies.filter(sf => sf.family_id === activeFamily).map(sf => sf.id);
       filtered = filtered.filter(p => familySubIds.includes(p.subfamily_id));
     }
     if (searchTerm) {
@@ -138,15 +147,7 @@ const QuickSale: React.FC = () => {
       );
     }
     return filtered;
-  }, [searchTerm, products, selectedFamily, subfamilies]);
-
-  const categoriesWithCount = useMemo(() => {
-    return families.map(family => {
-      const familySubIds = subfamilies.filter(sf => sf.family_id === family.id).map(sf => sf.id);
-      const count = products.filter(p => familySubIds.includes(p.subfamily_id)).length;
-      return { ...family, count };
-    }).filter(f => f.count > 0);
-  }, [families, subfamilies, products]);
+  }, [searchTerm, products, activeFamily, subfamilies]);
 
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const showingCategories = !searchTerm && !selectedFamily;
@@ -669,9 +670,9 @@ const QuickSale: React.FC = () => {
                   return (
                     <button
                       key={family.id}
-                      onClick={() => { setSelectedFamily(selectedFamily === family.id ? null : family.id); setSearchTerm(''); }}
+                      onClick={() => { setSelectedFamily(family.id); setSearchTerm(''); }}
                       className={`flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-all ${
-                        selectedFamily === family.id
+                        activeFamily === family.id
                           ? 'bg-orange-100 text-orange-600 border-2 border-orange-400'
                           : 'bg-white text-gray-600 border-2 border-gray-100 hover:border-orange-200 hover:bg-orange-50'
                       }`}
