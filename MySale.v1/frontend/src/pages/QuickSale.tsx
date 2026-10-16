@@ -96,6 +96,7 @@ const QuickSale: React.FC = () => {
   const [selectedFamily, setSelectedFamily] = useState<number | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
+  const showLocationSelector = canChooseLocation && locations.length > 1;
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [showPayment, setShowPayment] = useState(false);
@@ -164,7 +165,11 @@ const QuickSale: React.FC = () => {
         setSelectedLocation(fixedLocationId);
       } else {
         setLocations(posLocations);
-        setIsLoading(false);
+        if (posLocations.length === 1) {
+          setSelectedLocation(posLocations[0].id);
+        } else {
+          setIsLoading(false);
+        }
       }
     } catch (error) {
       console.error('Error loading locations:', error);
@@ -454,7 +459,7 @@ const QuickSale: React.FC = () => {
   // --- MOBILE VIEW ---
   const MobileView = () => (
     <div className="lg:hidden flex flex-col flex-1 min-h-0">
-      {canChooseLocation && (
+      {showLocationSelector && (
         <div className="px-3 pt-2">
           <Select
             value={selectedLocation?.toString() || ''}
@@ -610,7 +615,7 @@ const QuickSale: React.FC = () => {
     <div className="hidden lg:flex flex-1 min-h-0 flex-col gap-4 overflow-hidden">
       <div className="flex-1 flex gap-4 min-h-0">
         <div className="flex-1 min-w-0 flex flex-col">
-          {canChooseLocation && (
+          {showLocationSelector && (
             <div className="mb-3 flex items-center gap-3">
               <span className="text-sm font-medium text-gray-600">Sede para facturar:</span>
               <Select

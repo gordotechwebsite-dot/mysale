@@ -123,6 +123,7 @@ export default function TableManagement() {
   const [zones, setZones] = useState<ZoneWithTables[]>([]);
   const [selectedZone, setSelectedZone] = useState<number | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
+  const showLocationSelector = canChooseLocation && locations.length > 1;
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
@@ -1308,7 +1309,7 @@ export default function TableManagement() {
   return (
     <div className="h-full flex flex-col bg-gray-50">
       <div className="flex flex-col gap-3 px-3 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-6 lg:py-4 bg-white border-b border-gray-200">
-        {canChooseLocation && (
+        {showLocationSelector && (
           <div className="flex items-center gap-3 lg:gap-4">
             <Select
               value={selectedLocation?.toString() || ''}
