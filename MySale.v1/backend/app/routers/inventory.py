@@ -106,7 +106,7 @@ async def get_groups(
 ):
     query = db.query(Group).filter(Group.is_active == True)
     if current_user.tenant_id:
-        query = query.filter((Group.tenant_id == current_user.tenant_id) | (Group.tenant_id == None))
+        query = query.filter(Group.tenant_id == current_user.tenant_id)
     return query.all()
 
 
@@ -117,11 +117,14 @@ async def create_group(
     current_user: User = Depends(require_role(RoleType.SUPERUSER, RoleType.ADMIN)),
     _module_check: User = Depends(require_module("inventory"))
 ):
-    existing = db.query(Group).filter(Group.name == group.name).first()
+    existing = db.query(Group).filter(Group.name == group.name, Group.tenant_id == current_user.tenant_id).first()
     if existing:
         raise HTTPException(status_code=400, detail="Ya existe un grupo con ese nombre")
     
-    db_group = Group(**group.model_dump())
+    group_data = group.model_dump()
+    if current_user.tenant_id:
+        group_data["tenant_id"] = current_user.tenant_id
+    db_group = Group(**group_data)
     db.add(db_group)
     db.commit()
     db.refresh(db_group)
@@ -154,7 +157,7 @@ async def get_families(
 ):
     query = db.query(Family).filter(Family.is_active == True)
     if current_user.tenant_id:
-        query = query.filter((Family.tenant_id == current_user.tenant_id) | (Family.tenant_id == None))
+        query = query.filter(Family.tenant_id == current_user.tenant_id)
     if group_id:
         query = query.filter(Family.group_id == group_id)
     return query.all()
@@ -171,7 +174,10 @@ async def create_family(
     if not group:
         raise HTTPException(status_code=404, detail="Grupo no encontrado")
     
-    db_family = Family(**family.model_dump())
+    family_data = family.model_dump()
+    if current_user.tenant_id:
+        family_data["tenant_id"] = current_user.tenant_id
+    db_family = Family(**family_data)
     db.add(db_family)
     db.commit()
     db.refresh(db_family)
@@ -204,7 +210,7 @@ async def get_subfamilies(
 ):
     query = db.query(SubFamily).filter(SubFamily.is_active == True)
     if current_user.tenant_id:
-        query = query.filter((SubFamily.tenant_id == current_user.tenant_id) | (SubFamily.tenant_id == None))
+        query = query.filter(SubFamily.tenant_id == current_user.tenant_id)
     if family_id:
         query = query.filter(SubFamily.family_id == family_id)
     return query.all()
@@ -221,7 +227,10 @@ async def create_subfamily(
     if not family:
         raise HTTPException(status_code=404, detail="Familia no encontrada")
     
-    db_subfamily = SubFamily(**subfamily.model_dump())
+    subfamily_data = subfamily.model_dump()
+    if current_user.tenant_id:
+        subfamily_data["tenant_id"] = current_user.tenant_id
+    db_subfamily = SubFamily(**subfamily_data)
     db.add(db_subfamily)
     db.commit()
     db.refresh(db_subfamily)
@@ -258,7 +267,7 @@ async def get_products(
 ):
     query = db.query(Product).filter(Product.is_active == True)
     if current_user.tenant_id:
-        query = query.filter((Product.tenant_id == current_user.tenant_id) | (Product.tenant_id == None))
+        query = query.filter(Product.tenant_id == current_user.tenant_id)
 
     # Un usuario con sede fija siempre ve la carta de su sede
     location_id = scoped_location_id(current_user, location_id)
