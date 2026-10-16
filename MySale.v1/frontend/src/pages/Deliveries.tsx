@@ -341,7 +341,6 @@ const Deliveries: React.FC = () => {
     ? parseFloat(amountReceived) - grandTotal
     : 0;
 
-  const quickAmounts = [50000, 100000, 200000];
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const showingCategories = !selectedFamily && !searchTerm;
 
@@ -900,13 +899,6 @@ const Deliveries: React.FC = () => {
                     style={{ borderRadius: '12px', border: '1px solid #e5e7eb', fontSize: '16px' }}
                     autoFocus
                   />
-                </div>
-                <div className="flex gap-2">
-                  {quickAmounts.map((amt) => (
-                    <Button key={amt} variant="outline" className="flex-1" onClick={() => setAmountReceived(amt.toString())}>
-                      {formatCurrency(amt)}
-                    </Button>
-                  ))}
                 </div>
                 <div className={`bg-green-50 p-3 rounded-lg text-center transition-opacity ${change > 0 ? 'opacity-100' : 'opacity-0 pointer-events-none h-0 p-0 overflow-hidden'}`}>
                   <p className="text-sm text-green-600">Cambio</p>
