@@ -1003,19 +1003,17 @@ def purge_old_notifications():
 
 
 def check_and_suspend_unpaid_tenants():
-    """Suspend tenants who haven't paid by the 6th of the month (Bogota time)."""
+    """Suspend tenants whose paid period ended more than 5 days ago (Bogota time)."""
+    from datetime import timedelta
     from app.timezone import now_colombia
     from app.models.tenant import Tenant, TenantPayment, PaymentStatus
     from sqlalchemy import func
 
     now = now_colombia()
-    if now.day < 6:
-        return
+    grace = timedelta(days=5)
 
     db = SessionLocal()
     try:
-        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-
         active_tenants = db.query(Tenant).filter(
             Tenant.is_active == True,
             Tenant.payment_status.in_([PaymentStatus.ACTIVE, PaymentStatus.PENDING, PaymentStatus.OVERDUE])
@@ -1023,12 +1021,12 @@ def check_and_suspend_unpaid_tenants():
 
         suspended_count = 0
         for tenant in active_tenants:
-            has_payment = db.query(TenantPayment).filter(
-                TenantPayment.tenant_id == tenant.id,
-                TenantPayment.payment_date >= month_start
-            ).first()
+            last_period_end = db.query(func.max(TenantPayment.period_end)).filter(
+                TenantPayment.tenant_id == tenant.id
+            ).scalar()
+            paid_until = max((d for d in (last_period_end, tenant.payment_due_date) if d), default=None)
 
-            if not has_payment:
+            if paid_until and now > paid_until + grace:
                 tenant.payment_status = PaymentStatus.SUSPENDED
                 suspended_count += 1
                 logger.info(f"Tenant '{tenant.name}' (ID:{tenant.id}) suspendido por falta de pago")
