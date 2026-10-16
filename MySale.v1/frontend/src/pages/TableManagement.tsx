@@ -997,7 +997,7 @@ export default function TableManagement() {
                   return (
                     <button
                       key={family.id}
-                      onClick={() => setSelectedFamily(selectedFamily === family.id ? null : family.id)}
+                      onClick={() => setSelectedFamily(family.id)}
                       className={`flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-all ${
                         selectedFamily === family.id
                           ? 'bg-emerald-100 text-emerald-600 border-2 border-emerald-400'
@@ -1973,7 +1973,7 @@ export default function TableManagement() {
                     return (
                       <button
                         key={family.id}
-                        onClick={() => setSelectedFamily(selectedFamily === family.id ? null : family.id)}
+                        onClick={() => setSelectedFamily(family.id)}
                         className={`flex flex-col items-center justify-center gap-1 py-2 rounded-2xl transition-all ${
                           selectedFamily === family.id
                             ? 'bg-emerald-100 text-emerald-600 border-2 border-emerald-400'
