@@ -26,6 +26,7 @@ const Cash: React.FC = () => {
   const { user } = useAuth();
   const canChooseLocation = canSelectLocation(user);
   const [locations, setLocations] = useState<Location[]>([]);
+  const showLocationSelector = canChooseLocation && locations.length > 1;
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [openTickets, setOpenTickets] = useState<Ticket[]>([]);
@@ -234,7 +235,7 @@ const Cash: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {canChooseLocation && (
+          {showLocationSelector && (
             <Select
               value={selectedLocation?.toString() || ''}
               onValueChange={v => setSelectedLocation(parseInt(v))}
