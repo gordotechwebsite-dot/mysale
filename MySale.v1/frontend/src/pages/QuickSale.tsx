@@ -319,7 +319,6 @@ const QuickSale: React.FC = () => {
   };
 
   const change = paymentMethod === 'cash' && amountReceived ? parseFloat(amountReceived) - total : 0;
-  const quickAmounts = [50000, 100000, 200000];
 
   // Shared cart/checkout panel
   const cartPanel = (
@@ -809,13 +808,6 @@ const QuickSale: React.FC = () => {
                     style={{ fontSize: '16px' }}
                     autoFocus
                   />
-                </div>
-                <div className="flex gap-2">
-                  {quickAmounts.map((amount) => (
-                    <Button key={amount} variant="outline" className="flex-1" onClick={() => setAmountReceived(amount.toString())}>
-                      {formatCurrency(amount)}
-                    </Button>
-                  ))}
                 </div>
                 <Button variant="outline" className="w-full" onClick={() => setAmountReceived(total.toString())}>
                   Monto Exacto

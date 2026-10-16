@@ -257,7 +257,6 @@ const POS: React.FC = () => {
     ? parseFloat(amountReceived) - total 
     : 0;
 
-  const quickAmounts = [50000, 100000, 200000];
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const showingCategories = !selectedFamily && !searchTerm;
 
@@ -647,20 +646,6 @@ const POS: React.FC = () => {
                     onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
                     autoFocus
                   />
-                </div>
-                <div className="flex gap-2">
-                  {quickAmounts.map((amount) => (
-                    <button
-                      key={amount}
-                      className="flex-1 h-9 lg:h-10 text-xs lg:text-sm font-medium transition-all duration-200"
-                      style={{ borderRadius: '10px', border: '1px solid #e5e7eb', backgroundColor: 'white', color: '#111827' }}
-                      onClick={() => setAmountReceived(amount.toString())}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#00a86b'; (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0, 168, 107, 0.05)'; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb'; (e.currentTarget as HTMLElement).style.backgroundColor = 'white'; }}
-                    >
-                      {formatCurrency(amount)}
-                    </button>
-                  ))}
                 </div>
                 <button
                   className="w-full h-9 lg:h-10 text-xs lg:text-sm font-medium transition-all duration-200"
