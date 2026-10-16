@@ -37,7 +37,6 @@ import {
   CakeSlice,
   Snowflake,
   Sandwich,
-  Cookie,
   Flame,
   Drumstick,
   Bird,
@@ -53,21 +52,24 @@ import {
   Egg,
   Apple,
   Sun,
-  Beef,
   type LucideIcon
 } from 'lucide-react';
+import { Hamburger, HotDog, Fries, Tortilla } from '../components/FoodIcons';
 import ReceiptTicket from '../components/ReceiptTicket';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 const categoryIconMap: Record<string, LucideIcon> = {
   'Almuerzo': Sun,
-  'Hamburguesas': Beef,
+  'Hamburguesas': Hamburger,
   'Alitas': Drumstick,
   'Boneless': Bird,
   'Picadas': UtensilsCrossed,
   'Pollo Broaster': Flame,
-  'Perros Calientes': Sandwich,
-  'Salchipapas': Cookie,
+  'Perros Calientes': HotDog,
+  'Salchipapas': Fries,
+  'Papitas': Fries,
+  'Tortillas': Tortilla,
+  'Sandwich': Sandwich,
   'Entradas': Soup,
   'Platos Especiales': Star,
   'Bebidas': Coffee,

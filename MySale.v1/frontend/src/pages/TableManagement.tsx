@@ -63,7 +63,6 @@ import {
   Package,
   ShoppingCart,
   Sun,
-  Beef,
   Drumstick,
   Bird,
   UtensilsCrossed,
@@ -76,7 +75,6 @@ import {
   PlusCircle,
   Pizza,
   Sandwich,
-  Cookie,
   IceCream,
   Wheat,
   Fish,
@@ -84,13 +82,14 @@ import {
   Apple,
   type LucideIcon
 } from 'lucide-react';
+import { Hamburger, HotDog, Fries, Tortilla } from '../components/FoodIcons';
 import TableReceiptTicket from '../components/TableReceiptTicket';
 import PrecheckTicket from '../components/PrecheckTicket';
 
 const categoryIconMap: Record<string, LucideIcon> = {
-  'Almuerzo': Sun, 'Hamburguesas': Beef, 'Alitas': Drumstick, 'Boneless': Bird,
-  'Picadas': UtensilsCrossed, 'Pollo Broaster': Flame, 'Perros Calientes': Sandwich,
-  'Salchipapas': Cookie, 'Entradas': Soup, 'Platos Especiales': Star, 'Bebidas': Coffee,
+  'Almuerzo': Sun, 'Hamburguesas': Hamburger, 'Alitas': Drumstick, 'Boneless': Bird,
+  'Picadas': UtensilsCrossed, 'Pollo Broaster': Flame, 'Perros Calientes': HotDog,
+  'Salchipapas': Fries, 'Papitas': Fries, 'Tortillas': Tortilla, 'Sandwich': Sandwich, 'Entradas': Soup, 'Platos Especiales': Star, 'Bebidas': Coffee,
   'Menú Infantil': Baby, 'Menu Infantil': Baby, 'Adicionales': PlusCircle, 'Pizzas': Pizza,
   'Postres': IceCream, 'Ensaladas': Salad, 'Panadería': Wheat, 'Pescados': Fish,
   'Desayunos': Egg, 'Frutas': Apple, 'Comidas': UtensilsCrossed,
